@@ -25,7 +25,7 @@ class KalmanFilter:
         self.x_hat_minus = np.zeros((2,1))
         #print("ERROR: ", self.x_hat, self.x_hat_minus)
 
-        self.P, self.P_minus = np.zeros((2,2))
+        self.P, self.P_minus = np.ones((2,2))
 
     def predict(self, measurement):
         self.x_hat_minus = np.dot(self.A,self.x_hat_minus)
@@ -38,7 +38,7 @@ class KalmanFilter:
         return self.x_hat
 
 #print(np.zeros((3,2)))
-
+"""
 def main():
     
     N = 10
@@ -53,5 +53,6 @@ def main():
         print(kf.get_current_guess())
 
 main()
+"""
 
 
