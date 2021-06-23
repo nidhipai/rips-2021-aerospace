@@ -3,37 +3,34 @@ import DataGenerator
 
 
 class DumbTruck(DataGenerator.DataGenerator):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, xt0, n, dt, ep, nu, k):
+        super().__init__(xt0, n, dt, ep, nu)
+        self.k = k
 
-    def process_step(self, xt_prev, dt, k, ep):
+    def process_step(self, xt_prev):
         """
         Generate the next process state from the previous
         :param xt_prev: Previous process state
-        :param dt: Time step
-        :param k: Coefficient of friction
-        :param ep: Variance of process error
         :return: State vector of next step in the process
         """
-        return xt_prev + dt*(np.matmul(np.array([[0, 1], [0, -k]]), xt_prev) + self.process_noise(ep))
+        return xt_prev + self.dt*(np.matmul(np.array([[0, 1], [0, -self.k]]), xt_prev) + self.process_noise())
 
-    def measure_step(self, xt, nu):
+    def measure_step(self, xt):
         """
         Generate the next measure from the current process state vector
         :param xt: Current state vector
-        :param nu: Measurement variance
         :return: State vector representing measure at the current process state
         """
-        return xt + self.measure_noise(nu)
+        return xt + self.measure_noise()
 
-    def process_noise(self, ep):
+    def process_noise(self):
         """
         Generate process noise
         """
-        return np.array([[0], [np.random.normal(scale=np.sqrt(ep))]])
+        return np.array([[0], [np.random.normal(scale=np.sqrt(self.ep))]])
 
-    def measure_noise(self, nu):
+    def measure_noise(self):
         """
         Generate measurement noise
         """
-        return np.array([[np.random.normal(scale=nu)], [np.random.normal(scale=np.sqrt(nu))]])
+        return np.array([[np.random.normal(scale=self.nu)], [np.random.normal(scale=np.sqrt(self.nu))]])
