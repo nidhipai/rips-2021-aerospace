@@ -7,7 +7,7 @@ class DumbTruck(DataGenerator.DataGenerator):
         super().__init__()
 
     def process_step(self, xt_prev, dt, k, ep):
-        return xt_prev + np.matmul(np.array([[0, 1], [0, k]]), xt_prev) + self.process_noise(ep)
+        return xt_prev + np.matmul(np.array([[0, 1], [0, -k]]), xt_prev) + self.process_noise(ep)
 
     def measure_step(self, xt, dt, k, ep, nu):
         return xt + self.measure_noise(nu)
