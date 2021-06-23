@@ -37,7 +37,7 @@ class KalmanFilter:
         self.P_minus = np.dot(np.dot(self.A,self.P),self.A.T) + self.Q
         self.K = np.dot(self.P_minus,linalg.inv(self.P_minus + self.R))
         self.x_hat = self.x_hat_minus + np.dot(self.K,(measurement - self.x_hat_minus))
-        self.P = np.dot((np.eye(2,2)- self.K),self.P_minus)
+        self.P = np.dot((np.eye(self.n,self.n)- self.K),self.P_minus)
 
     #Return current a posteriori estimate
     def get_current_guess(self):
