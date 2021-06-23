@@ -2,67 +2,64 @@ import numpy as np
 
 
 class DataGenerator:
-    def __init__(self):
-        pass
+    def __init__(self, xt0, n, dt, ep, nu):
+        """
+        Create an object to store the different aspects of the system being generated
+        :param xt0:  Initial values of the state
+        :param n: Number of time points to simulate
+        :param dt: Number of seconds between time points
+        :param ep: Variance of process noise
+        :param nu: Variance of measure noise
+        """
+        self.xt0 = xt0
+        self.n = n
+        self.dt = dt
+        self.ep = ep
+        self.nu = nu
 
-    def process(self, xt_initial, t, dt, k, ep):
+    def process(self):
         """
         Generate the process data over the specified number of time points
-
-        :param xt_initial: Initial values of the state
-        :param t: Number of time points to simulate
-        :param dt: Number of seconds between time points
-        :param k: Coefficient of friction
-        :param ep: Variance of process noise
-        :return: a matrix with each column a state vector at the nth point in time
+        :return: A matrix with each column a state vector representing the process at each time step
         """
-        output = xt_initial
-        xt = xt_initial
-        for i in range(t):
-            xt = self.process_step(xt, dt, k, ep)
+        output = self.xt0
+        xt = self.xt0
+        for i in range(self.n):
+            xt = self.process_step(xt)
             output = np.append(output, xt, axis=1)
         return output
 
-    def measure(self, process_result, nu):
+    def measure(self, proc_result):
         """
         Generate a dataset of measurements given an underlying process dataset
-
-        :param process_result: A matrix with each column a state vector at each time step
-        :param nu: Variance of the measurement error
+        :param proc_result: A matrix with each column a state vector at each time step
         :return: A matrix with each column a state vector measurement at each time step
         """
         output = np.array([[], []])
-        for i in range(process_result.shape[1]):
-            proc = process_result[:,i]
-            proc.shape = (2,1)
-            xt_measure = self.measure_step(proc, nu)
+        for i in range(proc_result.shape[1]):
+            proc = proc_result[:, i]
+            proc.shape = (2, 1)
+            xt_measure = self.measure_step(proc)
             output = np.append(output, xt_measure, axis=1)
         return output
 
-    def process_measure(self, xt_initial, t, dt, k, ep, nu):
+    def process_measure(self):
         """
         First generate a process, and then generate a dataset of measurements given an underlying process dataset
-
-        :param xt_initial: Initial values of the state
-        :param t: Number of time points to simulate
-        :param dt: Number of seconds between time points
-        :param k: Coefficient of friction
-        :param ep: Variance of process noise
-        :param nu: Variance of the measurement error
         :return: A matrix with each column a state vector measurement at each time step
         """
-        output = self.process(xt_initial, t, dt, k, ep)
-        output = self.measure(output, nu)
+        output = self.process()
+        output = self.measure(output)
         return output
 
-    def process_step(self, xt_prev, dt, k, ep):
+    def process_step(self, xt_prev):
         pass
 
-    def measure_step(self, xt_prev, nu):
+    def measure_step(self, xt_prev):
         pass
 
-    def process_noise(self, ep):
+    def process_noise(self):
         pass
 
-    def measure_noise(self, nu):
+    def measure_noise(self):
         pass
