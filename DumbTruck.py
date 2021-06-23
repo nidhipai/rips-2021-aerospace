@@ -16,4 +16,4 @@ class DumbTruck(DataGenerator.DataGenerator):
         return np.array([[0], [np.random.normal(scale=ep)]])
 
     def measure_noise(self, nu):
-        return np.array([[0], [np.random.normal(scale=nu)]])
+        return np.array([[np.random.normal(scale=nu)], [np.random.normal(scale=nu)]])
