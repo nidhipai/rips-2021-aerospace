@@ -6,6 +6,16 @@ class DataGenerator:
         pass
 
     def process(self, xt_initial, t, dt, k, ep):
+        """
+        Generate the process data over the specified number of time points
+
+        :param xt_initial: Initial values of the state
+        :param t: Number of time points to simulate
+        :param dt: Number of seconds between time points
+        :param k: Coefficient of friction
+        :param ep: Variance of process noise
+        :return: a matrix with each column a state vector at the nth point in time
+        """
         output = xt_initial
         xt = xt_initial
         for i in range(t):
@@ -14,6 +24,13 @@ class DataGenerator:
         return output
 
     def measure(self, process_result, nu):
+        """
+        Generate a dataset of measurements given an underlying process dataset
+
+        :param process_result: A matrix with each column a state vector at each time step
+        :param nu: Variance of the measurement error
+        :return: A matrix with each column a state vector measurement at each time step
+        """
         output = np.array([[], []])
         for i in range(process_result.shape[1]):
             proc = process_result[:,i]
@@ -23,6 +40,17 @@ class DataGenerator:
         return output
 
     def process_measure(self, xt_initial, t, dt, k, ep, nu):
+        """
+        First generate a process, and then generate a dataset of measurements given an underlying process dataset
+
+        :param xt_initial: Initial values of the state
+        :param t: Number of time points to simulate
+        :param dt: Number of seconds between time points
+        :param k: Coefficient of friction
+        :param ep: Variance of process noise
+        :param nu: Variance of the measurement error
+        :return: A matrix with each column a state vector measurement at each time step
+        """
         output = self.process(xt_initial, t, dt, k, ep)
         output = self.measure(output, nu)
         return output
