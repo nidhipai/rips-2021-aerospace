@@ -1,35 +1,36 @@
-#Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
-#Aerospace Team
-#Kalman Filter - Discrete
+"""
+Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
+Aerospace Team
+Kalman Filter - Discrete
+"""
 
 import numpy as np
 import numpy.linalg as linalg
 
-#Kalman Filter class
+
 class KalmanFilter:
+    def __init__(self, x_hat0, A, R, Q, H=None, B=0, u=0):
+        self.A = A  # state-transition matrix
+        self.Q = Q  # process noise covariance
+        self.R = R  # measurement noise covariance
 
-    def __init__(self, x_hat0, A, R, Q, H = None, B = None, u = None):
-        self.n = x_hat0.shape[0] #dimension of x
+        # calculate dimension of x
+        self.n = x_hat0.shape[0]
 
-        #state-transition matrix
-        self.A = A
-
+        #Set default H if it is not defined
         if H is None:
-            self.H = np.eye(n, n)
+            self.H = np.eye(self.n, self.n)
         else:
-            self.H = H                           #observation model (identity for now)
-        self.Q = Q #process noise covariance
-        self.R = R #measurement noise covariance
-
-        self.x_hat = x_hat0         #set a priori estimate to initial guess
-        self.x_hat_minus = x_hat0   #set a posteriori estimate to initial guess
-
-        #set a priori and a posteriori estimate error covariances to all ones (not all zeros)
-        self.P, self.P_minus = np.ones((n,n))
+            self.H = H
 
         if B is not None:
             self.B = B
             self.u = u
+
+        # set a priori and a posteriori estimate error covariances to all ones (not all zeros)
+        self.P, self.P_minus = np.ones((self.n, self.n))
+        self.x_hat = x_hat0  # set a priori estimate to initial guess
+        self.x_hat_minus = x_hat0  # set a posteriori estimate to initial guess
 
     #Update a posteriori estimate based on a priori estimate and measurement
     def predict(self, measurement):
