@@ -2,7 +2,7 @@ import numpy as np
 
 
 class DataGenerator:
-    def __init__(self, xt0, ts, dt, ep, nu):
+    def __init__(self, xt0, ts, dt, Q, R):
         """
         Create an object to store the different aspects of the system being generated
         :param xt0:  Initial values of the state
@@ -14,8 +14,8 @@ class DataGenerator:
         self.xt0 = xt0
         self.ts = ts
         self.dt = dt
-        self.ep = ep
-        self.nu = nu
+        self.Q = Q
+        self.R = R
         self.n = xt0.shape[0]
 
     def process(self):
