@@ -43,7 +43,7 @@ class SmartTruck(DataGenerator.DataGenerator):
         """
         Generate process noise
         """
-        v_noise = np.random.normal(np.diag(self.Q))
+        v_noise = np.random.normal(np.zeros(self.n), np.diag(self.Q))
         v_noise.shape = (self.n, 1)
         return v_noise
 
