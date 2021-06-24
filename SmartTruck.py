@@ -6,15 +6,18 @@ class SmartTruck(DataGenerator.DataGenerator):
     def __init__(self, xt0, ts, dt, ep_mag, ep_dir, nu):
         self.n = xt0.shape[0]
 
-        th = 2*np.pi*ep_dir
-        pk = np.ones(self.n//2)*ep_mag
+
+
+        th = 2*np.pi*np.sqrt(ep_dir)
+        pk = np.ones(self.n//2)*np.sqrt(ep_mag)
         for i in range((self.n//2)-1):
             for j in range(i-1):
                 pk[i] = pk[i]*np.sin(th[j])
             pk[i] = pk[i]*np.cos(th[i])
-        for j in range(self.n-1):
-            pk[self.n//2] = pk[self.n//2] * np.sin(th[j])
+        for j in range((self.n)//2-2):
+            pk[(self.n//2)-1] = pk[(self.n//2)-1] * np.sin(th[j])
 
+        pk = np.power(pk, 2)
         Q = np.diag(pk)
         R = np.eye(self.n)*nu
         super().__init__(xt0, ts, dt, Q, R)
@@ -43,7 +46,8 @@ class SmartTruck(DataGenerator.DataGenerator):
         """
         Generate process noise
         """
-        v_noise = np.random.normal(np.zeros(self.n // 2), np.diag(self.R))
+        v_noise = np.random.normal(np.zeros(self.n // 2), np.diag(self.Q))
+        v_noise.shape = (self.n // 2, 1)
         return np.append(np.zeros((self.n // 2, 1)), v_noise, axis=0)
 
     def measure_noise(self):
