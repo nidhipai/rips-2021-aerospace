@@ -46,7 +46,7 @@ class KalmanFilter:
             self.P = (np.eye(self.n,self.n) - self.K @ self.H) @ self.P_minus
 
         #The extended Kalman Filter
-        elif type == "extended":
+        elif self.method == "extended":
             self.x_hat_minus = f(self.x_hat)
             self.P_minus = self.A @self.P@self.A.T+ self.Q
             self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
