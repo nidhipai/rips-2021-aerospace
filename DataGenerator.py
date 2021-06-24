@@ -2,7 +2,7 @@ import numpy as np
 
 
 class DataGenerator:
-    def __init__(self, xt0, n, dt, ep, nu):
+    def __init__(self, xt0, ts, dt, ep, nu):
         """
         Create an object to store the different aspects of the system being generated
         :param xt0:  Initial values of the state
@@ -12,10 +12,11 @@ class DataGenerator:
         :param nu: Variance of measure noise
         """
         self.xt0 = xt0
-        self.n = n
+        self.ts = ts
         self.dt = dt
         self.ep = ep
         self.nu = nu
+        self.n = xt0.shape[0]
 
     def process(self):
         """
@@ -24,7 +25,7 @@ class DataGenerator:
         """
         output = self.xt0
         xt = self.xt0
-        for i in range(self.n):
+        for i in range(self.ts):
             xt = self.process_step(xt)
             output = np.append(output, xt, axis=1)
         return output
@@ -35,13 +36,13 @@ class DataGenerator:
         :param proc_result: A matrix with each column a state vector at each time step
         :return: A matrix with each column a state vector measurement at each time step
         """
-        output = np.array([[], []])
+        output = np.empty((self.n//2, 1))
         for i in range(proc_result.shape[1]):
             proc = proc_result[:, i]
-            proc.shape = (2, 1)
+            proc.shape = (self.n, 1)
             xt_measure = self.measure_step(proc)
             output = np.append(output, xt_measure, axis=1)
-        return output
+        return output[:,1:]
 
     def process_measure(self):
         """
