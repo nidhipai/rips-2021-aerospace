@@ -16,7 +16,7 @@ class SmartTruck(DataGenerator.DataGenerator):
 
         pk = np.power(pk, 2)
         Q = np.diag(np.append(np.zeros(self.n//2), pk.T))
-        R = np.eye(self.n)*nu
+        R = np.eye(self.n//2)*nu
         super().__init__(xt0, ts, dt, Q, R)
         self.H = np.append(np.eye(self.n//2), np.zeros((self.n//2, self.n//2)), axis=1)
         self.A = np.append(np.append(np.eye(self.n//2), np.eye(self.n//2)*self.dt, axis=1), np.append(np.zeros((self.n//2,self.n//2)), np.eye(self.n//2), axis=1), axis=0)
