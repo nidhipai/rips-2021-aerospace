@@ -4,6 +4,15 @@ import DataGenerator
 
 class SmartTruck(DataGenerator.DataGenerator):
     def __init__(self, xt0, ts, dt, ep_mag, ep_dir, nu):
+        """
+        Constructor for the SmartTruck Data Generator.
+        :param xt0: Initial state vector
+        :param ts: Time step
+        :param dt: Length of one single time step
+        :param ep_mag: Variance of the magnitude of the change in velocity
+        :param ep_dir: Variance of the direction of the change in velocity. Specify as n-1 dimensional vector for n dimensional simulation.
+        :param nu: Variance of the measurement noise
+        """
         self.n = xt0.shape[0]
         th = 2*np.pi*np.sqrt(ep_dir)
         pk = np.ones(self.n//2)*np.sqrt(ep_mag)
@@ -52,3 +61,13 @@ class SmartTruck(DataGenerator.DataGenerator):
         Generate measurement noise
         """
         return np.random.normal(scale=self.nu, size=(self.n // 2, 1))
+
+    def process_function(self, xt):
+        return self.A @ xt
+
+    def process_jacobian(self, xt):
+        return self.A
+
+    def measurement_jacobian(self, xt):
+        return self.H
+
