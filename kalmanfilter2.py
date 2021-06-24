@@ -53,6 +53,12 @@ class KalmanFilter:
 
         #The extended Kalman Filter
         elif self.method == "extended":
+            self.x_hat_minus = f(self.x_hat)
+            self.P_minus = self.A @self.P@self.A.T+ self.Q
+            self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
+            self.x_hat = self.x_hat_minus + self.K@(measurement - h(x_hat_minus))
+            self.P = (np.eye(self.n,self.n) - self.K @ self.H) @ self.P_minus
+
             if measurement == 'none':
                 self.x_hat_minus = self.f(self.x_hat)
                 self.P_minus = self.A @self.P@self.A.T+ self.Q
@@ -63,6 +69,7 @@ class KalmanFilter:
                 self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
                 self.x_hat = self.x_hat_minus + self.K@(measurement - self.h(self.x_hat_minus))
                 self.P = (np.eye(self.n,self.n) - self.K @ self.H) @ self.P_minus
+
 
     #Return current a posteriori estimate
     def get_current_guess(self):
