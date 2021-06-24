@@ -7,7 +7,6 @@ Kalman Filter - Discrete
 import numpy as np
 import numpy.linalg as linalg
 
-
 class KalmanFilter:
     def __init__(self, x_hat0, A, Q, R, H=None, B=0, u=0):
         self.A = A  # state-transition matrix
@@ -34,15 +33,19 @@ class KalmanFilter:
         self.x_hat_minus = x_hat0  # set a posteriori estimate to initial guess
 
     #Update a posteriori estimate based on a priori estimate and measurement
-    def predict(self, measurement):
-        self.x_hat_minus = self.A @self.x_hat
-        self.P_minus = self.A @self.P@self.A.T+ self.Q
-        self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
-        self.x_hat = self.x_hat_minus + self.K@(measurement - (self.H@self.x_hat_minus))
-        self.P = (np.eye(self.n,self.n) - self.K @ self.H) @ self.P_minus
+    def predict(self, measurement = 'none'):
+        if measurement == 'none':
+            self.x_hat_minus = self.A @self.x_hat
+            self.P_minus = self.A @self.P@self.A.T+ self.Q
+            self.x_hat = self.x_hat_minus + self.K@(measurement - (self.H@self.x_hat_minus))
+        else:
+            self.x_hat_minus = self.A @self.x_hat
+            self.P_minus = self.A @self.P@self.A.T+ self.Q
+            self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
+            self.x_hat = self.x_hat_minus + self.K@(measurement - (self.H@self.x_hat_minus))
+            self.P = (np.eye(self.n,self.n) - self.K @ self.H) @ self.P_minus
 
     #Return current a posteriori estimate
     def get_current_guess(self):
         return self.x_hat
-
 
