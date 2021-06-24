@@ -3,10 +3,24 @@ import DataGenerator
 
 
 class SmartTruck(DataGenerator.DataGenerator):
-    def __init__(self, xt0, ts, dt, ep, nu):
-        super().__init__(xt0, ts, dt, ep, nu)
-        self.H = np.append(np.eye(self.n//2), np.zeros((self.n//2,self.n//2)), axis = 1)
+    def __init__(self, xt0, ts, dt, ep_mag, ep_dir, nu):
+        self.n = xt0.shape[0]
+
+        th = 2*pi*ep_dir
+        pk = np.ones(n//2)*ep_mag
+        for i in range((n//2)-1):
+            for j in range(i-1):
+                pk[i] = pk[i]*np.sin(th[j])
+            pk[i] = pk[i]*np.cos(th[i])
+        for j in range(n-1):
+            pk[n//2] = pk[n//2] * np.sin(th[j])
+
+        Q = np.diag(pk)
+        R = np.eye(n)*nu
+        super().__init__(xt0, ts, dt, Q, R)
+        self.H = np.append(np.eye(self.n//2), np.zeros((self.n//2,self.n//2)), axis=1)
         self.A = np.append(np.append(np.eye(self.n//2), np.eye(self.n//2)*self.dt, axis=1), np.append(np.zeros((self.n//2,self.n//2)), np.eye(self.n//2), axis=1), axis=0)
+
 
 
     def process_step(self, xt_prev):
@@ -29,7 +43,8 @@ class SmartTruck(DataGenerator.DataGenerator):
         """
         Generate process noise
         """
-        return np.append(np.zeros((self.n // 2, 1)), np.random.normal(scale=self.ep, size=(self.n // 2, 1)), axis=0)
+        v_noise = np.random.normal(np.zeros(n // 2), np.diag(R))
+        return np.append(np.zeros((self.n // 2, 1)), v_noise, axis=0)
 
     def measure_noise(self):
         """

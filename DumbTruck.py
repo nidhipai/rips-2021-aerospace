@@ -4,8 +4,12 @@ import DataGenerator
 
 class DumbTruck(DataGenerator.DataGenerator):
     def __init__(self, xt0, ts, dt, ep, nu, k):
-        super().__init__(xt0, ts, dt, ep, nu)
+        Q = np.eye(2) * ep
+        R = np.eye(2) * nu
+        super().__init__(xt0, ts, dt, Q, R)
         self.k = k
+        self.ep = ep
+        self.nu = nu
 
     def process_step(self, xt_prev):
         """
