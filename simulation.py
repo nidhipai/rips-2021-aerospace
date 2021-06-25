@@ -21,6 +21,7 @@ class Simulation:
 		self.seed_value = seed_value
 		self.generator = generator
 		self.kFilter = kFilter
+		self.kFilter_model = None
 		self.n = generator.n
 		self.processes = dict()
 		self.measures = dict()
@@ -42,7 +43,7 @@ class Simulation:
 		self.measures[len(self.measures.keys())] = self.generator.measure(process)
 
 	def predict(self, index=None, x0=None, Q=None, R=None, H=None, u=None):
-		output = np.empty((self.n * 2, 1))
+		output = np.empty((self.n, 1))
 		# if any necessary variables for the filter have not been defined, assume we know them exactly
 		if x0 is None:
 			x0 = self.generator.xt0
@@ -55,17 +56,17 @@ class Simulation:
 		if index is None:
 			index = len(self.measures.keys())-1
 
-		f = self.generator.process_function()
-		jac = self.generator.process_jacobian()
-		h = self.generator.measurement_function()
+		f = self.generator.process_function
+		jac = self.generator.process_jacobian
+		h = self.generator.measurement_function
 
-		kfilter_model = self.kFilter(x0, f, jac, h, Q, R, H, u)
+		self.kFilter_model = self.kFilter(x0, f, jac, h, Q, R, H, u)
 
 		for i in range(self.generator.ts):
 			measure_t = self.measures[index][:, i]
-			measure_t.shape = (self.n, 1)
-			self.kfilter.predict(measure_t)
-			kalman_output = self.kfilter.get_current_guess()
+			measure_t.shape = (self.n//2, 1)
+			self.kFilter_model.predict(measure_t)
+			kalman_output = self.kFilter_model.get_current_guess()
 			output = np.append(output, kalman_output, axis=1)
 		self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
 

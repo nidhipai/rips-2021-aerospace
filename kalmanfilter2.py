@@ -10,7 +10,7 @@ import numpy.linalg as linalg
 class KalmanFilter:
     def __init__(self, x_hat0, f, A, h, Q, R, H=None, u=0):
         """
-
+        Initialize the Extended Kalman Filter object
         :param x_hat0: initial state vector
         :param f: function representing the process
         :param A: Jacobian matrix of the process function
@@ -47,8 +47,9 @@ class KalmanFilter:
     def predict(self, measurement=None):
         #The extended Kalman Filter
         self.x_hat_minus = self.f(self.x_hat, self.u)
-        self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T+ self.Q
+        self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
         self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
+
         self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
         self.P = (np.eye(self.n,self.n) - self.K @ self.H) @ self.P_minus
 
@@ -57,11 +58,11 @@ class KalmanFilter:
             self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P@self.A(self.x_hat_minus, self.u).T+ self.Q
             self.x_hat = self.x_hat_minus
         else:
-            self.x_hat_minus = self.f(self.x_hat)
-            self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T+ self.Q
+            self.x_hat_minus = self.f(self.x_hat, self.u)
+            self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
             self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
             self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
-            self.P = (np.eye(self.n,self.n) - self.K @ self.H) @ self.P_minus
+            self.P = (np.eye(self.n, self.n) - self.K @ self.H) @ self.P_minus
 
     #Return current a posteriori estimate
     def get_current_guess(self):
