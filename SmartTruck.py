@@ -14,19 +14,10 @@ class SmartTruck(DataGenerator.DataGenerator):
         :param nu: Variance of the measurement noise
         """
         self.n = xt0.shape[0]
-        th = 2*np.pi*np.sqrt(ep_dir)
-        pk = np.ones(self.n//2)*np.sqrt(ep_mag)
 
-        for i in range((self.n//2)-1):
-            for j in range(i-1):
-                pk[i] *= np.sin(th[j])
-            pk[i] *= np.cos(th[i])
-        for j in range(self.n//2-1):
-            pk[(self.n//2)-1] *= np.sin(th[j])
-
-        pk = np.power(pk, 2)
-        Q = np.diag(np.append(np.zeros(self.n//2), pk.T))
+        Q = np.diag(np.append(np.zeros(self.n//2), np.append(np.array([ep_mag]), np.array(ep_dir))))
         R = np.eye(self.n//2)*nu
+
         super().__init__(xt0, ts, dt, Q, R)
         self.H = np.append(np.eye(self.n//2), np.zeros((self.n//2, self.n//2)), axis=1)
         self.A = np.append(np.append(np.eye(self.n//2), np.eye(self.n//2)*self.dt, axis=1), np.append(np.zeros((self.n//2,self.n//2)), np.eye(self.n//2), axis=1), axis=0)
@@ -53,9 +44,20 @@ class SmartTruck(DataGenerator.DataGenerator):
         """
         Generate process noise
         """
-        v_noise = np.random.normal(np.zeros(self.n), np.diag(self.Q))
-        v_noise.shape = (self.n, 1)
-        return v_noise
+        n2 = self.n // 2
+
+        th = 2 * np.pi * np.random.normal(np.zeros(n2), np.diag(self.Q)[(n2 + 1):self.n])
+        pk = np.ones((n2) - 1) * np.random.normal(np.zeros(n2), np.diag(self.Q)[n2])
+
+        for i in range((n2) - 1):
+            for j in range(i - 1):
+                pk[i] *= np.sin(th[j])
+            pk[i] *= np.cos(th[i])
+        for j in range(n2 - 1):
+            pk[(n2) - 1] *= np.sin(th[j])
+        output = np.append(np.zeros(n2), pk)
+        output.shape = (self.n, 1)
+        return output
 
     def measure_noise(self):
         """
@@ -70,7 +72,7 @@ class SmartTruck(DataGenerator.DataGenerator):
         return self.A
 
     def measurement_function(self, xt):
-        return self.process_function(self, xt)
+        return self.process_function(xt, 0)[:self.n//2]
 
     def measurement_jacobian(self, xt):
         return self.H
