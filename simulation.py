@@ -87,7 +87,7 @@ class Simulation:
 			plt.title(title)
 			plt.xlabel(y_label)
 			plt.ylabel(x_label)
-			plt.legend(["Process", "Measure", "Filter"])
+			plt.legend(["Process", "Filter", "Measure"])
 			plt.show()
 		elif self.n//2 == 3:
 			ax = plt.axes(projection='3d')
@@ -97,7 +97,7 @@ class Simulation:
 			ax.set_xlabel(x_label)
 			ax.set_ylabel(y_label)
 			ax.set_zlabel(z_label)
-			plt.legend(["Process", "Measure", "Filter"])
+			plt.legend(["Process", "Filter", "Measure"])
 			plt.show()
 		else:
 			print("Number of dimensions cannot be graphed.")
