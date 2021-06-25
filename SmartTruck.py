@@ -16,12 +16,13 @@ class SmartTruck(DataGenerator.DataGenerator):
         self.n = xt0.shape[0]
         th = 2*np.pi*np.sqrt(ep_dir)
         pk = np.ones(self.n//2)*np.sqrt(ep_mag)
+
         for i in range((self.n//2)-1):
             for j in range(i-1):
-                pk[i] = pk[i]*np.sin(th[j])
-            pk[i] = pk[i]*np.cos(th[i])
-        for j in range((self.n)//2-2):
-            pk[(self.n//2)-1] = pk[(self.n//2)-1] * np.sin(th[j])
+                pk[i] *= np.sin(th[j])
+            pk[i] *= np.cos(th[i])
+        for j in range(self.n//2-1):
+            pk[(self.n//2)-1] *= np.sin(th[j])
 
         pk = np.power(pk, 2)
         Q = np.diag(np.append(np.zeros(self.n//2), pk.T))
