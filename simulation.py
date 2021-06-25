@@ -21,6 +21,7 @@ class Simulation:
 		self.seed_value = seed_value
 		self.generator = generator
 		self.kFilter = kFilter
+		self.kFilter_model = None
 		self.n = generator.n
 		self.processes = dict()
 		self.measures = dict()
@@ -42,7 +43,7 @@ class Simulation:
 		self.measures[len(self.measures.keys())] = self.generator.measure(process)
 
 	def predict(self, index=None, x0=None, Q=None, R=None, H=None, u=None):
-		output = np.empty((self.n * 2, 1))
+		output = np.empty((self.n, 1))
 		# if any necessary variables for the filter have not been defined, assume we know them exactly
 		if x0 is None:
 			x0 = self.generator.xt0
@@ -55,17 +56,17 @@ class Simulation:
 		if index is None:
 			index = len(self.measures.keys())-1
 
-		f = self.generator.process_function()
-		jac = self.generator.process_jacobian()
-		h = self.generator.measurement_function()
+		f = self.generator.process_function
+		jac = self.generator.process_jacobian
+		h = self.generator.measurement_function
 
-		kfilter_model = self.kFilter(x0, f, jac, h, Q, R, H, u)
+		self.kFilter_model = self.kFilter(x0, f, jac, h, Q, R, H, u)
 
 		for i in range(self.generator.ts):
 			measure_t = self.measures[index][:, i]
-			measure_t.shape = (self.n, 1)
-			self.kfilter.predict(measure_t)
-			kalman_output = self.kfilter.get_current_guess()
+			measure_t.shape = (self.n//2, 1)
+			self.kFilter_model.predict(measure_t)
+			kalman_output = self.kFilter_model.get_current_guess()
 			output = np.append(output, kalman_output, axis=1)
 		self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
 
@@ -79,24 +80,24 @@ class Simulation:
 			measure = self.measures[index]
 			output = self.trajectories[index]
 
-		if self.n == 2:
-			plt.scatter(process[0], process[1], s=5, alpha=0.8)
-			plt.scatter(measure[0], measure[1], s=5, alpha=0.8)
-			plt.scatter(output[0], output[1], s=5, alpha=0.8, color='black')
+		if self.n//2 == 2:
+			plt.plot(process[0], process[1], lw=1.5, color='red', marker=',')
+			plt.scatter(measure[0], measure[1], lw=0.4, color='blue', marker='+')
+			plt.plot(output[0], output[1], lw=0.4, color='black', marker='.')
 			plt.title(title)
 			plt.xlabel(y_label)
 			plt.ylabel(x_label)
-			plt.legend(["Process", "Measure", "Filter"])
+			plt.legend(["Process", "Filter", "Measure"])
 			plt.show()
-		elif self.n == 3:
+		elif self.n//2 == 3:
 			ax = plt.axes(projection='3d')
-			ax.scatter3D(process[0], process[1], process[2], s=5, alpha=0.8)
-			ax.scatter3D(measure[0], measure[1], measure[2], s=5, alpha=0.8)
-			ax.scatter3D(output[0], output[1], output[2], s=5, alpha=0.8, color='black')
+			ax.scatter3D(process[0], process[1], process[2], lw=1.5, color='red', marker=',')
+			ax.scatter3D(measure[0], measure[1], measure[2], lw=0.4, color='blue', marker='+')
+			ax.scatter3D(output[0], output[1], output[2], lw=0.4, color='black', marker='.')
 			ax.set_xlabel(x_label)
 			ax.set_ylabel(y_label)
 			ax.set_zlabel(z_label)
-			plt.legend(["Process", "Measure", "Filter"])
+			plt.legend(["Process", "Filter", "Measure"])
 			plt.show()
 		else:
 			print("Number of dimensions cannot be graphed.")
