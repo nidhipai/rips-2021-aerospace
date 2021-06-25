@@ -16,7 +16,7 @@ class Simulation:
 		Constructs a simulation environment for one-line plotting data
 
 		:param generator: Data Generator object
-		:param kfilter: function for predicting the trajectory
+		:param kFilter: function for predicting the trajectory
 		"""
 		self.seed_value = seed_value
 		self.generator = generator
@@ -33,6 +33,9 @@ class Simulation:
 		self.kFilter = kFilter
 
 	def generate(self):
+		"""
+		Generates process and measurement data
+		"""
 		random.seed(self.seed_value)
 		process = self.generator.process()
 		self.processes[len(self.processes.keys())] = process
@@ -64,11 +67,20 @@ class Simulation:
 			output = np.append(output, kalman_output, axis=1)
 		self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
 
-	def plot(self, title="Position of Object", x_label="x", y_label="y", z_label="z"):
+	def plot(self, index=None, title="Position of Object", x_label="x", y_label="y", z_label="z"):
+		if index is None:
+			process = self.processes[len(self.processes.keys())]
+			measure = self.measures[len(self.measures.keys())]
+			output = self.trajectories[len(self.processes.keys())]
+		else:
+			process = self.processes[index]
+			measure = self.measures[index]
+			output = self.trajectories[index]
+
 		if self.n == 2:
-			plt.scatter(self.process[0], self.process[1], s=5, alpha=0.8)
-			plt.scatter(self.measure[0], self.measure[1], s=5, alpha=0.8)
-			plt.scatter(self.output[0], self.output[1], s=5, alpha=0.8, color='black')
+			plt.scatter(process[0], process[1], s=5, alpha=0.8)
+			plt.scatter(measure[0], measure[1], s=5, alpha=0.8)
+			plt.scatter(output[0], output[1], s=5, alpha=0.8, color='black')
 			plt.title(title)
 			plt.xlabel(y_label)
 			plt.ylabel(x_label)
@@ -76,9 +88,9 @@ class Simulation:
 			plt.show()
 		elif self.n == 3:
 			ax = plt.axes(projection='3d')
-			ax.scatter3D(self.process[0], self.process[1], self.process[2], s=5, alpha=0.8)
-			ax.scatter3D(self.measure[0], self.measure[1], self.measure[2], s=5, alpha=0.8)
-			ax.scatter3D(self.output[0], self.output[1], self.output[2], s=5, alpha=0.8, color='black')
+			ax.scatter3D(process[0], process[1], process[2], s=5, alpha=0.8)
+			ax.scatter3D(measure[0], measure[1], measure[2], s=5, alpha=0.8)
+			ax.scatter3D(output[0], output[1], output[2], s=5, alpha=0.8, color='black')
 			ax.set_xlabel(x_label)
 			ax.set_ylabel(y_label)
 			ax.set_zlabel(z_label)
