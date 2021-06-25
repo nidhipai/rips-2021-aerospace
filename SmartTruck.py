@@ -63,11 +63,14 @@ class SmartTruck(DataGenerator.DataGenerator):
         """
         return np.random.normal(scale=self.nu, size=(self.n // 2, 1))
 
-    def process_function(self, xt):
+    def process_function(self, xt, u):
         return self.A @ xt
 
-    def process_jacobian(self, xt):
+    def process_jacobian(self, xt, u):
         return self.A
+
+    def measurement_function(self, xt):
+        return self.process_function(self, xt)
 
     def measurement_jacobian(self, xt):
         return self.H

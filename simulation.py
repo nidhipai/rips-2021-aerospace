@@ -5,31 +5,66 @@ Simulation
 """
 import numpy as np
 import matplotlib.pyplot as plt
+import random as random
 from mpl_toolkits import mplot3d
 from SmartTruck import SmartTruck
 from kalmanfilter2 import KalmanFilter
 
 class Simulation:
-	def __init__(self, data_generator, filter):
-		self.data_generator = data_generator
-		self.filter = filter
-		self.n = data_generator.n
+	def __init__(self, generator, kFilter, seed_value=1):
+		"""
+		Constructs a simulation environment for one-line plotting data
+
+		:param generator: Data Generator object
+		:param kfilter: function for predicting the trajectory
+		"""
+		self.seed_value = seed_value
+		self.generator = generator
+		self.kFilter = kFilter
+		self.n = generator.n
+		self.processes = dict()
+		self.measures = dict()
+		self.trajectories = dict()
+
+	def set_generator(self, generator):
+		self.generator = generator
+
+	def set_filter(self, kFilter):
+		self.kFilter = kFilter
 
 	def generate(self):
-		self.process = self.data_generator.process()
-		self.measure = self.data_generator.measure(self.process)
+		random.seed(self.seed_value)
+		process = self.generator.process()
+		self.processes[len(self.processes.keys())] = process
+		self.measures[len(self.measures.keys())] = self.generator.measure(process)
 
-	def predict(self):
+	def predict(self, x0=None, Q=None, R=None, H=None, u=None):
 		output = np.empty((self.n * 2, 1))
-		for i in range(self.data_generator.ts):
+		# if any necessary variables for the filter have not been defined, assume we know them exactly
+		if x0 is None:
+			x0 = self.generator.xt0
+		if Q is None:
+			Q = self.generator.Q
+		if R is None:
+			R = self.generator.R
+		if H is None:
+			H = self.generator.H
+
+		f = self.generator.process_function()
+		jac = self.generator.process_jacobian()
+		h = self.generator.measurement_function()
+
+		kfilter_model = self.kFilter(x0, f, jac, h, Q, R, H, u)
+
+		for i in range(self.generator.ts):
 			measure_t = self.measure[:, i]
 			measure_t.shape = (self.n, 1)
-			self.filter.predict(measure_t)
-			kalman_output = self.filter.get_current_guess()
+			self.kfilter.predict(measure_t)
+			kalman_output = self.kfilter.get_current_guess()
 			output = np.append(output, kalman_output, axis=1)
-		self.output = output[:, 1:]  # delete the first column (initial data)
+		self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
 
-	def scatter(self, title="", x_label="x", y_label="y", z_label="z"):
+	def plot(self, title="Position of Object", x_label="x", y_label="y", z_label="z"):
 		if self.n == 2:
 			plt.scatter(self.process[0], self.process[1], s=5, alpha=0.8)
 			plt.scatter(self.measure[0], self.measure[1], s=5, alpha=0.8)
