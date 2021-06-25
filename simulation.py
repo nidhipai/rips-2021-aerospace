@@ -41,7 +41,7 @@ class Simulation:
 		self.processes[len(self.processes.keys())] = process
 		self.measures[len(self.measures.keys())] = self.generator.measure(process)
 
-	def predict(self, x0=None, Q=None, R=None, H=None, u=None):
+	def predict(self, index=None, x0=None, Q=None, R=None, H=None, u=None):
 		output = np.empty((self.n * 2, 1))
 		# if any necessary variables for the filter have not been defined, assume we know them exactly
 		if x0 is None:
@@ -52,6 +52,8 @@ class Simulation:
 			R = self.generator.R
 		if H is None:
 			H = self.generator.H
+		if index is None:
+			index = len(self.measures.keys())-1
 
 		f = self.generator.process_function()
 		jac = self.generator.process_jacobian()
@@ -60,7 +62,7 @@ class Simulation:
 		kfilter_model = self.kFilter(x0, f, jac, h, Q, R, H, u)
 
 		for i in range(self.generator.ts):
-			measure_t = self.measure[:, i]
+			measure_t = self.measures[index][:, i]
 			measure_t.shape = (self.n, 1)
 			self.kfilter.predict(measure_t)
 			kalman_output = self.kfilter.get_current_guess()
@@ -69,9 +71,9 @@ class Simulation:
 
 	def plot(self, index=None, title="Position of Object", x_label="x", y_label="y", z_label="z"):
 		if index is None:
-			process = self.processes[len(self.processes.keys())]
-			measure = self.measures[len(self.measures.keys())]
-			output = self.trajectories[len(self.processes.keys())]
+			process = self.processes[len(self.processes.keys())-1]
+			measure = self.measures[len(self.measures.keys())-1]
+			output = self.trajectories[len(self.processes.keys())-1]
 		else:
 			process = self.processes[index]
 			measure = self.measures[index]
