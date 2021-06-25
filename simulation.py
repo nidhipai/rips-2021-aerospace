@@ -80,20 +80,20 @@ class Simulation:
 			measure = self.measures[index]
 			output = self.trajectories[index]
 
-		if self.n == 2:
-			plt.scatter(process[0], process[1], s=5, alpha=0.8)
-			plt.scatter(measure[0], measure[1], s=5, alpha=0.8)
-			plt.scatter(output[0], output[1], s=5, alpha=0.8, color='black')
+		if self.n//2 == 2:
+			plt.plot(process[0], process[1], lw=1.5, color='red', marker=',')
+			plt.scatter(measure[0], measure[1], lw=0.4, color='blue', marker='+')
+			plt.plot(output[0], output[1], lw=0.4, color='black', marker='.')
 			plt.title(title)
 			plt.xlabel(y_label)
 			plt.ylabel(x_label)
 			plt.legend(["Process", "Measure", "Filter"])
 			plt.show()
-		elif self.n == 3:
+		elif self.n//2 == 3:
 			ax = plt.axes(projection='3d')
-			ax.scatter3D(process[0], process[1], process[2], s=5, alpha=0.8)
-			ax.scatter3D(measure[0], measure[1], measure[2], s=5, alpha=0.8)
-			ax.scatter3D(output[0], output[1], output[2], s=5, alpha=0.8, color='black')
+			ax.scatter3D(process[0], process[1], process[2], lw=1.5, color='red', marker=',')
+			ax.scatter3D(measure[0], measure[1], measure[2], lw=0.4, color='blue', marker='+')
+			ax.scatter3D(output[0], output[1], output[2], lw=0.4, color='black', marker='.')
 			ax.set_xlabel(x_label)
 			ax.set_ylabel(y_label)
 			ax.set_zlabel(z_label)
