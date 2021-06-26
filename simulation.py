@@ -6,6 +6,7 @@ Simulation
 import numpy as np
 import matplotlib.pyplot as plt
 import random as random
+from palettable.colorbrewer.qualitative import Dark2_4
 from mpl_toolkits import mplot3d
 from SmartTruck import SmartTruck
 from kalmanfilter2 import KalmanFilter
@@ -61,16 +62,19 @@ class Simulation:
 		h = self.generator.measurement_function
 
 		self.kFilter_model = self.kFilter(x0, f, jac, h, Q, R, H, u)
+		measures = []
 
 		for i in range(self.generator.ts):
 			measure_t = self.measures[index][:, i]
 			measure_t.shape = (self.n//2, 1)
-			self.kFilter_model.predict(measure_t)
+			measures.append(measure_t)
+			self.kFilter_model.predict(measure_t, np.array(measures))
 			kalman_output = self.kFilter_model.get_current_guess()
 			output = np.append(output, kalman_output, axis=1)
 		self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
 
 	def plot(self, index=None, title="Position of Object", x_label="x", y_label="y", z_label="z"):
+		color = Dark2_4.mpl_colors
 		if index is None:
 			process = self.processes[len(self.processes.keys())-1]
 			measure = self.measures[len(self.measures.keys())-1]
@@ -80,10 +84,14 @@ class Simulation:
 			measure = self.measures[index]
 			output = self.trajectories[index]
 
+		# plt.style.use('dark_background')
+		fig = plt.figure(figsize = (12,8))
+		plt.rcParams.update({'font.size': 22})
+
 		if self.n//2 == 2:
-			plt.plot(process[0], process[1], lw=1.5, color='red', marker=',')
-			plt.scatter(measure[0], measure[1], lw=0.4, color='blue', marker='+')
-			plt.plot(output[0], output[1], lw=0.4, color='black', marker='.')
+			plt.plot(process[0], process[1], lw=1.5, markersize = 15,color=color[2], marker=',')
+			plt.scatter(measure[0], measure[1], s = 50, lw=1.5,color=color[1], marker='+')
+			plt.plot(output[0], output[1], lw=0.4, markersize = 15, color=color[0], marker='.')
 			plt.title(title)
 			plt.xlabel(y_label)
 			plt.ylabel(x_label)
@@ -91,9 +99,9 @@ class Simulation:
 			plt.show()
 		elif self.n//2 == 3:
 			ax = plt.axes(projection='3d')
-			ax.scatter3D(process[0], process[1], process[2], lw=1.5, color='red', marker=',')
-			ax.scatter3D(measure[0], measure[1], measure[2], lw=0.4, color='blue', marker='+')
-			ax.scatter3D(output[0], output[1], output[2], lw=0.4, color='black', marker='.')
+			ax.scatter3D(process[0], process[1], process[2], lw=1.5, color=color[2], marker=',')
+			ax.scatter3D(measure[0], measure[1], measure[2], lw=0.4, color=color[1], marker='+')
+			ax.scatter3D(output[0], output[1], output[2], lw=0.4, color=color[0], marker='.')
 			ax.set_xlabel(x_label)
 			ax.set_ylabel(y_label)
 			ax.set_zlabel(z_label)
@@ -102,25 +110,10 @@ class Simulation:
 		else:
 			print("Number of dimensions cannot be graphed.")
 
-def main():
-	ds = 2  # dimensions
-	t = 100  # number of time steps to run
-	dt = 0.1  # time step length
-	ep_mag = 0.1  # process noise variation
-	ep_dir = np.array([1, 1])
-	nu = 0.2  # measurement noise variation (both position and velocity)
-	initial = np.ones(ds * 2)
-	initial.shape = (ds * 2, 1)
+		def plot2(self):
+			plt.scatter(measure[0], measure[1])
 
-	gen = SmartTruck(initial, t, dt, ep_mag, ep_dir, nu)
-	zero_matrix = np.zeros((2 * ds, ))  # create an array of zeros for future use
-	# Q = np.block([[zero_matrix, zero_matrix], [zero_matrix, np.eye(2 * ds) * ep]])  # process covariance matrix
-	# R = np.eye(n) * nu  # measurement covariance matrix
-	kfilter = KalmanFilter(initial, gen.A, gen.Q * 2, gen.R * 2, gen.H)
-	sim = Simulation(gen, kfilter)
-	sim.generate()
-	sim.predict()
-	sim.scatter()
+
 	
 if __name__ == "__main__":
 	main()
