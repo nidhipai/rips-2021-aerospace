@@ -6,6 +6,7 @@ Kalman Filter - Discrete
 
 import numpy as np
 import numpy.linalg as linalg
+import scipy.spatial.distance as scp
 
 class KalmanFilter:
     def __init__(self, x_hat0, f, A, h, Q, R, H=None, u=0):
@@ -44,12 +45,11 @@ class KalmanFilter:
         self.x_hat_minus = x_hat0  # set a posteriori estimate to initial guess
 
     #Update a posteriori estimate based on a priori estimate and measurement
-    def predict(self, measurement=None):
+    def predict(self, measurement=None, measurement_array =None):
         #The extended Kalman Filter
         self.x_hat_minus = self.f(self.x_hat, self.u)
         self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
         self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
-
         self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
         self.P = (np.eye(self.n,self.n) - self.K @ self.H) @ self.P_minus
 
@@ -63,8 +63,18 @@ class KalmanFilter:
             self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
             self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
             self.P = (np.eye(self.n, self.n) - self.K @ self.H) @ self.P_minus
+        self.mhlb_dis(measurement, measurement_array)
 
     #Return current a posteriori estimate
     def get_current_guess(self):
         return self.x_hat
+
+    def mhlb_dis(self, y, measurement_array,limit = 2):
+        mean = np.mean(measurement_array, axis = 0)
+        print(y)
+        difference = y-mean
+        ree = self.H@self.P_minus@self.H.T + self.R
+        md = np.sqrt(difference.T@linalg.inv(ree)@difference)
+        print("Our results: ", float(md))
+        print("Scipy's results: ", scp.mahalanobis(mean, y, linalg.inv(ree)))
 
