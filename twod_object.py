@@ -46,10 +46,18 @@ class TwoDObject(DataGenerator):
         return self.H @ xt + self.measure_noise()
 
     def measure_noise(self):
+        """
+        Generate measure noise
+        """
         return np.random.normal(scale=self.nu, size=(self.dim, 1))
 
     #TODO: CURRENTLY HARD-CODED FOR 2D
     def process_noise(self, xt):
+        """
+        Generate process noise
+        :param xt: current state vector
+        :return: vector of noise for each parameter in the state vector
+        """
         ang = math.atan2(xt[3, 0], xt[2, 0])
         c = math.cos(ang)
         s = math.sin(ang)
