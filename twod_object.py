@@ -15,7 +15,7 @@ class TwoDObject(DataGenerator):
         self.dim = 2
         self.n = 4
 
-        if(xt0.length != 4):
+        if(xt0.shape[0] != 4):
             raise Exception("Length of initial state vector does not equal 4")
 
         self.Q = np.diag(np.append(np.zeros(self.dim), np.append(np.array([ep_normal]), np.array(ep_tangent))))
