@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from data_generator import DataGenerator
 
 
@@ -15,7 +16,7 @@ class TwoDObject(DataGenerator):
         self.dim = 2
         self.n = 4
 
-        if(xt0.length != 4):
+        if(xt0.size != 4):
             raise Exception("Length of initial state vector does not equal 4")
 
         self.Q = np.diag(np.append(np.zeros(self.dim), np.append(np.array([ep_normal]), np.array(ep_tangent))))
@@ -34,7 +35,7 @@ class TwoDObject(DataGenerator):
         :param xt_prev: Previous process state
         :return: State vector of next step in the process
         """
-        return self.A @ xt_prev + self.process_noise()
+        return self.A @ xt_prev + self.process_noise(xt_prev)
 
     def measure_step(self, xt):
         """
@@ -46,6 +47,20 @@ class TwoDObject(DataGenerator):
 
     def measure_noise(self):
         return np.random.normal(scale=self.nu, size=(self.dim, 1))
+
+    #TODO: CURRENTLY HARD-CODED FOR 2D
+    def process_noise(self, xt):
+        ang = math.atan2(xt[3, 0], xt[2, 0])
+        c = math.cos(ang)
+        s = math.sin(ang)
+        rotation = np.array([[c, -s], [s, c]])
+        rotated_cov = rotation @ self.Q[2:4, 2:4] @ rotation.T
+        pad = np.array([0, 0])
+        #print(pad)
+        noise = np.random.multivariate_normal((0, 0), rotated_cov)
+        #print(noise)
+        #print(np.append(pad, noise))
+        return np.append(pad, noise)
 
     def process_function(self, xt, u):
         return self.A @ xt
