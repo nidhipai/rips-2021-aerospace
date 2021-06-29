@@ -13,7 +13,7 @@ from mpl_toolkits import mplot3d
 from kalmanfilter2 import KalmanFilter
 
 class Simulation:
-	def __init__(self, generator, kFilter, ts = 100, seed_value=1):
+	def __init__(self, generator, kFilter, seed_value=1):
 		"""
 		Constructs a simulation environment for one-line plotting data
 
@@ -25,7 +25,6 @@ class Simulation:
 		self.kFilter = kFilter
 		self.kFilter_model = None
 		self.n = generator.n
-		self.ts = ts
 		self.processes = dict()
 		self.measures = dict()
 		self.trajectories = dict()
@@ -35,9 +34,6 @@ class Simulation:
 
 	def set_filter(self, kFilter):
 		self.kFilter = kFilter
-
-	def set_steps(self, ts):
-		self.ts = ts
 
 	def generate(self, time_steps):
 		"""
@@ -68,8 +64,7 @@ class Simulation:
 
 		self.kFilter_model = self.kFilter(x0, f, jac, h, Q, R, H, u)
 		measures = []
-
-		for i in range(self.ts):
+		for i in range(x0[index][0].size):
 			measure_t = self.measures[index][:, i]
 			measure_t.shape = (self.n//2, 1)
 			measures.append(measure_t)
