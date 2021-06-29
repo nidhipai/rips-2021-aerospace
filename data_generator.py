@@ -63,3 +63,15 @@ class DataGenerator:
 
     def measure_noise(self):
         pass
+
+    def process_function(self, xt, u):
+        pass
+
+    def process_jacobian(self, xt, u):
+        pass
+
+    def measurement_function(self, xt):
+        pass
+
+    def measurement_jacobian(self, xt):
+        pass
