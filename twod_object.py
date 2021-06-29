@@ -9,8 +9,8 @@ class TwoDObject(DataGenerator):
         Constructor for the 2DObject Data Generator.
         :param xt0: Initial state vector
         :param dt: Length of one single time step
-        :param ep_mag: Variance of the magnitude of the change in velocity
-        :param ep_dir: Variance of the direction of the change in velocity. Specify as n-1 dimensional vector for n dimensional simulation.
+        :param ep_normal: Variance of the change in velocity vector in the normal direction.
+        :param ep_tangent: Variance of the change in velocity vector in the tangent direction.
         :param nu: Variance of the measurement noise
         """
         self.dim = 2
@@ -56,10 +56,7 @@ class TwoDObject(DataGenerator):
         rotation = np.array([[c, -s], [s, c]])
         rotated_cov = rotation @ self.Q[2:4, 2:4] @ rotation.T
         pad = np.array([0, 0])
-        #print(pad)
         noise = np.random.multivariate_normal((0, 0), rotated_cov)
-        #print(noise)
-        #print(np.append(pad, noise))
         output = np.append(pad, noise)
         output.shape = (4,1)
         return output
