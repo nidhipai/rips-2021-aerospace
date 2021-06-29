@@ -60,7 +60,9 @@ class TwoDObject(DataGenerator):
         noise = np.random.multivariate_normal((0, 0), rotated_cov)
         #print(noise)
         #print(np.append(pad, noise))
-        return np.append(pad, noise)
+        output = np.append(pad, noise)
+        output.shape = (4,1)
+        return output
 
     def process_function(self, xt, u):
         return self.A @ xt
