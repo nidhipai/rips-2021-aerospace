@@ -28,5 +28,36 @@ class TwoDObject(DataGenerator):
                            np.append(np.zeros((self.dim, self.dim)), np.eye(self.dim), axis=1), axis=0)
         self.nu = nu
 
+    def process_step(self, xt_prev):
+        """
+        Generate the next process state from the previous
+        :param xt_prev: Previous process state
+        :return: State vector of next step in the process
+        """
+        return self.A @ xt_prev + self.process_noise()
+
+    def measure_step(self, xt):
+        """
+        Generate the next measure from the current process state vector
+        :param xt: Current state vector
+        :return: State vector representing measure at the current process state
+        """
+        return self.H @ xt + self.measure_noise()
+
+    def measure_noise(self):
+        return np.random.normal(scale=self.nu, size=(self.dim, 1))
+
+    def process_function(self, xt, u):
+        return self.A @ xt
+
+    def process_jacobian(self, xt, u):
+        return self.A
+
+    def measurement_function(self, xt):
+        return self.process_function(xt, 0)[:self.dim]
+
+    def measurement_jacobian(self, xt):
+        return self.H
+
 
 
