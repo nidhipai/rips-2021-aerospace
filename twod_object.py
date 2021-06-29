@@ -35,7 +35,7 @@ class TwoDObject(DataGenerator):
         :param xt_prev: Previous process state
         :return: State vector of next step in the process
         """
-        return self.A @ xt_prev + self.process_noise(xt_prev)
+        return self.A @ xt_prev + self.dt * self.process_noise(xt_prev)
 
     def measure_step(self, xt):
         """
@@ -56,11 +56,10 @@ class TwoDObject(DataGenerator):
         rotation = np.array([[c, -s], [s, c]])
         rotated_cov = rotation @ self.Q[2:4, 2:4] @ rotation.T
         pad = np.array([0, 0])
-        #print(pad)
         noise = np.random.multivariate_normal((0, 0), rotated_cov)
-        #print(noise)
-        #print(np.append(pad, noise))
-        return np.append(pad, noise)
+        output = np.append(pad, noise)
+        output.shape = (4, 1)
+        return output
 
     def process_function(self, xt, u):
         return self.A @ xt

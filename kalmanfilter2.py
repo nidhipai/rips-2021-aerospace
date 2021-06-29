@@ -49,11 +49,11 @@ class KalmanFilter:
     #Update a posteriori estimate based on a priori estimate and measurement
     def predict(self, measurement=None, measurement_array =None):
         #The extended Kalman Filter
-        self.x_hat_minus = self.f(self.x_hat, self.u)
-        self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
-        self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
-        self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
-        self.P = (np.eye(self.n,self.n) - self.K @ self.H) @ self.P_minus
+        #self.x_hat_minus = self.f(self.x_hat, self.u)
+        #self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
+        #self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
+        #self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
+        #self.P = (np.eye(self.n,self.n) - self.K @ self.H) @ self.P_minus
 
         if measurement is None:
             self.x_hat_minus = self.f(self.x_hat)
@@ -65,7 +65,7 @@ class KalmanFilter:
             self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
             self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
             self.P = (np.eye(self.n, self.n) - self.K @ self.H) @ self.P_minus
-        self.mhlb_dis(measurement, measurement_array)
+        #self.mhlb_dis(measurement, measurement_array)
 
     #Return current a posteriori estimate
     def get_current_guess(self):
@@ -73,7 +73,10 @@ class KalmanFilter:
 
     def mhlb_dis(self, y, measurement_array,limit = 2):
         print(measurement_array)
-        mean = np.mean(measurement_array, axis = 0)
+        if measurement_array.size == 0:
+            mean = 0
+        else: 
+            mean = np.mean(measurement_array, axis = 0)
         print(y)
         difference = y-mean
         ree = self.H@self.P_minus@self.H.T + self.R
@@ -81,18 +84,14 @@ class KalmanFilter:
         print("Our results: ", float(md))
         print("Scipy's results: ", scp.mahalanobis(mean, y, linalg.inv(ree)))
 
-    def cov_ellipse(mean, cov, p = 0.95):
-        s = -2 * math.log(1 - p)
-        X = np.random.multivariate_normal(mean, cov, 1000)
-        plt.plot(X[:,0], X[:,1], marker = '.', linewidth = 0, alpha = 0.20)
-        axes=plt.gca()
-        axes.set_aspect(1)
-
-        w, v = np.linalg.eig(s*cov)
+    def cov_ellipse(self, mean, cov, p = 0.95):
+        #s = -2 * math.log(1 - p)
+        #w, v = np.linalg.eig(s*cov)
+        w, v = np.linalg.eig(cov)
         w = np.sqrt(w)
         ang = math.atan2(v[0,0], v[1,0]) / math.pi * 180
-        ellipse = Ellipse(xy=(0, 0), width= 2 * w[0], height= 2 * w[1], angle = ang, edgecolor='r', fc='none', lw=4)
+        print(cov)
+        ellipse = Ellipse(xy = mean, width= 3 * w[0], height= 3 * w[1], angle = ang, edgecolor='g', fc='none', lw=1)
 
-        axes.add_patch(ellipse)
-        plt.show()
+        return ellipse
 
