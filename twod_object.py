@@ -44,6 +44,11 @@ class TwoDObject(DataGenerator):
         """
         return self.H @ xt + self.measure_noise()
 
+    def process_noise(self):
+        rand = np.random.normal(np.zeros(self.n), np.append(np.zeros(self.dim), np.array(ep_normal, ep_tangent)))
+        R = np.array([])
+        return
+
     def measure_noise(self):
         return np.random.normal(scale=self.nu, size=(self.dim, 1))
 
