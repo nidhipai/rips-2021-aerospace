@@ -14,7 +14,7 @@ from SmartTruck import SmartTruck
 from kalmanfilter2 import KalmanFilter
 
 class Simulation:
-	def __init__(self, generator, kFilter, seed_value=1):
+	def __init__(self, generator, kFilter, ts = 100, seed_value=1):
 		"""
 		Constructs a simulation environment for one-line plotting data
 
@@ -26,6 +26,7 @@ class Simulation:
 		self.kFilter = kFilter
 		self.kFilter_model = None
 		self.n = generator.n
+		self.ts = ts
 		self.processes = dict()
 		self.measures = dict()
 		self.trajectories = dict()
@@ -36,12 +37,15 @@ class Simulation:
 	def set_filter(self, kFilter):
 		self.kFilter = kFilter
 
-	def generate(self):
+	def set_steps(self, ts):
+		self.ts = ts
+
+	def generate(self, time_steps):
 		"""
 		Generates process and measurement data
 		"""
 		random.seed(self.seed_value)
-		process = self.generator.process()
+		process = self.generator.process(time_steps)
 		self.processes[len(self.processes.keys())] = process
 		self.measures[len(self.measures.keys())] = self.generator.measure(process)
 
