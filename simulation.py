@@ -64,6 +64,7 @@ class Simulation:
 
 		self.kFilter_model = self.kFilter(x0, f, jac, h, Q, R, H, u)
 		measures = []
+		print(x0)
 		for i in range(x0[index][0].size):
 			measure_t = self.measures[index][:, i]
 			measure_t.shape = (self.n//2, 1)
