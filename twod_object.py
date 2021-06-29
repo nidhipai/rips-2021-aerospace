@@ -9,8 +9,8 @@ class TwoDObject(DataGenerator):
         Constructor for the 2DObject Data Generator.
         :param xt0: Initial state vector
         :param dt: Length of one single time step
-        :param ep_mag: Variance of the magnitude of the change in velocity
-        :param ep_dir: Variance of the direction of the change in velocity. Specify as n-1 dimensional vector for n dimensional simulation.
+        :param ep_normal: Variance of the change in velocity vector in the normal direction.
+        :param ep_tangent: Variance of the change in velocity vector in the tangent direction.
         :param nu: Variance of the measurement noise
         """
         self.dim = 2
@@ -46,10 +46,18 @@ class TwoDObject(DataGenerator):
         return self.H @ xt + self.measure_noise()
 
     def measure_noise(self):
+        """
+        Generate measure noise
+        """
         return np.random.normal(scale=self.nu, size=(self.dim, 1))
 
     #TODO: CURRENTLY HARD-CODED FOR 2D
     def process_noise(self, xt):
+        """
+        Generate process noise
+        :param xt: current state vector
+        :return: vector of noise for each parameter in the state vector
+        """
         ang = math.atan2(xt[3, 0], xt[2, 0])
         c = math.cos(ang)
         s = math.sin(ang)
