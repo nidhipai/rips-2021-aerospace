@@ -72,14 +72,14 @@ class KalmanFilter:
         return self.x_hat
 
     def mhlb_dis(self, y, measurement_array,limit = 2):
-        print(measurement_array)
+        # print(measurement_array)
         mean = np.mean(measurement_array, axis = 0)
-        print(y)
+        # print(y)
         difference = y-mean
         ree = self.H@self.P_minus@self.H.T + self.R
         md = np.sqrt(difference.T@linalg.inv(ree)@difference)
-        print("Our results: ", float(md))
-        print("Scipy's results: ", scp.mahalanobis(mean, y, linalg.inv(ree)))
+        # print("Our results: ", float(md))
+        # print("Scipy's results: ", scp.mahalanobis(mean, y, linalg.inv(ree)))
 
     def cov_ellipse(mean, cov, p = 0.95):
         s = -2 * math.log(1 - p)

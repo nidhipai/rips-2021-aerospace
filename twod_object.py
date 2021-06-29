@@ -50,7 +50,7 @@ class TwoDObject(DataGenerator):
 
     #TODO: CURRENTLY HARD-CODED FOR 2D
     def process_noise(self, xt):
-        ang = math.atan2(xt[3, 0], xt[2, 0])
+        ang = math.atan2(xt[3,0], xt[2,0])
         c = math.cos(ang)
         s = math.sin(ang)
         rotation = np.array([[c, -s], [s, c]])
