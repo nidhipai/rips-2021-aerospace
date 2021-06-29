@@ -7,6 +7,8 @@ Kalman Filter - Discrete
 import numpy as np
 import numpy.linalg as linalg
 import scipy.spatial.distance as scp
+from matplotlib.patches import Ellipse
+import math
 
 class KalmanFilter:
     def __init__(self, x_hat0, f, A, h, Q, R, H=None, u=0):
@@ -70,6 +72,7 @@ class KalmanFilter:
         return self.x_hat
 
     def mhlb_dis(self, y, measurement_array,limit = 2):
+        print(measurement_array)
         mean = np.mean(measurement_array, axis = 0)
         print(y)
         difference = y-mean
@@ -77,4 +80,19 @@ class KalmanFilter:
         md = np.sqrt(difference.T@linalg.inv(ree)@difference)
         print("Our results: ", float(md))
         print("Scipy's results: ", scp.mahalanobis(mean, y, linalg.inv(ree)))
+
+    def cov_ellipse(mean, cov, p = 0.95):
+        s = -2 * math.log(1 - p)
+        X = np.random.multivariate_normal(mean, cov, 1000)
+        plt.plot(X[:,0], X[:,1], marker = '.', linewidth = 0, alpha = 0.20)
+        axes=plt.gca()
+        axes.set_aspect(1)
+
+        w, v = np.linalg.eig(s*cov)
+        w = np.sqrt(w)
+        ang = math.atan2(v[0,0], v[1,0]) / math.pi * 180
+        ellipse = Ellipse(xy=(0, 0), width= 2 * w[0], height= 2 * w[1], angle = ang, edgecolor='r', fc='none', lw=4)
+
+        axes.add_patch(ellipse)
+        plt.show()
 
