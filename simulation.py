@@ -5,6 +5,7 @@ Simulation
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from copy import copy
 # plt.rcParams['text.usetex'] = True
 
 import random as random
@@ -81,7 +82,7 @@ class Simulation:
         self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
         self.ellipses[len(self.ellipses.keys())] = ellipses
 
-    def plot(self, index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq = 0):
+    def plot(self, index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0):
         if index is None:
             index = len(self.processes.keys()) - 1
         process = self.processes[index]
@@ -103,14 +104,16 @@ class Simulation:
             ax.set_title(title)
             ax.set_xlabel(y_label)
             ax.set_ylabel(x_label)
+            ax.patches = []
             if ellipse_freq != 0:
                 for j, ellipse in enumerate(ellipses):
                     if j % ellipse_freq == 0:
-                        ax.add_patch(ellipse)
+                        new_c=copy(ellipse)
+                        ax.add_patch(new_c)
             # ax.set_aspect(1)
             # plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]),str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
             if legend is True:
-                ax.legend(["Process", "Filter", "Measure"])
+                ax.legend(["Process", "Filter", "Measure", "Covariance"])
             return lines
         elif self.n // 2 == 3:
             # title = title + ", seed=" + str(self.seed_value)
@@ -127,7 +130,7 @@ class Simulation:
         else:
             print("Number of dimensions cannot be graphed.")
 
-    def plot_all(self):
+    def plot_all(self, ellipse_freq = 0):
         num_plots = len(self.processes)
         num_rows = int(np.ceil(num_plots / 3))
         if num_plots > 3:
@@ -137,7 +140,7 @@ class Simulation:
             plt.subplots_adjust(hspace=.5, bottom=.15)
             lines = []
             for i in range(0, len(self.processes)):
-                lines = self.plot(index=i, title="Plot " + str(i + 1), ax=ax[i // 3, i % 3])
+                lines = self.plot(index=i, title="Plot " + str(i + 1), ax=ax[i // 3, i % 3], ellipse_freq=ellipse_freq)
             if num_plots % 3 == 1:  # one plot on last row
                 ax[num_rows - 1, 1].remove()
             if num_plots % 3 != 0:  # one or two plots
@@ -147,14 +150,13 @@ class Simulation:
             else:
                 fig.legend(handles=lines, labels=["Process", "Filter", "Measure"], loc='lower center')
         else:
-            for i in range(0, len(self.processes)):
-                self.plot(index=i)
+            self.plot(ellipse_freq=ellipse_freq)
 
     def cov_ellipse(self, mean, cov, zoom_factor=5, p=0.95):
         s = -2 * np.log(1 - p)
         w, v = np.linalg.eig(s*cov)
         print(v)
-        ang = np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
+        ang = np.arctan2(v[0, 0], v[0, 1]) / np.pi * 180
         print(ang)
         ellipse = Ellipse(xy=mean, width=zoom_factor*w[0], height=zoom_factor*w[1], angle=ang, edgecolor='g', fc='none', lw=1)
         return ellipse
