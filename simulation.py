@@ -6,6 +6,7 @@ Simulation
 import numpy as np
 import matplotlib.pyplot as plt
 #plt.rcParams['text.usetex'] = True
+#import array_to_latex as a2l
 
 import random as random
 from palettable.colorbrewer.qualitative import Dark2_4
@@ -91,24 +92,34 @@ class Simulation:
 		plt.rcParams.update({'font.size': 22})
 
 		if self.n//2 == 2:
-			# title = "{}\n x0 = ({},{})\n Q={}, R={}\n seed={}".format(title, str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), self.seed_value)
-			plt.plot(process[0], process[1], lw=1.5, markersize = 15,color=color[2], marker=',')
-			plt.scatter(measure[0], measure[1], s = 50, lw=1.5,color=color[1], marker='+')
-			plt.plot(output[0], output[1], lw=0.4, markersize = 15, color=color[0], marker='.')
+
+			#title = "{}\n x0 = ({},{})\n Q={}, R={}\n seed={}".format(title, str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), self.seed_value)
+			# plt.plot(process[0], process[1], lw=1.5, markersize = 15, color=color[2], marker=',')
+			# plt.scatter(measure[0], measure[1], s = 50, lw=1.5,color=color[1], marker='+')
+			# plt.plot(output[0], output[1], lw=0.4, markersize = 15, color=color[0], marker='.')
+			plt.plot(process[0], process[1], lw=1.5, markersize=15, marker=',')
+			plt.scatter(measure[0], measure[1], s=50, lw=1.5, marker='+')
+			plt.plot(output[0], output[1], lw=0.4, markersize=15, marker='.')
 			plt.title(title)
 			plt.xlabel(y_label)
 			plt.ylabel(x_label)
+			plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]),
+																						 str(self.generator.Q), str(self.generator.R), str(self.ts)))
 			plt.legend(["Process", "Filter", "Measure"])
 			plt.show()
 		elif self.n//2 == 3:
 			# title = title + ", seed=" + str(self.seed_value)
 			ax = plt.axes(projection='3d')
-			ax.scatter3D(process[0], process[1], process[2], lw=1.5, color=color[2], marker=',')
-			ax.scatter3D(measure[0], measure[1], measure[2], lw=0.4, color=color[1], marker='+')
-			ax.scatter3D(output[0], output[1], output[2], lw=0.4, color=color[0], marker='.')
+			# ax.scatter3D(process[0], process[1], process[2], lw=1.5, color=color[2], marker=',')
+			# ax.scatter3D(measure[0], measure[1], measure[2], lw=0.4, color=color[1], marker='+')
+			# ax.scatter3D(output[0], output[1], output[2], lw=0.4, color=color[0], marker='.')
+			ax.scatter3D(process[0], process[1], process[2], lw=1.5, marker=',')
+			ax.scatter3D(measure[0], measure[1], measure[2], lw=0.4, marker='+')
+			ax.scatter3D(output[0], output[1], output[2], lw=0.4, marker='.')
 			ax.set_xlabel(x_label)
 			ax.set_ylabel(y_label)
 			ax.set_zlabel(z_label)
+			ax.set_title(title)
 			plt.legend(["Process", "Filter", "Measure"])
 			plt.show()
 		else:
@@ -146,5 +157,5 @@ def cov_ellipse(X, mean, cov, p = [0.99,0.95,0.90]):
     plt.show()
 
 	
-if __name__ == "__main__":
-	main()
+# if __name__ == "__main__":
+# 	main()
