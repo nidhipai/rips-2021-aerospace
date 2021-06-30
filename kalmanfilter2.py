@@ -87,11 +87,12 @@ class KalmanFilter:
     def cov_ellipse(self, mean, cov, p = 0.95):
         #s = -2 * math.log(1 - p)
         #w, v = np.linalg.eig(s*cov)
+        nsigma = 5
         w, v = np.linalg.eig(cov)
         w = np.sqrt(w)
         ang = math.atan2(v[0,0], v[1,0]) / math.pi * 180
-        print(cov)
-        ellipse = Ellipse(xy = mean, width= 3 * w[0], height= 3 * w[1], angle = ang, edgecolor='g', fc='none', lw=1)
+        #print(cov)
+        ellipse = Ellipse(xy = mean, width= nsigma * w[0], height= nsigma * w[1], angle = ang, edgecolor='g', fc='none', lw=1)
 
         return ellipse
 
