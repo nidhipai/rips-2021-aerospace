@@ -154,7 +154,7 @@ def cov_ellipse(X, mean, cov, p = [0.99,0.95,0.90]):
 
 		axes.add_patch(ellipse)
 	axes.scatter(X[:,0],X[:,1],c=colors_array,linewidths=0, alpha = 1)
-	plt.legend(title = "p-value", loc=2, prop={'size': 15}, handleheight = 0.01, handlelength =)
+	plt.legend(title = "p-value", loc=2, prop={'size': 15}, handleheight = 0.01)
 	plt.show()
 
 	
