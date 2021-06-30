@@ -49,11 +49,11 @@ class KalmanFilter:
     #Update a posteriori estimate based on a priori estimate and measurement
     def predict(self, measurement=None, measurement_array =None):
         #The extended Kalman Filter
-        self.x_hat_minus = self.f(self.x_hat, self.u)
-        self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
-        self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
-        self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
-        self.P = (np.eye(self.n,self.n) - self.K @ self.H) @ self.P_minus
+        #self.x_hat_minus = self.f(self.x_hat, self.u)
+        #self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
+        #self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
+        #self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
+        #self.P = (np.eye(self.n,self.n) - self.K @ self.H) @ self.P_minus
 
         if measurement is None:
             self.x_hat_minus = self.f(self.x_hat)
@@ -65,7 +65,7 @@ class KalmanFilter:
             self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
             self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
             self.P = (np.eye(self.n, self.n) - self.K @ self.H) @ self.P_minus
-        self.mhlb_dis(measurement, measurement_array)
+        #self.mhlb_dis(measurement, measurement_array)
 
     #Return current a posteriori estimate
     def get_current_guess(self):
@@ -81,5 +81,15 @@ class KalmanFilter:
         # print("Our results: ", float(md))
         # print("Scipy's results: ", scp.mahalanobis(mean, y, linalg.inv(ree)))
 
+    def cov_ellipse(self, mean, cov, p = 0.95):
+        #s = -2 * math.log(1 - p)
+        #w, v = np.linalg.eig(s*cov)
+        nsigma = 5
+        w, v = np.linalg.eig(cov)
+        w = np.sqrt(w)
+        ang = math.atan2(v[0,0], v[1,0]) / math.pi * 180
+        #print(cov)
+        ellipse = Ellipse(xy = mean, width= nsigma * w[0], height= nsigma * w[1], angle = ang, edgecolor='g', fc='none', lw=1)
 
+        return ellipse
 

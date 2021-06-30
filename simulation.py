@@ -9,83 +9,85 @@ import matplotlib.pyplot as plt
 #import array_to_latex as a2l
 
 import random as random
-#from palettable.colorbrewer.qualitative import Dark2_4
-#from palettable.mycarta import Cube1_4
 from mpl_toolkits import mplot3d
 from kalmanfilter2 import KalmanFilter
 from matplotlib.patches import Ellipse
 
 class Simulation:
-	def __init__(self, generator, kFilter, seed_value=1):
-		"""
-		Constructs a simulation environment for one-line plotting data
+    def __init__(self, generator, kFilter, seed_value=1):
+        """
+        Constructs a simulation environment for one-line plotting data
 
-		:param generator: Data Generator object
-		:param kFilter: function for predicting the trajectory
-		"""
-		self.seed_value = seed_value
-		self.generator = generator
-		self.kFilter = kFilter
-		self.kFilter_model = None
-		self.n = generator.n
-		self.processes = dict()
-		self.measures = dict()
-		self.trajectories = dict()
+        :param generator: Data Generator object
+        :param kFilter: function for predicting the trajectory
+        """
+        self.seed_value = seed_value
+        self.generator = generator
+        self.kFilter = kFilter
+        self.kFilter_model = None
+        self.n = generator.n
+        self.processes = dict()
+        self.measures = dict()
+        self.trajectories = dict()
+        self.ellipses = dict()
 
-	def set_generator(self, generator):
-		self.generator = generator
+    def set_generator(self, generator):
+        self.generator = generator
 
-	def set_filter(self, kFilter):
-		self.kFilter = kFilter
+    def set_filter(self, kFilter):
+        self.kFilter = kFilter
 
-	def generate(self, time_steps):
-		"""
-		Generates process and measurement data
-		"""
-		random.seed(self.seed_value)
-		process = self.generator.process(time_steps)
-		self.processes[len(self.processes.keys())] = process
-		self.measures[len(self.measures.keys())] = self.generator.measure(process)
+    def generate(self, time_steps):
+        """
+        Generates process and measurement data
+        """
+        random.seed(self.seed_value)
+        process = self.generator.process(time_steps)
+        self.processes[len(self.processes.keys())] = process
+        self.measures[len(self.measures.keys())] = self.generator.measure(process)
 
-	def predict(self, index=None, x0=None, Q=None, R=None, H=None, u=None):
-		output = np.empty((self.n, 1))
-		# if any necessary variables for the filter have not been defined, assume we know them exactly
-		if x0 is None:
-			x0 = self.generator.xt0
-		if Q is None:
-			Q = self.generator.Q
-		if R is None:
-			R = self.generator.R
-		if H is None:
-			H = self.generator.H
-		if index is None:
-			index = len(self.measures.keys())-1
+    def predict(self, index=None, x0=None, Q=None, R=None, H=None, u=None):
+        output = np.empty((self.n, 1))
+        # if any necessary variables for the filter have not been defined, assume we know them exactly
+        if x0 is None:
+            x0 = self.generator.xt0
+        if Q is None:
+            Q = self.generator.Q
+        if R is None:
+            R = self.generator.R
+        if H is None:
+            H = self.generator.H
+        if index is None:
+            index = len(self.measures.keys())-1
 
-		f = self.generator.process_function
-		jac = self.generator.process_jacobian
-		h = self.generator.measurement_function
+        f = self.generator.process_function
+        jac = self.generator.process_jacobian
+        h = self.generator.measurement_function
 
-		self.kFilter_model = self.kFilter(x0, f, jac, h, Q, R, H, u)
-		measures = []
+        self.kFilter_model = self.kFilter(x0, f, jac, h, Q, R, H, u)
+        measures = []
 
-		for i in range(self.measures[index][0].size):
-			measure_t = self.measures[index][:, i]
-			measure_t.shape = (self.n//2, 1)
-			measures.append(measure_t)
-			self.kFilter_model.predict(measure_t, np.array(measures))
-			kalman_output = self.kFilter_model.get_current_guess()
-			output = np.append(output, kalman_output, axis=1)
-		self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
+        ellipses = []
+        for i in range(self.measures[index][0].size):
+            measure_t = self.measures[index][:, i]
+            measure_t.shape = (self.n//2, 1)
+            measures.append(measure_t)
+            self.kFilter_model.predict(measure_t, np.array(measures))
+            kalman_output = self.kFilter_model.get_current_guess()
+            output = np.append(output, kalman_output, axis=1)
+            cov_ = self.kFilter_model.P[0:2, 0:2]
+            mean_ = (self.kFilter_model.x_hat[0, 0], self.kFilter_model.x_hat[1, 0])
+            ellipses.append(self.kFilter_model.cov_ellipse(mean = mean_, cov = cov_))
+        self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
+        self.ellipses[len(self.ellipses.keys())] = ellipses
 
-	def plot(self, index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax = None):
-		if index is None:
-			process = self.processes[len(self.processes.keys())-1]
-			measure = self.measures[len(self.measures.keys())-1]
-			output = self.trajectories[len(self.processes.keys())-1]
-		else:
-			process = self.processes[index]
-			measure = self.measures[index]
-			output = self.trajectories[index]
+    def plot(self, index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax = None):
+        if index is None:
+            index = len(self.processes.keys()) - 1
+        process = self.processes[index]
+        measure = self.measures[index]
+        output = self.trajectories[index]
+        ellipses = self.ellipses[index]
 
 		legend = False
 		if ax is None:
@@ -102,6 +104,12 @@ class Simulation:
 			ax.set_title(title)
 			ax.set_xlabel(y_label)
 			ax.set_ylabel(x_label)
+			j = 0
+			for ellipse in ellipses:
+				if j % 2 == 1:
+					ax.add_patch(ellipse)
+				j += 1
+			ax.set_aspect(1)
 			# plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]),str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
 			if legend is True:
 				ax.legend(["Process", "Filter", "Measure"])
@@ -144,23 +152,23 @@ class Simulation:
 				self.plot(index=i)
 
 def cov_ellipse(X, mean, cov, p = [0.99,0.95,0.90]):
-	plt.rcParams.update({'font.size': 22})
-	fig = plt.figure(figsize = (12,12))
-	#colors = Cube1_4.mpl_colors
-	axes=plt.gca()
-	axes.set_aspect(1)
-	#colors_array = np.array([colors[0]] * X.shape[0])
-	for i in range(len(p)):
-		s = -2 * np.log(1 - p[i])
-		w, v = np.linalg.eig(s*cov)
-		w = np.sqrt(w)
-		ang = np.atan2(v[0,0], v[1,0]) / np.pi * 180
-		ellipse = Ellipse(xy=mean, width= 2 * w[0], height= 2 * w[1], angle = ang, lw=2,fc = "none", label = str(p[i]))
-		cos_angle = np.cos(np.radians(180.-ang))
-		sin_angle = np.sin(np.radians(180.-ang))
+    plt.rcParams.update({'font.size': 22})
+    fig = plt.figure(figsize = (12,12))
+    #colors = Cube1_4.mpl_colors
+    axes=plt.gca()
+    axes.set_aspect(1)
+    #colors_array = np.array([colors[0]] * X.shape[0])
+    for i in range(len(p)):
+        s = -2 * np.log(1 - p[i])
+        w, v = np.linalg.eig(s*cov)
+        w = np.sqrt(w)
+        ang = np.atan2(v[0,0], v[1,0]) / np.pi * 180
+        ellipse = Ellipse(xy=mean, width= 2 * w[0], height= 2 * w[1], angle = ang, edgecolor=colors[i+1], lw=2,fc = "none", label = str(p[i]))
+        cos_angle = np.cos(np.radians(180.-ang))
+        sin_angle = np.sin(np.radians(180.-ang))
 
-		x_val = (X[:,0] - mean[0]) * cos_angle - (X[:,1] - mean[1]) * sin_angle
-		y_val = (X[:,0] - mean[0]) * sin_angle + (X[:,1] - mean[1]) * cos_angle
+        x_val = (X[:,0] - mean[0]) * cos_angle - (X[:,1] - mean[1]) * sin_angle
+        y_val = (X[:,0] - mean[0]) * sin_angle + (X[:,1] - mean[1]) * cos_angle
 
 		rad_cc = (x_val**2/(w[0])**2) + (y_val**2/(w[1])**2)
 		#colors_array[np.where(rad_cc <= 1.)[0]] = colors[i+1]
