@@ -49,11 +49,6 @@ class KalmanFilter:
     #Update a posteriori estimate based on a priori estimate and measurement
     def predict(self, measurement=None, measurement_array = None):
         #The extended Kalman Filter
-        #self.x_hat_minus = self.f(self.x_hat, self.u)
-        #self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
-        #self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
-        #self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
-        #self.P = (np.eye(self.n,self.n) - self.K @ self.H) @ self.P_minus
 
         if measurement is None:
             self.x_hat_minus = self.f(self.x_hat)
