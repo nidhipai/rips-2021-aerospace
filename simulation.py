@@ -135,7 +135,9 @@ class Simulation:
     def cov_ellipse(self, mean, cov, zoom_factor=5, p=0.95):
         s = -2 * np.log(1 - p)
         w, v = np.linalg.eig(s*cov)
+        print(v)
         ang = np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
+        print(ang)
         ellipse = Ellipse(xy=mean, width=zoom_factor*w[0], height=zoom_factor*w[1], angle=ang, edgecolor='g', fc='none', lw=1)
         return ellipse
 
