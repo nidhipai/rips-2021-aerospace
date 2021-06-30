@@ -133,28 +133,28 @@ def cov_ellipse(X, mean, cov, p = [0.99,0.95,0.90]):
 	plt.rcParams.update({'font.size': 22})
 	fig = plt.figure(figsize = (12,12))
 	colors = Cube1_4.mpl_colors
-    axes=plt.gca()
-    axes.set_aspect(1)
-    colors_array = np.array([colors[0]] * X.shape[0])
-    for i in range(len(p)):
-        s = -2 * math.log(1 - p[i])
-        w, v = np.linalg.eig(s*cov)
-        w = np.sqrt(w)
-        ang = math.atan2(v[0,0], v[1,0]) / math.pi * 180
-        ellipse = Ellipse(xy=mean, width= 2 * w[0], height= 2 * w[1], angle = ang, edgecolor=colors[i+1], lw=2,fc = "none", label = str(p[i]))
-        cos_angle = np.cos(np.radians(180.-ang))
-        sin_angle = np.sin(np.radians(180.-ang))
+	axes=plt.gca()
+	axes.set_aspect(1)
+	colors_array = np.array([colors[0]] * X.shape[0])
+	for i in range(len(p)):
+		s = -2 * math.log(1 - p[i])
+		w, v = np.linalg.eig(s*cov)
+		w = np.sqrt(w)
+		ang = math.atan2(v[0,0], v[1,0]) / math.pi * 180
+		ellipse = Ellipse(xy=mean, width= 2 * w[0], height= 2 * w[1], angle = ang, edgecolor=colors[i+1], lw=2,fc = "none", label = str(p[i]))
+		cos_angle = np.cos(np.radians(180.-ang))
+		sin_angle = np.sin(np.radians(180.-ang))
 
-        x_val = (X[:,0] - mean[0]) * cos_angle - (X[:,1] - mean[1]) * sin_angle
-        y_val = (X[:,0] - mean[0]) * sin_angle + (X[:,1] - mean[1]) * cos_angle 
+		x_val = (X[:,0] - mean[0]) * cos_angle - (X[:,1] - mean[1]) * sin_angle
+		y_val = (X[:,0] - mean[0]) * sin_angle + (X[:,1] - mean[1]) * cos_angle 
 
-        rad_cc = (x_val**2/(w[0])**2) + (y_val**2/(w[1])**2)
-        colors_array[np.where(rad_cc <= 1.)[0]] = colors[i+1]
+		rad_cc = (x_val**2/(w[0])**2) + (y_val**2/(w[1])**2)
+		colors_array[np.where(rad_cc <= 1.)[0]] = colors[i+1]
 
-        axes.add_patch(ellipse)
-    axes.scatter(X[:,0],X[:,1],c=colors_array,linewidths=0, alpha = 1)
-    plt.legend(title = "p-value", loc=2, prop={'size': 15}, handleheight = 0.01, handlelength =)
-    plt.show()
+		axes.add_patch(ellipse)
+	axes.scatter(X[:,0],X[:,1],c=colors_array,linewidths=0, alpha = 1)
+	plt.legend(title = "p-value", loc=2, prop={'size': 15}, handleheight = 0.01)
+	plt.show()
 
 	
 # if __name__ == "__main__":
