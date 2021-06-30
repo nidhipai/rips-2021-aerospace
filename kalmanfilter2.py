@@ -41,13 +41,13 @@ class KalmanFilter:
         self.u = u
 
         # set a priori and a posteriori estimate error covariances to all ones (not all zeros)
-        self.P = np.ones((self.n, self.n))
-        self.P_minus = np.ones((self.n, self.n))
+        self.P = np.eye((self.n, self.n))
+        self.P_minus = np.eye((self.n, self.n))
         self.x_hat = x_hat0  # set a priori estimate to initial guess
         self.x_hat_minus = x_hat0  # set a posteriori estimate to initial guess
 
     #Update a posteriori estimate based on a priori estimate and measurement
-    def predict(self, measurement=None, measurement_array =None):
+    def predict(self, measurement=None, measurement_array = None):
         #The extended Kalman Filter
         #self.x_hat_minus = self.f(self.x_hat, self.u)
         #self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
@@ -57,7 +57,7 @@ class KalmanFilter:
 
         if measurement is None:
             self.x_hat_minus = self.f(self.x_hat)
-            self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P@self.A(self.x_hat_minus, self.u).T+ self.Q
+            self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
             self.x_hat = self.x_hat_minus
         else:
             self.x_hat_minus = self.f(self.x_hat, self.u)
@@ -81,15 +81,5 @@ class KalmanFilter:
         # print("Our results: ", float(md))
         # print("Scipy's results: ", scp.mahalanobis(mean, y, linalg.inv(ree)))
 
-    def cov_ellipse(self, mean, cov, p = 0.95):
-        #s = -2 * math.log(1 - p)
-        #w, v = np.linalg.eig(s*cov)
-        nsigma = 5
-        w, v = np.linalg.eig(cov)
-        w = np.sqrt(w)
-        ang = math.atan2(v[0,0], v[1,0]) / math.pi * 180
-        #print(cov)
-        ellipse = Ellipse(xy = mean, width= nsigma * w[0], height= nsigma * w[1], angle = ang, edgecolor='g', fc='none', lw=1)
 
-        return ellipse
 
