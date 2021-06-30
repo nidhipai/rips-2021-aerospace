@@ -78,13 +78,13 @@ class Simulation:
             output = np.append(output, kalman_output, axis=1)
             cov_ = self.kFilter_model.P[0:2, 0:2]
             mean_ = (self.kFilter_model.x_hat[0, 0], self.kFilter_model.x_hat[1, 0])
-            ellipses.append(cov_ellipse_simple(mean=mean_, cov=cov_))
+            ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
         self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
         err_arr = np.array(self.kFilter_model.error_array).squeeze()
 		# self.cov_ellipse(err_arr, np.mean(err_arr, axis = 0), self.kFilter_model.R)
         self.ellipses[len(self.ellipses.keys())] = ellipses
 
-    def plot(self, index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None):
+    def plot(self, index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq = 0):
         if index is None:
             index = len(self.processes.keys()) - 1
         process = self.processes[index]
@@ -106,11 +106,10 @@ class Simulation:
             ax.set_title(title)
             ax.set_xlabel(y_label)
             ax.set_ylabel(x_label)
-            j = 0
-            for ellipse in ellipses:
-                if j % 2 == 1:
-                    ax.add_patch(ellipse)
-                j += 1
+            if ellipse_freq != 0:
+                for j, ellipse in enumerate(ellipses):
+                    if j % ellipse_freq == 0:
+                        ax.add_patch(ellipse)
             # ax.set_aspect(1)
             # plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]),str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
             if legend is True:
@@ -154,18 +153,14 @@ class Simulation:
             for i in range(0, len(self.processes)):
                 self.plot(index=i)
 
-
-def cov_ellipse_simple(mean, cov, p=0.95):
-    # s = -2 * math.log(1 - p)
-    # w, v = np.linalg.eig(s*cov)
-    nsigma = 10
-    w, v = np.linalg.eig(cov)
-    # w = np.sqrt(w)
-    ang = np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
-    # print(cov)
-    ellipse = Ellipse(xy=mean, width=nsigma * w[0], height=nsigma * w[1], angle=ang, edgecolor='g', fc='none', lw=1)
-    return ellipse
-
+    def cov_ellipse(self, mean, cov, zoom_factor=5, p=0.95):
+        s = -2 * np.log(1 - p)
+        w, v = np.linalg.eig(s*cov)
+        print(v)
+        ang = np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
+        print(ang)
+        ellipse = Ellipse(xy=mean, width=zoom_factor*w[0], height=zoom_factor*w[1], angle=ang, edgecolor='g', fc='none', lw=1)
+        return ellipse
 
 def cov_ellipse_fancy(X, mean, cov, p=[0.99, 0.95, 0.90]):
     plt.rcParams.update({'font.size': 22})
