@@ -9,8 +9,6 @@ import matplotlib.pyplot as plt
 #import array_to_latex as a2l
 
 import random as random
-#from palettable.colorbrewer.qualitative import Dark2_4
-#from palettable.mycarta import Cube1_4
 from mpl_toolkits import mplot3d
 from matplotlib.patches import Ellipse
 
