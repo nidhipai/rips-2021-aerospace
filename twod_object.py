@@ -76,7 +76,7 @@ class TwoDObject(DataGenerator):
         return self.A
 
     def measurement_function(self, xt):
-        return self.process_function(xt, 0)[:self.dim]
+        return self.H @ xt
 
     def measurement_jacobian(self, xt):
         return self.H
