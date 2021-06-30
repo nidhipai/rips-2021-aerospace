@@ -16,7 +16,7 @@ class TwoDObject(DataGenerator):
         self.dim = 2
         self.n = 4
 
-        if(xt0.size != 4):
+        if xt0.size != 4:
             raise Exception("Length of initial state vector does not equal 4")
 
         self.Q = np.diag(np.append(np.zeros(self.dim), np.append(np.array([ep_normal]), np.array(ep_tangent))))
@@ -35,7 +35,7 @@ class TwoDObject(DataGenerator):
         :param xt_prev: Previous process state
         :return: State vector of next step in the process
         """
-        return self.A @ xt_prev + self.dt * self.process_noise(xt_prev)
+        return self.A @ xt_prev + self.process_noise(xt_prev)
 
     def measure_step(self, xt):
         """
@@ -51,7 +51,6 @@ class TwoDObject(DataGenerator):
         """
         return np.random.normal(scale=self.nu, size=(self.dim, 1))
 
-    #TODO: CURRENTLY HARD-CODED FOR 2D
     def process_noise(self, xt):
 
         """
@@ -81,6 +80,3 @@ class TwoDObject(DataGenerator):
 
     def measurement_jacobian(self, xt):
         return self.H
-
-
-
