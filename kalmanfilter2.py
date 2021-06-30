@@ -81,28 +81,5 @@ class KalmanFilter:
         # print("Our results: ", float(md))
         # print("Scipy's results: ", scp.mahalanobis(mean, y, linalg.inv(ree)))
 
-    def cov_ellipse(X, mean, cov, p = 0.95):
 
-        s = -2 * math.log(1 - p)
-        axes=plt.gca()
-        axes.set_aspect(1)
-
-        w, v = np.linalg.eig(s*cov)
-        w = np.sqrt(w)
-        ang = math.atan2(v[0,0], v[1,0]) / math.pi * 180
-        ellipse = Ellipse(xy=mean, width= 2 * w[0], height= 2 * w[1], angle = ang, edgecolor='r', fc='none', lw=4)
-        cos_angle = np.cos(np.radians(180.-ang))
-        sin_angle = np.sin(np.radians(180.-ang))
-        
-        x_val = (X[:,0] - mean[0]) * cos_angle - (X[:,1] - mean[1]) * sin_angle
-        y_val = (X[:,0] - mean[0]) * sin_angle + (X[:,1] - mean[1]) * cos_angle 
-
-        rad_cc = (x_val**2/(w[0])**2) + (y_val**2/(w[1])**2)
-        colors_array = np.array(['black'] * len(rad_cc))
-        colors_array[np.where(rad_cc <= 1.)[0]] = 'red'
-
-        axes.scatter(X[:,0],X[:,1],c=colors_array,linewidths=0, alpha = 0.30)
-
-        axes.add_patch(ellipse)
-        plt.show()
 
