@@ -12,6 +12,7 @@ import random as random
 from mpl_toolkits import mplot3d
 from kalmanfilter2 import KalmanFilter
 from matplotlib.patches import Ellipse
+import math
 
 
 class Simulation:
@@ -80,6 +81,8 @@ class Simulation:
             mean_ = (self.kFilter_model.x_hat[0, 0], self.kFilter_model.x_hat[1, 0])
             ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
         self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
+        err_arr = np.array(self.kFilter_model.error_array).squeeze()
+		# self.cov_ellipse(err_arr, np.mean(err_arr, axis = 0), self.kFilter_model.R)
         self.ellipses[len(self.ellipses.keys())] = ellipses
 
     def plot(self, index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0):
@@ -187,3 +190,4 @@ def cov_ellipse_fancy(X, mean, cov, p=[0.99, 0.95, 0.90]):
     axes.scatter(X[:, 0], X[:, 1], linewidths=0, alpha=1)
     plt.legend(title="p-value", loc=2, prop={'size': 15}, handleheight=0.01)
     plt.show()
+
