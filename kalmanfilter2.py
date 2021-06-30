@@ -42,32 +42,29 @@ class KalmanFilter:
         self.u = u
 
         # set a priori and a posteriori estimate error covariances to all ones (not all zeros)
-        self.P = np.ones((self.n, self.n))
-        self.P_minus = np.ones((self.n, self.n))
+        self.P = np.eye(self.n)
+        self.P_minus = np.eye(self.n)
         self.x_hat = x_hat0  # set a priori estimate to initial guess
         self.x_hat_minus = x_hat0  # set a posteriori estimate to initial guess
         self.error_array = []
 
     #Update a posteriori estimate based on a priori estimate and measurement
-    def predict(self, measurement=None, measurement_array =None):
+    def predict(self, measurement=None, measurement_array = None):
         #The extended Kalman Filter
-        self.x_hat_minus = self.f(self.x_hat, self.u)
-        self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
-        self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
-        self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
-        self.P = (np.eye(self.n,self.n) - self.K @ self.H) @ self.P_minus
+
         self.mhlb_dis(measurement, measurement_array)
 
         if measurement is None:
             self.x_hat_minus = self.f(self.x_hat)
-            self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P@self.A(self.x_hat_minus, self.u).T+ self.Q
+            self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
             self.x_hat = self.x_hat_minus
         else:
             self.x_hat_minus = self.f(self.x_hat, self.u)
-            self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
-            self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
+            self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q #error, no W
+            self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R) #error, no V
             self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
-            self.P = (np.eye(self.n, self.n) - self.K @ self.H) @ self.P_minus
+            self.P = (np.eye(self.n) - self.K @ self.H) @ self.P_minus
+            self.mhlb_dis(measurement, measurement_array)
 
     #Return current a posteriori estimate
     def get_current_guess(self):

@@ -6,10 +6,9 @@ class DataGenerator:
         """
         Create an object to store the different aspects of the system being generated
         :param xt0:  Initial values of the state
-        :param n: Number of time points to simulate
         :param dt: Number of seconds between time points
-        :param ep: Variance of process noise
-        :param nu: Variance of measure noise
+        :param Q: Covariance matrix of process noise
+        :param R: Covariance matrix of measure noise
         """
         self.xt0 = xt0
         self.dt = dt
@@ -58,7 +57,7 @@ class DataGenerator:
     def measure_step(self, xt_prev):
         pass
 
-    def process_noise(self):
+    def process_noise(self, xt):
         pass
 
     def measure_noise(self):
