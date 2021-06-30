@@ -13,6 +13,8 @@ from palettable.colorbrewer.qualitative import Dark2_4
 from palettable.mycarta import Cube1_4
 from mpl_toolkits import mplot3d
 from kalmanfilter2 import KalmanFilter
+from matplotlib.patches import Ellipse
+import math
 
 class Simulation:
 	def __init__(self, generator, kFilter, seed_value=1):
@@ -74,6 +76,8 @@ class Simulation:
 			self.kFilter_model.predict(measure_t, np.array(measures))
 			kalman_output = self.kFilter_model.get_current_guess()
 			output = np.append(output, kalman_output, axis=1)
+		err_arr = np.array(self.kFilter_model.error_array).squeeze()
+		self.cov_ellipse(err_arr, np.mean(err_arr, axis = 0), self.kFilter_model.R)
 		self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
 
 	def plot(self, index=None, title="Object Position", x_label="x", y_label="y", z_label="z"):
@@ -103,8 +107,8 @@ class Simulation:
 			plt.title(title)
 			plt.xlabel(y_label)
 			plt.ylabel(x_label)
-			plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]),
-																						 str(self.generator.Q), str(self.generator.R), str(self.ts)))
+			# plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]),
+			# 																			 str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
 			plt.legend(["Process", "Filter", "Measure"])
 			plt.show()
 		elif self.n//2 == 3:
@@ -129,32 +133,32 @@ class Simulation:
 			plt.scatter(measure[0], measure[1])
 
 
-def cov_ellipse(X, mean, cov, p = [0.99,0.95,0.90]):
-	plt.rcParams.update({'font.size': 22})
-	fig = plt.figure(figsize = (12,12))
-	colors = Cube1_4.mpl_colors
-	axes=plt.gca()
-	axes.set_aspect(1)
-	colors_array = np.array([colors[0]] * X.shape[0])
-	for i in range(len(p)):
-		s = -2 * math.log(1 - p[i])
-		w, v = np.linalg.eig(s*cov)
-		w = np.sqrt(w)
-		ang = math.atan2(v[0,0], v[1,0]) / math.pi * 180
-		ellipse = Ellipse(xy=mean, width= 2 * w[0], height= 2 * w[1], angle = ang, edgecolor=colors[i+1], lw=2,fc = "none", label = str(p[i]))
-		cos_angle = np.cos(np.radians(180.-ang))
-		sin_angle = np.sin(np.radians(180.-ang))
+	def cov_ellipse(self, X, mean, cov, p = [0.99,0.95,0.90]):
+		plt.rcParams.update({'font.size': 22})
+		fig = plt.figure(figsize = (12,12))
+		colors = Cube1_4.mpl_colors
+		axes=plt.gca()
+		axes.set_aspect(1)
+		colors_array = np.array([colors[0]] * X.shape[0])
+		for i in range(len(p)):
+			s = -2 * math.log(1 - p[i])
+			w, v = np.linalg.eig(s*cov)
+			w = np.sqrt(w)
+			ang = math.atan2(v[0,0], v[1,0]) / math.pi * 180
+			ellipse = Ellipse(xy=mean, width= 2 * w[0], height= 2 * w[1], angle = ang, edgecolor=colors[i+1], lw=2,fc = "none", label = str(p[i]))
+			cos_angle = np.cos(np.radians(180.-ang))
+			sin_angle = np.sin(np.radians(180.-ang))
 
-		x_val = (X[:,0] - mean[0]) * cos_angle - (X[:,1] - mean[1]) * sin_angle
-		y_val = (X[:,0] - mean[0]) * sin_angle + (X[:,1] - mean[1]) * cos_angle 
+			x_val = (X[:,0] - mean[0]) * cos_angle - (X[:,1] - mean[1]) * sin_angle
+			y_val = (X[:,0] - mean[0]) * sin_angle + (X[:,1] - mean[1]) * cos_angle 
 
-		rad_cc = (x_val**2/(w[0])**2) + (y_val**2/(w[1])**2)
-		colors_array[np.where(rad_cc <= 1.)[0]] = colors[i+1]
+			rad_cc = (x_val**2/(w[0])**2) + (y_val**2/(w[1])**2)
+			colors_array[np.where(rad_cc <= 1.)[0]] = colors[i+1]
 
-		axes.add_patch(ellipse)
-	axes.scatter(X[:,0],X[:,1],c=colors_array,linewidths=0, alpha = 1)
-	plt.legend(title = "p-value", loc=2, prop={'size': 15}, handleheight = 0.01)
-	plt.show()
+			axes.add_patch(ellipse)
+		axes.scatter(X[:,0],X[:,1],c=colors_array,linewidths=0, alpha = 1)
+		plt.legend(title = "p-value", loc=2, prop={'size': 15}, handleheight = 0.01)
+		plt.show()
 
 	
 # if __name__ == "__main__":
