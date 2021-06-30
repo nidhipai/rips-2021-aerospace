@@ -6,7 +6,7 @@ Kalman Filter - Discrete
 
 import numpy as np
 import numpy.linalg as linalg
-import scipy.spatial.distance as scp
+import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 import math
 
@@ -45,11 +45,11 @@ class KalmanFilter:
         self.P_minus = np.eye(self.n)
         self.x_hat = x_hat0  # set a priori estimate to initial guess
         self.x_hat_minus = x_hat0  # set a posteriori estimate to initial guess
+        self.error_array = []
 
     #Update a posteriori estimate based on a priori estimate and measurement
     def predict(self, measurement=None, measurement_array = None):
         #The extended Kalman Filter
-
         if measurement is None:
             self.x_hat_minus = self.f(self.x_hat)
             self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
@@ -60,21 +60,24 @@ class KalmanFilter:
             self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R) #error, no V
             self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
             self.P = (np.eye(self.n) - self.K @ self.H) @ self.P_minus
-        #self.mhlb_dis(measurement, measurement_array)
+            self.mhlb_dis(measurement, measurement_array)
 
     #Return current a posteriori estimate
     def get_current_guess(self):
         return self.x_hat
 
-    def mhlb_dis(self, y, measurement_array,limit = 2):
-        # print(measurement_array)
-        mean = np.mean(measurement_array, axis = 0)
-        # print(y)
-        difference = y-mean
-        ree = self.H@self.P_minus@self.H.T + self.R
-        md = np.sqrt(difference.T@linalg.inv(ree)@difference)
-        # print("Our results: ", float(md))
-        # print("Scipy's results: ", scp.mahalanobis(mean, y, linalg.inv(ree)))
+    def mhlb_dis(self, y, measurement_array):
+        error = y - self.h(self.x_hat_minus)
+        self.error_array.append(error)
+        # ree = self.H@self.P_minus@self.H.T + self.R
+        md = np.sqrt(error.T@linalg.inv(self.R)@error)
+
+    def plot(self):
+        arr = np.array(self.error_array).squeeze()
+        print(arr.shape)
+        # print(arr)
+        plt.scatter(arr[:, 0], arr[:, 1], color = "red")
+        plt.show()
 
 
 
