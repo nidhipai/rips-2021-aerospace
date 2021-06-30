@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 #import array_to_latex as a2l
 
 import random as random
-from palettable.colorbrewer.qualitative import Dark2_4
-from palettable.mycarta import Cube1_4
+#from palettable.colorbrewer.qualitative import Dark2_4
+#from palettable.mycarta import Cube1_4
 from mpl_toolkits import mplot3d
 from kalmanfilter2 import KalmanFilter
 from matplotlib.patches import Ellipse
@@ -77,8 +77,7 @@ class Simulation:
 			output = np.append(output, kalman_output, axis=1)
 		self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
 
-	def plot(self, index=None, title="Object Position", x_label="x", y_label="y", z_label="z"):
-		#color = Dark2_4.mpl_colors
+	def plot(self, index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax = None):
 		if index is None:
 			process = self.processes[len(self.processes.keys())-1]
 			measure = self.measures[len(self.measures.keys())-1]
@@ -88,32 +87,28 @@ class Simulation:
 			measure = self.measures[index]
 			output = self.trajectories[index]
 
-		# plt.style.use('dark_background')
-		fig = plt.figure(figsize = (12,8))
-		plt.rcParams.update({'font.size': 22})
+		legend = False
+		if ax is None:
+			fig, ax = plt.subplots()
+			legend = True
+		plt.rcParams.update({'font.size': 10})
 
 		if self.n//2 == 2:
+			line1, = ax.plot(process[0], process[1], lw=1.5, markersize=8, marker=',')
+			line2 = ax.scatter(measure[0], measure[1], s=15, lw=1.5, marker='+')
+			line3, = ax.plot(output[0], output[1], lw=0.4, markersize=8, marker='.')
+			lines = [line1, line2, line3]
 
-			#title = "{}\n x0 = ({},{})\n Q={}, R={}\n seed={}".format(title, str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), self.seed_value)
-			# plt.plot(process[0], process[1], lw=1.5, markersize = 15, color=color[2], marker=',')
-			# plt.scatter(measure[0], measure[1], s = 50, lw=1.5,color=color[1], marker='+')
-			# plt.plot(output[0], output[1], lw=0.4, markersize = 15, color=color[0], marker='.')
-			plt.plot(process[0], process[1], lw=1.5, markersize=15, marker=',')
-			plt.scatter(measure[0], measure[1], s=50, lw=1.5, marker='+')
-			plt.plot(output[0], output[1], lw=0.4, markersize=15, marker='.')
-			plt.title(title)
-			plt.xlabel(y_label)
-			plt.ylabel(x_label)
-			plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]),
-																						 str(self.generator.Q), str(self.generator.R), str(self.ts)))
-			plt.legend(["Process", "Filter", "Measure"])
-			plt.show()
+			ax.set_title(title)
+			ax.set_xlabel(y_label)
+			ax.set_ylabel(x_label)
+			# plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]),str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
+			if legend is True:
+				ax.legend(["Process", "Filter", "Measure"])
+			return lines
 		elif self.n//2 == 3:
 			# title = title + ", seed=" + str(self.seed_value)
 			ax = plt.axes(projection='3d')
-			# ax.scatter3D(process[0], process[1], process[2], lw=1.5, color=color[2], marker=',')
-			# ax.scatter3D(measure[0], measure[1], measure[2], lw=0.4, color=color[1], marker='+')
-			# ax.scatter3D(output[0], output[1], output[2], lw=0.4, color=color[0], marker='.')
 			ax.scatter3D(process[0], process[1], process[2], lw=1.5, marker=',')
 			ax.scatter3D(measure[0], measure[1], measure[2], lw=0.4, marker='+')
 			ax.scatter3D(output[0], output[1], output[2], lw=0.4, marker='.')
@@ -126,9 +121,27 @@ class Simulation:
 		else:
 			print("Number of dimensions cannot be graphed.")
 
-		def plot2(self):
-			plt.scatter(measure[0], measure[1])
-
+	def plot_all(self):
+		num_plots = len(self.processes)
+		num_rows = int(np.ceil(num_plots / 3))
+		if num_plots > 3:
+			fig, ax = plt.subplots(num_rows, 3)
+			fig.set_figheight(8)
+			fig.set_figwidth(12)
+			plt.subplots_adjust(hspace=.5, bottom=.15)
+			lines = []
+			for i in range(0, len(self.processes)):
+				lines = self.plot(index=i, title="Plot " + str(i + 1), ax=ax[i // 3, i % 3])
+			if num_plots % 3 == 1:   # one plot on last row
+				ax[num_rows - 1, 1].remove()
+			if num_plots % 3 != 0: # one or two plots
+				ax[num_rows - 1, 2].remove()
+				fig.legend(handles=lines, labels=["Process", "Filter", "Measure"], loc='center', bbox_to_anchor=(.73, .25))
+			else:
+				fig.legend(handles=lines, labels=["Process", "Filter", "Measure"], loc='lower center')
+		else:
+			for i in range(0, len(self.processes)):
+				self.plot(index=i)
 
 def cov_ellipse(X, mean, cov, p = [0.99,0.95,0.90]):
 	plt.rcParams.update({'font.size': 22})
@@ -142,7 +155,7 @@ def cov_ellipse(X, mean, cov, p = [0.99,0.95,0.90]):
 		w, v = np.linalg.eig(s*cov)
 		w = np.sqrt(w)
 		ang = np.atan2(v[0,0], v[1,0]) / np.pi * 180
-		ellipse = Ellipse(xy=mean, width= 2 * w[0], height= 2 * w[1], angle = ang, edgecolor=colors[i+1], lw=2,fc = "none", label = str(p[i]))
+		ellipse = Ellipse(xy=mean, width= 2 * w[0], height= 2 * w[1], angle = ang, lw=2,fc = "none", label = str(p[i]))
 		cos_angle = np.cos(np.radians(180.-ang))
 		sin_angle = np.sin(np.radians(180.-ang))
 
@@ -150,10 +163,10 @@ def cov_ellipse(X, mean, cov, p = [0.99,0.95,0.90]):
 		y_val = (X[:,0] - mean[0]) * sin_angle + (X[:,1] - mean[1]) * cos_angle
 
 		rad_cc = (x_val**2/(w[0])**2) + (y_val**2/(w[1])**2)
-		colors_array[np.where(rad_cc <= 1.)[0]] = colors[i+1]
+		#colors_array[np.where(rad_cc <= 1.)[0]] = colors[i+1]
 
 		axes.add_patch(ellipse)
-	axes.scatter(X[:,0],X[:,1],c=colors_array,linewidths=0, alpha = 1)
+	axes.scatter(X[:,0],X[:,1], linewidths=0, alpha = 1)
 	plt.legend(title = "p-value", loc=2, prop={'size': 15}, handleheight = 0.01)
 	plt.show()
 
