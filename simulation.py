@@ -133,11 +133,21 @@ class Simulation:
     def plot(self, var = "Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0):
         if index is None:
             index = len(self.processes.keys()) - 1
+
+        #Create lists of points from the stored experiments
         process = self.processes[index]
+        process = [point for sublist in process for point in sublist]
+        process = np.array(process).squeeze().T
+
+
         measure = self.measures[index]
+        measure = [point for sublist in measure for point in sublist]
+        measure = np.array(measure).squeeze().T
+
         output = self.trajectories[index]
         ellipses = self.ellipses[index]
         legend = False
+
         if ax is None:
             fig, ax = plt.subplots()
             legend = True
@@ -206,6 +216,13 @@ class Simulation:
         else:
             self.plot(ellipse_freq=ellipse_freq)
         plt.tight_layout()
+
+    def clear(self):
+        self.processes = dict()
+        self.measures = dict()
+        self.trajectories = dict()
+        self.descs = dict()
+        self.ellipses = dict()
 
     def cov_ellipse(self, mean, cov, zoom_factor=5, p=0.95):
         s = -2 * np.log(1 - p)
