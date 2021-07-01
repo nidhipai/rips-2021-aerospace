@@ -38,46 +38,40 @@ class KalmanFilter:
         else:
             self.H = H  # jacobian of the measurement function
 
-        self.u = u
+        self.u = u #optional control input
 
         # set a priori and a posteriori estimate error covariances to all ones (not all zeros)
-        self.P = np.eye(self.n)
-        self.P_minus = np.eye(self.n)
+        self.P = np.eye(self.n) #Posteriori estimate error covariance initialized to the identity matrix
+        self.P_minus = np.eye(self.n) #priori estimate error coviariance matrix initialized to the identity matrix
         self.x_hat = x_hat0  # set a priori estimate to initial guess
         self.x_hat_minus = x_hat0  # set a posteriori estimate to initial guess
-        self.error_array = []
+        self.error_array = [] #array to store our innovations
 
     #Update a posteriori estimate based on a priori estimate and measurement
     def predict(self, measurement=None, measurement_array=None):
-        #The extended Kalman Filter
+        #In case measurements are missing, we can handle this by not accounting for the missed measurement and only the process.
         if measurement is None:
             self.x_hat_minus = self.f(self.x_hat, self.u)
             self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
-            self.x_hat = self.x_hat_minus
+            self.x_hat = self.x_hat_minus #Because we have no measurement, here the priori state vector is going to equal the posteriori state vector.
         else:
-            self.x_hat_minus = self.f(self.x_hat, self.u)
+            self.x_hat_minus = self.f(self.x_hat, self.u) #We calculate the priori state vector by using the f function. 
             self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q #error, no W
             self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R) #error, no V
-            self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
-            self.P = (np.eye(self.n) - self.K @ self.H) @ self.P_minus
-            self.mhlb_dis(measurement, measurement_array)
+            self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus)) #the update step, we calculate the posteriori state vector
+            self.P = (np.eye(self.n) - self.K @ self.H) @ self.P_minus #We update the posteriori error covariance matrix
+            self.mhlb_dis(measurement, measurement_array) #We calculate the mahalanobis distance of the innovation to see whether a measurement is a false alarm
 
     #Return current a posteriori estimate
     def get_current_guess(self):
         return self.x_hat
 
-
+    #We calculate the mahalanobis distance using the measurement, our predicted measurement and our measurement noise covariance matrix
     def mhlb_dis(self, y, measurement_array):
-        error = y - self.h(self.x_hat_minus)
+        error = y - self.h(self.x_hat_minus) #calculate innovation
         self.error_array.append(error)
-        # ree = self.H@self.P_minus@self.H.T + self.R
-        md = np.sqrt(error.T@linalg.inv(self.R)@error)
-
-    def plot(self):
-        arr = np.array(self.error_array).squeeze()
-        # print(arr)
-        plt.scatter(arr[:, 0], arr[:, 1], color = "red")
-        plt.show()
+        md = np.sqrt(error.T@linalg.inv(self.R)@error) #use innovation and measurement noise covariance matrix to calculate mahalanobis distance
+        return md
 
 
 
