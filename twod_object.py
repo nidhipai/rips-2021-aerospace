@@ -4,9 +4,10 @@ from data_generator import DataGenerator
 
 
 class TwoDObject(DataGenerator):
-    def __init__(self, xt0, dt, ep_tangent, ep_normal, nu):
+    def __init__(self, xt0, dt, ep_tangent, ep_normal, nu, miss_p):
         """
         Constructor for the 2DObject Data Generator.
+
         :param xt0: Initial state vector
         :param dt: Length of one single time step
         :param ep_normal: Variance of the change in velocity vector in the normal direction.
@@ -19,8 +20,9 @@ class TwoDObject(DataGenerator):
         self.ep_tangent = ep_tangent
         self.ep_normal = ep_normal
         self.nu = nu
+        self.miss_p = miss_p
 
-        if xt0.size != 4:
+        if xt0[0].size != 4:
             raise Exception("Length of initial state vector does not equal 4")
 
         self.Q = np.diag(np.append(np.zeros(self.dim), np.append(np.array([ep_tangent]), np.array(ep_normal))))
@@ -33,21 +35,34 @@ class TwoDObject(DataGenerator):
                            np.append(np.zeros((self.dim, self.dim)), np.eye(self.dim), axis=1), axis=0)
         self.nu = nu
 
-    def process_step(self, xt_prev):
+    def process_step(self, xt_prevs):
         """
         Generate the next process state from the previous
         :param xt_prev: Previous process state
         :return: State vector of next step in the process
         """
-        return self.A @ xt_prev + self.process_noise(xt_prev)
+        output = []
+        # Iterate through each state in the list of previous object states
+        for xt_prev in xt_prevs:
+            # calculate the next state and add to output
+            xt_output = self.A @ xt_prev + self.process_noise(xt_prev)
+            output.append(xt_output)
+        return output
 
-    def measure_step(self, xt):
+    def measure_step(self, xts):
         """
         Generate the next measure from the current process state vector
         :param xt: Current state vector
         :return: State vector representing measure at the current process state
         """
-        return self.H @ xt + self.measure_noise()
+
+        # Iterate through each object state in the input
+        output = []
+        for xt in xts:
+            #Calculate whether the measurement is missed
+            if np.random.rand() > self.miss_p:
+                output.append(self.H @ xt + self.measure_noise())
+        return output
 
     def measure_noise(self):
         """
@@ -62,6 +77,9 @@ class TwoDObject(DataGenerator):
         :param xt: current state vector
         :return: vector of noise for each parameter in the state vector
         """
+
+        #NOTE: if the angle is 90 degrees then 0 is returned
+        #Also this uses radians
         ang = np.arctan2(xt[3, 0], xt[2, 0])
         c = np.cos(ang)
         s = np.sin(ang)
@@ -89,7 +107,7 @@ class TwoDObject(DataGenerator):
         clone = copy(self)
         for arg in kwargs.items():
             setattr(clone, arg[0], arg[1])
-        return TwoDObject(clone.xt0, clone.dt, clone.ep_tangent, clone.ep_normal, clone.nu)
+        return TwoDObject(clone.xt0, clone.dt, clone.ep_tangent, clone.ep_normal, clone.nu, clone.miss_p)
 
 
 
