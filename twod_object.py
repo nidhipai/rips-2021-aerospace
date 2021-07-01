@@ -1,10 +1,10 @@
 import numpy as np
-import math
+from copy import copy
 from data_generator import DataGenerator
 
 
 class TwoDObject(DataGenerator):
-    def __init__(self, xt0, dt, ep_normal, ep_tangent, nu):
+    def __init__(self, xt0, dt, ep_tangent, ep_normal, nu):
         """
         Constructor for the 2DObject Data Generator.
         :param xt0: Initial state vector
@@ -16,10 +16,14 @@ class TwoDObject(DataGenerator):
         self.dim = 2
         self.n = 4
 
+        self.ep_tangent = ep_tangent
+        self.ep_normal = ep_normal
+        self.nu = nu
+
         if xt0.size != 4:
             raise Exception("Length of initial state vector does not equal 4")
 
-        self.Q = np.diag(np.append(np.zeros(self.dim), np.append(np.array([ep_normal]), np.array(ep_tangent))))
+        self.Q = np.diag(np.append(np.zeros(self.dim), np.append(np.array([ep_tangent]), np.array(ep_normal))))
         self.R = np.eye(self.dim) * nu
 
         super().__init__(xt0, dt, self.Q, self.R)
@@ -58,9 +62,9 @@ class TwoDObject(DataGenerator):
         :param xt: current state vector
         :return: vector of noise for each parameter in the state vector
         """
-        ang = math.atan2(xt[3, 0], xt[2, 0])
-        c = math.cos(ang)
-        s = math.sin(ang)
+        ang = np.arctan2(xt[3, 0], xt[2, 0])
+        c = np.cos(ang)
+        s = np.sin(ang)
         rotation = np.array([[c, -s], [s, c]])
         rotated_cov = rotation @ self.Q[2:4, 2:4] @ rotation.T
         pad = np.array([0, 0])
@@ -80,3 +84,12 @@ class TwoDObject(DataGenerator):
 
     def measurement_jacobian(self, xt):
         return self.H
+
+    def mutate(self, **kwargs):
+        clone = copy(self)
+        for arg in kwargs.items():
+            setattr(clone, arg[0], arg[1])
+        return TwoDObject(clone.xt0, clone.dt, clone.ep_tangent, clone.ep_normal, clone.nu)
+
+
+
