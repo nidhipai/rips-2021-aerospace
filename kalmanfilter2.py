@@ -52,8 +52,6 @@ class KalmanFilter:
     def predict(self, measurement=None, measurement_array = None):
         #The extended Kalman Filter
 
-        self.mhlb_dis(measurement, measurement_array)
-
         if measurement is None:
             self.x_hat_minus = self.f(self.x_hat)
             self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
@@ -70,15 +68,15 @@ class KalmanFilter:
     def get_current_guess(self):
         return self.x_hat
 
+
     def mhlb_dis(self, y, measurement_array):
-        error = y - self.h(x_hat_minus)
+        error = y - self.h(self.x_hat_minus)
         self.error_array.append(error)
         # ree = self.H@self.P_minus@self.H.T + self.R
         md = np.sqrt(error.T@linalg.inv(self.R)@error)
 
     def plot(self):
         arr = np.array(self.error_array).squeeze()
-        print(arr.shape)
         # print(arr)
         plt.scatter(arr[:, 0], arr[:, 1], color = "red")
         plt.show()

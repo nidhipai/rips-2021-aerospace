@@ -11,6 +11,7 @@ import random as random
 from mpl_toolkits import mplot3d
 from kalmanfilter2 import KalmanFilter
 from matplotlib.patches import Ellipse
+from palettable.mycarta import Cube1_4
 import math
 
 
@@ -81,7 +82,7 @@ class Simulation:
             ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
         self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
         err_arr = np.array(self.kFilter_model.error_array).squeeze()
-		# self.cov_ellipse(err_arr, np.mean(err_arr, axis = 0), self.kFilter_model.R)
+        cov_ellipse_fancy(err_arr, np.mean(err_arr, axis = 0), self.kFilter_model.R)
         self.ellipses[len(self.ellipses.keys())] = ellipses
 
     def plot(self, index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq = 0):
@@ -156,25 +157,25 @@ class Simulation:
     def cov_ellipse(self, mean, cov, zoom_factor=5, p=0.95):
         s = -2 * np.log(1 - p)
         w, v = np.linalg.eig(s*cov)
-        print(v)
+        np.sqrt(w)
         ang = np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
-        print(ang)
         ellipse = Ellipse(xy=mean, width=zoom_factor*w[0], height=zoom_factor*w[1], angle=ang, edgecolor='g', fc='none', lw=1)
         return ellipse
 
 def cov_ellipse_fancy(X, mean, cov, p=[0.99, 0.95, 0.90]):
     plt.rcParams.update({'font.size': 22})
     fig = plt.figure(figsize=(12, 12))
-    # colors = Cube1_4.mpl_colors
+    colors = ["black", "red", "purple", "blue"]
+    colors = Cube1_4.mpl_colors
     axes = plt.gca()
     axes.set_aspect(1)
-    # colors_array = np.array([colors[0]] * X.shape[0])
+    colors_array = np.array([colors[0]] * X.shape[0])
     for i in range(len(p)):
         s = -2 * np.log(1 - p[i])
         w, v = np.linalg.eig(s * cov)
-        # w = np.sqrt(w)
-        ang = np.atan2(v[0, 0], v[1, 0]) / np.pi * 180
-        ellipse = Ellipse(xy=mean, width=2 * w[0], height=2 * w[1], angle=ang, lw=2, fc="none", label=str(p[i]))
+        w = np.sqrt(w)
+        ang = np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
+        ellipse = Ellipse(xy=mean, width=2 * w[0], height=2 * w[1], angle=ang,edgecolor=colors[i+1], lw=2, fc="none", label=str(p[i]))
         cos_angle = np.cos(np.radians(180. - ang))
         sin_angle = np.sin(np.radians(180. - ang))
 
@@ -182,10 +183,10 @@ def cov_ellipse_fancy(X, mean, cov, p=[0.99, 0.95, 0.90]):
         y_val = (X[:, 0] - mean[0]) * sin_angle + (X[:, 1] - mean[1]) * cos_angle
 
         rad_cc = (x_val ** 2 / (w[0]) ** 2) + (y_val ** 2 / (w[1]) ** 2)
-        # colors_array[np.where(rad_cc <= 1.)[0]] = colors[i+1]
+        colors_array[np.where(rad_cc <= 1.)[0]] = colors[i+1]
 
         axes.add_patch(ellipse)
-    axes.scatter(X[:, 0], X[:, 1], linewidths=0, alpha=1)
+    axes.scatter(X[:, 0], X[:, 1], linewidths=0, alpha=1, c = colors_array)
     plt.legend(title="p-value", loc=2, prop={'size': 15}, handleheight=0.01)
     plt.show()
 
