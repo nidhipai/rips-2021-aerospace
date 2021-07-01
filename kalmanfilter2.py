@@ -54,7 +54,6 @@ class KalmanFilter:
         if measurement is None:
             self.x_hat_minus = self.f(self.x_hat, self.u)
             self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + (self.W(self.x_hat_minus) @ self.Q @ self.W(self.x_hat_minus).T)
-            print(self.P_minus)
             self.x_hat = self.x_hat_minus
         else:
             self.x_hat_minus = self.f(self.x_hat, self.u)
