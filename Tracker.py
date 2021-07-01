@@ -24,13 +24,13 @@ class Tracker:
         else:
             # If we don't have any measurements we need to guess for each object
             self.kFilter_model.predict(None, np.array(self.measures))
-            self.current_guess = [self.kFilter_model.get_current_guess()]
+            self.current_guess = [self.kFilter_model.get_current_guess()[0:2]]
 
     def get_current_guess(self):
         return self.current_guess
 
     def remove_fas(self, measure_t):
-        return [measure_t[0]]
+        return measure_t[0]
 
     def mahalanobis_dist(self, y):
         error = y - self.kFilter_model.h(self.kFilter_model.x_hat_minus)
