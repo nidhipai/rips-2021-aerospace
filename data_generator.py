@@ -1,6 +1,13 @@
+
+"""
+Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
+Aerospace Team
+Simulation
+"""
 import numpy as np
 
-
+#Super class where we can generate data. We process and measure some generated randomized data using the covariance matrices for process
+#and measurement noise. 
 class DataGenerator:
     def __init__(self, xt0, dt, Q, R):
         """
