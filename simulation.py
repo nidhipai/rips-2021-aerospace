@@ -194,7 +194,7 @@ class Simulation:
         else:
             print("Number of dimensions cannot be graphed.")
 
-    def plot_all(self, var, ellipse_freq = 0):
+    def plot_all(self, var = "Time Steps", ellipse_freq = 0):
         num_plots = len(self.processes)
         num_rows = int(np.ceil(num_plots / 3))
         if num_plots > 3:
