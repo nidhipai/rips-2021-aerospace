@@ -47,9 +47,9 @@ class KalmanFilter:
         self.x_hat_minus = x_hat0  # set a posteriori estimate to initial guess
         self.error_array = []
 
-    #Update a posteriori estimate based on a priori estimate and measurement
+    # Update a posteriori estimate based on a priori estimate and measurement
     def predict(self, measurement=None, measurement_array=None):
-        #The extended Kalman Filter
+        # The extended Kalman Filter
         if measurement is None:
             self.x_hat_minus = self.f(self.x_hat, self.u)
             self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
@@ -62,7 +62,7 @@ class KalmanFilter:
             self.P = (np.eye(self.n) - self.K @ self.H) @ self.P_minus
             self.mhlb_dis(measurement, measurement_array)
 
-    #Return current a posteriori estimate
+    # Return current a posteriori estimate
     def get_current_guess(self):
         return self.x_hat
 

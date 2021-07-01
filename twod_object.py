@@ -4,7 +4,7 @@ from data_generator import DataGenerator
 
 
 class TwoDObject(DataGenerator):
-    def __init__(self, xt0, dt, ep_tangent, ep_normal, nu, miss_p=0):
+    def __init__(self, xt0, dt, ep_tangent, ep_normal, nu, miss_p=0, lam=0, fa_scale=10):
         """
         Constructor for the 2DObject Data Generator.
 
@@ -13,6 +13,10 @@ class TwoDObject(DataGenerator):
         :param ep_normal: Variance of the change in velocity vector in the normal direction.
         :param ep_tangent: Variance of the change in velocity vector in the tangent direction.
         :param nu: Variance of the measurement noise
+        :param miss_p: Probability of missing a measurement
+        :param lam: Expected number of false alarms per time step
+        :param fa_scale: Scaling of measurement noise on a false alarm
+
         """
         self.dim = 2
         self.n = 4
@@ -21,6 +25,9 @@ class TwoDObject(DataGenerator):
         self.ep_normal = ep_normal
         self.nu = nu
         self.miss_p = miss_p
+        self.lam = lam
+        self.fa_scale = fa_scale
+
 
         if xt0[0].size != 4:
             raise Exception("Length of initial state vector does not equal 4")
@@ -62,6 +69,10 @@ class TwoDObject(DataGenerator):
             #Calculate whether the measurement is missed
             if np.random.rand() > self.miss_p:
                 output.append(self.H @ xt + self.measure_noise())
+
+        for i in range(np.random.poisson(self.lam)):
+            output.append(self.H @ xt + self.measure_noise()*self.fa_scale)
+
         return output
 
     def measure_noise(self):

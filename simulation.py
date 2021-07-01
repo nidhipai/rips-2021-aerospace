@@ -130,7 +130,7 @@ class Simulation:
         self.experiment(ts, **kwargs)
         self.plot_all(var)
 
-    def plot(self, var = "Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0):
+    def plot(self, var="Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0):
         if index is None:
             index = len(self.processes.keys()) - 1
 
@@ -155,9 +155,9 @@ class Simulation:
 
         if self.n // 2 == 2:
             line1, = ax.plot(process[0], process[1], lw=1.5, markersize=8, marker=',')
-            line2 = ax.scatter(measure[0], measure[1], s=15, lw=1.5, marker='+')
+            #line2 = ax.scatter(measure[0], measure[1], s=15, lw=1.5, marker='+')
             line3, = ax.plot(output[0], output[1], lw=0.4, markersize=8, marker='.')
-            lines = [line1, line2, line3]
+            lines = [line1, line3]
 
             # Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
             #ax.set_title(title + "\n" + self.descs[index], loc="left", y=1)
