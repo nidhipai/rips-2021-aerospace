@@ -82,14 +82,13 @@ class Simulation:
         ellipses = []
         output = []
         # Iterate through each time step for which we have measurements
-        for measures_t in self.measures[index]:
+        for i in range(len(self.processes[index])):
 
             # Obtain a set of guesses for the current location of the object given the measurements
             # Note this will need to change later to incorporate multiple objects
 
-            for measure_t in measures_t:
-                self.tracker_model.predict(measure_t)
-                output.append(self.tracker_model.get_current_guess())
+            self.tracker_model.predict(self.measures[index][i])
+            output.append(self.tracker_model.get_current_guess())
 
             # Store the ellipse for later plottingS
             cov_ = self.tracker_model.kFilter_model.P[0:2, 0:2]
@@ -150,9 +149,12 @@ class Simulation:
 
         if self.n // 2 == 2:
             line1, = ax.plot(process[0], process[1], lw=1.5, markersize=8, marker=',')
-            #line2 = ax.scatter(measure[0], measure[1], s=15, lw=1.5, marker='+')
             line3, = ax.plot(output[0], output[1], lw=0.4, markersize=8, marker='.')
-            lines = [line1, line3]
+            if measure.size != 0:
+                line2 = ax.scatter(measure[0], measure[1], s=15, lw=1.5, marker='+')
+            else:
+                line2 = None
+            lines = [line1, line2, line3]
 
             # Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
             #ax.set_title(title + "\n" + self.descs[index], loc="left", y=1)
@@ -173,7 +175,7 @@ class Simulation:
 
             if legend is True:
                 ax.legend(["Process", "Filter", "Measure", "Covariance"])
-            return lines
+            return lines;
         elif self.n // 2 == 3:
             # title = title + ", seed=" + str(self.seed_value)
             ax = plt.axes(projection='3d')
