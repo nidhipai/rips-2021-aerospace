@@ -10,7 +10,7 @@ from data_generator import DataGenerator
 
 #Child class for data_generator where we simulate a two-D object with its position and velocity as part of the state vector
 class TwoDObject(DataGenerator):
-    def __init__(self, xt0, dt, ep_tangent, ep_normal, nu, miss_p=0):
+    def __init__(self, xt0, dt, ep_tangent, ep_normal, nu, miss_p=0, lam=0, fa_scale=10):
         """
         Constructor for the 2DObject Data Generator.
 
@@ -19,14 +19,21 @@ class TwoDObject(DataGenerator):
         :param ep_normal: Variance of the change in velocity vector in the normal direction.
         :param ep_tangent: Variance of the change in velocity vector in the tangent direction.
         :param nu: Variance of the measurement noise
+        :param miss_p: Probability of missing a measurement
+        :param lam: Expected number of false alarms per time step
+        :param fa_scale: Scaling of measurement noise on a false alarm
+
         """
         self.dim = 2 #We work in a two dimensional space
         self.n = 4 #dimension of the state vector
+
 
         self.ep_tangent = ep_tangent #variance of the process noise tangent to the velocity vector
         self.ep_normal = ep_normal #variance of the process noise normal to the velocity vector
         self.nu = nu #variance of the measuremet noise.
         self.miss_p = miss_p #proportion of missed measurements in the generation of the data.
+        self.lam = lam
+        self.fa_scale = fa_scale
 
         #We require our initial state vector to have all 4 needed components: x,y, velocity in the x direction, velocity in the y direction
         if xt0[0].size != 4:
@@ -71,6 +78,10 @@ class TwoDObject(DataGenerator):
             #Calculate whether the measurement is missed
             if np.random.rand() > self.miss_p:
                 output.append(self.H @ xt + self.measure_noise())
+
+        for i in range(np.random.poisson(self.lam)):
+            output.append(self.H @ xt + self.measure_noise()*self.fa_scale)
+
         return output
 
     def measure_noise(self):
