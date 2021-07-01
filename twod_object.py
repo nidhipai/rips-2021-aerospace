@@ -91,16 +91,19 @@ class TwoDObject(DataGenerator):
 
         #NOTE: if the angle is 90 degrees then 0 is returned
         #Also this uses radians
-        ang = np.arctan2(xt[3, 0], xt[2, 0])
-        c = np.cos(ang)
-        s = np.sin(ang)
-        rotation = np.array([[c, -s], [s, c]])
-        rotated_cov = rotation @ self.Q[2:4, 2:4] @ rotation.T
         pad = np.array([0, 0])
-        noise = np.random.multivariate_normal((0, 0), rotated_cov)
+        rotation = self.W(xt)[2:4, 2:4]
+        noise = np.random.multivariate_normal((0, 0), rotation @ self.Q[2:4, 2:4] @ rotation.T)
         output = np.append(pad, noise)
         output.shape = (4, 1)
         return output
+
+    def W(self, xt):
+        ang = np.arctan2(xt[3, 0], xt[2, 0])
+        c = np.cos(ang)
+        s = np.sin(ang)
+
+        return np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, c, -s], [0, 0, s, c]])
 
     def process_function(self, xt, u):
         return self.A @ xt

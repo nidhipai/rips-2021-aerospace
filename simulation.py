@@ -14,7 +14,7 @@ from matplotlib.patches import Ellipse
 
 
 class Simulation:
-    def __init__(self, generator, kFilter, seed_value=1):
+    def __init__(self, generator, kFilter, tracker, seed_value=1):
         """
         Constructs a simulation environment for one-line plotting data
 
@@ -24,7 +24,9 @@ class Simulation:
         self.seed_value = seed_value
         self.generator = generator
         self.kFilter = kFilter
+        self.tracker = tracker
         self.kFilter_model = None
+        self.tracker_model = None
         self.n = generator.n
         self.processes = dict()
         self.measures = dict()
@@ -69,42 +71,33 @@ class Simulation:
         f = self.generator.process_function
         jac = self.generator.process_jacobian
         h = self.generator.measurement_function
+        W = self.generator.W
 
         # Set up the filter with the desired parameters to test
         # NOTE: Currently hardcoded to be single target
-        self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, R, H, u)
+        self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, H, u)
+        self.tracker_model = self.tracker(self.kFilter_model)
 
         # Set up lists to store objects for later plotting
-        measures = []
         ellipses = []
+        output = []
         # Iterate through each time step for which we have measurements
         for measures_t in self.measures[index]:
 
             # Obtain a set of guesses for the current location of the object given the measurements
             # Note this will need to change later to incorporate multiple objects
-            if len(measures_t) > 0:
-                for measure_t in measures_t:
-                    # Store each measure so we can compare future points to previous
-                    # points using a distance metric
-                    measures.append(measure_t)
 
-                    # Process the point using the filter
-                    self.kFilter_model.predict(measure_t, np.array(measures))
-                    kalman_output = self.kFilter_model.get_current_guess()
-                    output = np.append(output, kalman_output, axis=1)
-            else:
-                #If we don't have any measurements we need to guess for each object
-                self.kFilter_model.predict(None, np.array(measures))
-                kalman_output = self.kFilter_model.get_current_guess()
-                output = np.append(output, kalman_output, axis=1)
+            for measure_t in measures_t:
+                self.tracker_model.predict(measure_t)
+                output.append(self.tracker_model.get_current_guess())
 
             # Store the ellipse for later plottingS
-            cov_ = self.kFilter_model.P[0:2, 0:2]
-            mean_ = (self.kFilter_model.x_hat[0, 0], self.kFilter_model.x_hat[1, 0])
+            cov_ = self.tracker_model.kFilter_model.P[0:2, 0:2]
+            mean_ = (self.tracker_model.kFilter_model.x_hat[0, 0], self.tracker_model.kFilter_model.x_hat[1, 0])
             ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
 
         # Store our output as an experiment
-        self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
+        self.trajectories[len(self.trajectories.keys())] = output
 
         # Store the error of the Kalman filter
         err_arr = np.array(self.kFilter_model.error_array).squeeze()
@@ -139,12 +132,14 @@ class Simulation:
         process = [point for sublist in process for point in sublist]
         process = np.array(process).squeeze().T
 
-
         measure = self.measures[index]
         measure = [point for sublist in measure for point in sublist]
         measure = np.array(measure).squeeze().T
 
         output = self.trajectories[index]
+        output = [point for sublist in output for point in sublist]
+        output = np.array(output).squeeze().T
+
         ellipses = self.ellipses[index]
         legend = False
 
