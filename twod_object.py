@@ -1,8 +1,14 @@
+"""
+Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
+Aerospace Team
+Simulation
+"""
+
 import numpy as np
 from copy import copy
 from data_generator import DataGenerator
 
-
+#Child class for data_generator where we simulate a two-D object with its position and velocity as part of the state vector
 class TwoDObject(DataGenerator):
     def __init__(self, xt0, dt, ep_tangent, ep_normal, nu, miss_p=0):
         """
@@ -14,26 +20,29 @@ class TwoDObject(DataGenerator):
         :param ep_tangent: Variance of the change in velocity vector in the tangent direction.
         :param nu: Variance of the measurement noise
         """
-        self.dim = 2
-        self.n = 4
+        self.dim = 2 #We work in a two dimensional space
+        self.n = 4 #dimension of the state vector
 
-        self.ep_tangent = ep_tangent
-        self.ep_normal = ep_normal
-        self.nu = nu
-        self.miss_p = miss_p
+        self.ep_tangent = ep_tangent #variance of the process noise tangent to the velocity vector
+        self.ep_normal = ep_normal #variance of the process noise normal to the velocity vector
+        self.nu = nu #variance of the measuremet noise.
+        self.miss_p = miss_p #proportion of missed measurements in the generation of the data.
 
+        #We require our initial state vector to have all 4 needed components: x,y, velocity in the x direction, velocity in the y direction
         if xt0[0].size != 4:
             raise Exception("Length of initial state vector does not equal 4")
 
+        #We set the process noise covariance matrix to 
         self.Q = np.diag(np.append(np.zeros(self.dim), np.append(np.array([ep_tangent]), np.array(ep_normal))))
         self.R = np.eye(self.dim) * nu
 
         super().__init__(xt0, dt, self.Q, self.R)
 
+        #Jacobian matrices for the h function and the f function.
         self.H = np.append(np.eye(self.dim), np.zeros((self.dim, self.dim)), axis=1)
         self.A = np.append(np.append(np.eye(self.dim), np.eye(self.dim) * self.dt, axis=1),
                            np.append(np.zeros((self.dim, self.dim)), np.eye(self.dim), axis=1), axis=0)
-        self.nu = nu
+        self.nu = nu #measurement noise variance
 
     def process_step(self, xt_prevs):
         """
@@ -102,6 +111,7 @@ class TwoDObject(DataGenerator):
 
     def measurement_jacobian(self, xt):
         return self.H
+
 
     def mutate(self, **kwargs):
         clone = copy(self)

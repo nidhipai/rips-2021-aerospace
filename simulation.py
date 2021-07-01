@@ -11,8 +11,9 @@ from copy import copy
 import random as random
 from mpl_toolkits import mplot3d
 from matplotlib.patches import Ellipse
+plt.rcParams["figure.figsize"] = (12,8)
 
-
+#The Simulation class runs the data generator and the kalman filter to simulate an object in 2D.
 class Simulation:
     def __init__(self, generator, kFilter, seed_value=1):
         """
@@ -21,22 +22,26 @@ class Simulation:
         :param generator: Data Generator object
         :param kFilter: function for predicting the trajectory
         """
-        self.seed_value = seed_value
-        self.generator = generator
-        self.kFilter = kFilter
-        self.kFilter_model = None
-        self.n = generator.n
-        self.processes = dict()
-        self.measures = dict()
-        self.trajectories = dict()
-        self.descs = dict()
-        self.ellipses = dict()
+        self.seed_value = seed_value #a seed value for the random number generator
+        self.generator = generator #our data generator
+        self.kFilter = kFilter #the kalman filter class
+        self.kFilter_model = None #kalman filter object
+        self.n = generator.n #number of dimensions
+        self.processes = dict() #dictionary for all the generated processes
+        self.measures = dict() #dictionary for all the generated measures
+        self.trajectories = dict() #predictions from the kalman filter
+        self.descs = dict() #the descriptions for the graphs to be plotted
+        self.ellipses = dict() #confidence ellipses
 
+    #the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
+    #data generator object to create the dictionary of processes and measures. 
     def generate(self, time_steps):
         """
         Generates process and measurement data
         """
         random.seed(self.seed_value)
+
+        #we generate the process data and the measure data and assign it to the instances of processes and measures
         process = self.generator.process(time_steps)
         self.processes[len(self.processes.keys())] = process
         self.measures[len(self.measures.keys())] = self.generator.measure(process)
@@ -51,6 +56,7 @@ class Simulation:
             "Time Steps": str(time_steps)
         }
 
+    #We use the kalman filter and the generated data to predict the trajectory of the simulated object
     def predict(self, index=None, x0=None, Q=None, R=None, H=None, u=None):
         output = np.empty((self.n, 1))
         # if any necessary variables for the filter have not been defined, assume we know them exactly
@@ -99,7 +105,7 @@ class Simulation:
                 output = np.append(output, kalman_output, axis=1)
 
             # Store the ellipse for later plottingS
-            cov_ = self.kFilter_model.P[0:2, 0:2]
+            cov_ = self.kFilter_model.P[:2, :2]
             mean_ = (self.kFilter_model.x_hat[0, 0], self.kFilter_model.x_hat[1, 0])
             ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
 
@@ -108,7 +114,6 @@ class Simulation:
 
         # Store the error of the Kalman filter
         err_arr = np.array(self.kFilter_model.error_array).squeeze()
-        # cov_ellipse_fancy(err_arr, np.mean(err_arr, axis = 0), self.kFilter_model.R)
 
         self.ellipses[len(self.ellipses.keys())] = ellipses
 
@@ -130,6 +135,8 @@ class Simulation:
         self.experiment(ts, **kwargs)
         self.plot_all(var)
 
+
+    '''We plot our trajectory based on the predicted trajectories given by the kalman filter object. '''
     def plot(self, var = "Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0):
         if index is None:
             index = len(self.processes.keys()) - 1
@@ -153,6 +160,7 @@ class Simulation:
             legend = True
         plt.rcParams.update({'font.size': 10})
 
+
         if self.n // 2 == 2:
             line1, = ax.plot(process[0], process[1], lw=1.5, markersize=8, marker=',')
             line2 = ax.scatter(measure[0], measure[1], s=15, lw=1.5, marker='+')
@@ -166,10 +174,15 @@ class Simulation:
             ax.set_ylabel(x_label)
             ax.patches = []
             if ellipse_freq != 0:
+                count = 0
                 for j, ellipse in enumerate(ellipses):
-                    if j % ellipse_freq == 0:
+                    if j % (1/ellipse_freq) == 0:
+                        count+=1
+                        # print(j)
+                        # print("---", j)
                         new_c=copy(ellipse)
                         ax.add_patch(new_c)
+                print(count)
             ax.set_aspect(1)
             ax.axis('square')
 
@@ -194,6 +207,8 @@ class Simulation:
         else:
             print("Number of dimensions cannot be graphed.")
 
+    '''the plot_all function takes in a variable name, and an ellipse frequency between 0 and 1. Then, all stored experiments
+    are plotted in one single figure with subplots'''
     def plot_all(self, var = "Time Steps", ellipse_freq = 0):
         num_plots = len(self.processes)
         num_rows = int(np.ceil(num_plots / 3))
@@ -217,6 +232,7 @@ class Simulation:
             self.plot(ellipse_freq=ellipse_freq)
         plt.tight_layout()
 
+    '''This function clears all the processes, measures, trajectories, descriptions, and the ellipses.'''
     def clear(self):
         self.processes = dict()
         self.measures = dict()
@@ -224,16 +240,23 @@ class Simulation:
         self.descs = dict()
         self.ellipses = dict()
 
-    def cov_ellipse(self, mean, cov, zoom_factor=5, p=0.95):
+
+    '''The cov ellipse returns an ellipse path that can be added to a plot based on the given mean, covariance matrix
+    zoom_factor, and the p-value'''
+    def cov_ellipse(self, mean, cov, zoom_factor=2, p=0.95):
+        #the s-value takes into account the p-value given
         s = -2 * np.log(1 - p)
+        #the w and v variables give the eigenvalues and the eigenvectors of the covariance matrix scaled by s
         w, v = np.linalg.eig(s*cov)
-        np.sqrt(w)
+        w = np.sqrt(w)
+        #calculate the tilt of the ellipse
         ang = np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
         ellipse = Ellipse(xy=mean, width=zoom_factor*w[0], height=zoom_factor*w[1], angle=ang, edgecolor='g', fc='none', lw=1)
         return ellipse
 
 
-
+'''The same as the cov_ellipse function, but draws multiple p-values depending on the passed on list. One can also 
+plot the scattered values using this function to see which points are outliers. '''
 def cov_ellipse_fancy(X, mean, cov, p=(0.99, 0.95, 0.90)):
     plt.rcParams.update({'font.size': 22})
     fig = plt.figure(figsize=(12, 12))
@@ -242,6 +265,8 @@ def cov_ellipse_fancy(X, mean, cov, p=(0.99, 0.95, 0.90)):
     axes = plt.gca()
     axes.set_aspect(1)
     colors_array = np.array([colors[0]] * X.shape[0])
+
+    #for loop to individually draw each of the p-ellipses. 
     for i in range(len(p)):
         s = -2 * np.log(1 - p[i])
         w, v = np.linalg.eig(s * cov)
@@ -254,10 +279,12 @@ def cov_ellipse_fancy(X, mean, cov, p=(0.99, 0.95, 0.90)):
         x_val = (X[:, 0] - mean[0]) * cos_angle - (X[:, 1] - mean[1]) * sin_angle
         y_val = (X[:, 0] - mean[0]) * sin_angle + (X[:, 1] - mean[1]) * cos_angle
 
+        #calculating whether a point is inside an ellipse. If it is, we change the color of the point to a specific desired color. 
         rad_cc = (x_val ** 2 / (w[0]) ** 2) + (y_val ** 2 / (w[1]) ** 2)
         colors_array[np.where(rad_cc <= 1.)[0]] = colors[i+1]
 
         axes.add_patch(ellipse)
+    #plot the scattered points with the ellipses. 
     axes.scatter(X[:, 0], X[:, 1], linewidths=0, alpha=1, c = colors_array)
     plt.legend(title="p-value", loc=2, prop={'size': 15}, handleheight=0.01)
     plt.show()
