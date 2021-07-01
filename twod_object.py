@@ -4,7 +4,7 @@ from data_generator import DataGenerator
 
 
 class TwoDObject(DataGenerator):
-    def __init__(self, xt0, dt, ep_tangent, ep_normal, nu, miss_p):
+    def __init__(self, xt0, dt, ep_tangent, ep_normal, nu, miss_p=0):
         """
         Constructor for the 2DObject Data Generator.
 
