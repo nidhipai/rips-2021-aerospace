@@ -47,9 +47,10 @@ class KalmanFilter:
         self.x_hat_minus = x_hat0  # set a posteriori estimate to initial guess
         self.error_array = [] #array to store our innovations
 
-    #Update a posteriori estimate based on a priori estimate and measurement
+    # Update a posteriori estimate based on a priori estimate and measurement
     def predict(self, measurement=None, measurement_array=None):
         #In case measurements are missing, we can handle this by not accounting for the missed measurement and only the process.
+
         if measurement is None:
             self.x_hat_minus = self.f(self.x_hat, self.u)
             self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
@@ -62,7 +63,7 @@ class KalmanFilter:
             self.P = (np.eye(self.n) - self.K @ self.H) @ self.P_minus #We update the posteriori error covariance matrix
             self.mhlb_dis(measurement, measurement_array) #We calculate the mahalanobis distance of the innovation to see whether a measurement is a false alarm
 
-    #Return current a posteriori estimate
+    # Return current a posteriori estimate
     def get_current_guess(self):
         return self.x_hat
 
