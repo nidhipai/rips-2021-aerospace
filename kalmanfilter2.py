@@ -6,7 +6,6 @@ Kalman Filter - Discrete
 
 import numpy as np
 import numpy.linalg as linalg
-import scipy.spatial.distance as scp
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 import math
@@ -49,11 +48,10 @@ class KalmanFilter:
         self.error_array = []
 
     #Update a posteriori estimate based on a priori estimate and measurement
-    def predict(self, measurement=None, measurement_array = None):
+    def predict(self, measurement=None, measurement_array=None):
         #The extended Kalman Filter
-
         if measurement is None:
-            self.x_hat_minus = self.f(self.x_hat)
+            self.x_hat_minus = self.f(self.x_hat, self.u)
             self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
             self.x_hat = self.x_hat_minus
         else:

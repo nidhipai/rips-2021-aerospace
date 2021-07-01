@@ -5,24 +5,22 @@ Simulation
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from copy import copy
 # plt.rcParams['text.usetex'] = True
 
 import random as random
 from mpl_toolkits import mplot3d
-from kalmanfilter2 import KalmanFilter
 from matplotlib.patches import Ellipse
-from palettable.mycarta import Cube1_4
-import math
 
 
 class Simulation:
     def __init__(self, generator, kFilter, seed_value=1):
         """
-	    Constructs a simulation environment for one-line plotting data
+        Constructs a simulation environment for one-line plotting data
 
-		:param generator: Data Generator object
-		:param kFilter: function for predicting the trajectory
-		"""
+        :param generator: Data Generator object
+        :param kFilter: function for predicting the trajectory
+        """
         self.seed_value = seed_value
         self.generator = generator
         self.kFilter = kFilter
@@ -31,22 +29,27 @@ class Simulation:
         self.processes = dict()
         self.measures = dict()
         self.trajectories = dict()
+        self.descs = dict()
         self.ellipses = dict()
-
-    def set_generator(self, generator):
-        self.generator = generator
-
-    def set_filter(self, kFilter):
-        self.kFilter = kFilter
 
     def generate(self, time_steps):
         """
-		Generates process and measurement data
-		"""
+        Generates process and measurement data
+        """
         random.seed(self.seed_value)
         process = self.generator.process(time_steps)
         self.processes[len(self.processes.keys())] = process
         self.measures[len(self.measures.keys())] = self.generator.measure(process)
+
+        # NOTE: This is hardcoded to support only one single object for now
+        self.descs[len(self.descs.keys())] = {
+            "x0": str(self.generator.xt0[0][0]),
+            "y0": str(self.generator.xt0[0][1]),
+            "Tangent Variance": str(self.generator.Q[2, 2]),
+            "Normal Variance": str(self.generator.Q[3, 3]),
+            "Measurement Noise Variance": str(self.generator.R[1, 1]),
+            "Time Steps": str(time_steps)
+        }
 
     def predict(self, index=None, x0=None, Q=None, R=None, H=None, u=None):
         output = np.empty((self.n, 1))
@@ -62,30 +65,72 @@ class Simulation:
         if index is None:
             index = len(self.measures.keys()) - 1
 
+        #Extract the necessary functions and jacobians from the DataGenerator
         f = self.generator.process_function
         jac = self.generator.process_jacobian
         h = self.generator.measurement_function
 
-        self.kFilter_model = self.kFilter(x0, f, jac, h, Q, R, H, u)
-        measures = []
+        # Set up the filter with the desired parameters to test
+        # NOTE: Currently hardcoded to be single target
+        self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, R, H, u)
 
+        # Set up lists to store objects for later plotting
+        measures = []
         ellipses = []
-        for i in range(self.measures[index][0].size):
-            measure_t = self.measures[index][:, i]
-            measure_t.shape = (self.n // 2, 1)
-            measures.append(measure_t)
-            self.kFilter_model.predict(measure_t, np.array(measures))
-            kalman_output = self.kFilter_model.get_current_guess()
-            output = np.append(output, kalman_output, axis=1)
+        # Iterate through each time step for which we have measurements
+        for measures_t in self.measures[index]:
+
+            # Obtain a set of guesses for the current location of the object given the measurements
+            # Note this will need to change later to incorporate multiple objects
+            if len(measures_t) > 0:
+                for measure_t in measures_t:
+                    # Store each measure so we can compare future points to previous
+                    # points using a distance metric
+                    measures.append(measure_t)
+
+                    # Process the point using the filter
+                    self.kFilter_model.predict(measure_t, np.array(measures))
+                    kalman_output = self.kFilter_model.get_current_guess()
+                    output = np.append(output, kalman_output, axis=1)
+            else:
+                #If we don't have any measurements we need to guess for each object
+                self.kFilter_model.predict(None, np.array(measures))
+                kalman_output = self.kFilter_model.get_current_guess()
+                output = np.append(output, kalman_output, axis=1)
+
+            # Store the ellipse for later plottingS
             cov_ = self.kFilter_model.P[0:2, 0:2]
             mean_ = (self.kFilter_model.x_hat[0, 0], self.kFilter_model.x_hat[1, 0])
             ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
+
+        # Store our output as an experiment
         self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
+
+        # Store the error of the Kalman filter
         err_arr = np.array(self.kFilter_model.error_array).squeeze()
-        cov_ellipse_fancy(err_arr, np.mean(err_arr, axis = 0), self.kFilter_model.R)
+        # cov_ellipse_fancy(err_arr, np.mean(err_arr, axis = 0), self.kFilter_model.R)
+
         self.ellipses[len(self.ellipses.keys())] = ellipses
 
-    def plot(self, index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq = 0):
+    def experiment(self, ts, **kwargs):
+        for arg in kwargs.items():
+            for value in arg[1]:
+                self.generator = self.generator.mutate(**{arg[0]: value})
+                self.generate(ts)
+                self.predict()
+
+    def experiment_plot(self, ts, var, **kwargs):
+        """
+        Run multiple experiments and plot all experiments run
+        :param ts: Number of time steps to run
+        :param var: Variable to display in title. This should change across experiments
+        :param kwargs: Values to test in experiments
+        :return:
+        """
+        self.experiment(ts, **kwargs)
+        self.plot_all(var)
+
+    def plot(self, var = "Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0):
         if index is None:
             index = len(self.processes.keys()) - 1
         process = self.processes[index]
@@ -104,17 +149,25 @@ class Simulation:
             line3, = ax.plot(output[0], output[1], lw=0.4, markersize=8, marker='.')
             lines = [line1, line2, line3]
 
-            ax.set_title(title)
+            # Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
+            #ax.set_title(title + "\n" + self.descs[index], loc="left", y=1)
+            ax.set_title(title + "\n" + var + " = " + str(self.descs[index][var]))
             ax.set_xlabel(y_label)
             ax.set_ylabel(x_label)
+            ax.patches = []
             if ellipse_freq != 0:
                 for j, ellipse in enumerate(ellipses):
                     if j % ellipse_freq == 0:
-                        ax.add_patch(ellipse)
-            # ax.set_aspect(1)
-            # plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]),str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
+                        new_c=copy(ellipse)
+                        ax.add_patch(new_c)
+            ax.set_aspect(1)
+            ax.axis('square')
+
+            #Below is an old method, if we want to include the full Q and R matrix
+            #plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
+
             if legend is True:
-                ax.legend(["Process", "Filter", "Measure"])
+                ax.legend(["Process", "Filter", "Measure", "Covariance"])
             return lines
         elif self.n // 2 == 3:
             # title = title + ", seed=" + str(self.seed_value)
@@ -131,7 +184,7 @@ class Simulation:
         else:
             print("Number of dimensions cannot be graphed.")
 
-    def plot_all(self):
+    def plot_all(self, var, ellipse_freq = 0):
         num_plots = len(self.processes)
         num_rows = int(np.ceil(num_plots / 3))
         if num_plots > 3:
@@ -141,7 +194,7 @@ class Simulation:
             plt.subplots_adjust(hspace=.5, bottom=.15)
             lines = []
             for i in range(0, len(self.processes)):
-                lines = self.plot(index=i, title="Plot " + str(i + 1), ax=ax[i // 3, i % 3])
+                lines = self.plot(index=i, var = var, ax=ax[i // 3, i % 3], ellipse_freq=ellipse_freq)
             if num_plots % 3 == 1:  # one plot on last row
                 ax[num_rows - 1, 1].remove()
             if num_plots % 3 != 0:  # one or two plots
@@ -151,8 +204,8 @@ class Simulation:
             else:
                 fig.legend(handles=lines, labels=["Process", "Filter", "Measure"], loc='lower center')
         else:
-            for i in range(0, len(self.processes)):
-                self.plot(index=i)
+            self.plot(ellipse_freq=ellipse_freq)
+        plt.tight_layout()
 
     def cov_ellipse(self, mean, cov, zoom_factor=5, p=0.95):
         s = -2 * np.log(1 - p)
@@ -162,7 +215,9 @@ class Simulation:
         ellipse = Ellipse(xy=mean, width=zoom_factor*w[0], height=zoom_factor*w[1], angle=ang, edgecolor='g', fc='none', lw=1)
         return ellipse
 
-def cov_ellipse_fancy(X, mean, cov, p=[0.99, 0.95, 0.90]):
+
+
+def cov_ellipse_fancy(X, mean, cov, p=(0.99, 0.95, 0.90)):
     plt.rcParams.update({'font.size': 22})
     fig = plt.figure(figsize=(12, 12))
     colors = ["black", "red", "purple", "blue"]
@@ -189,4 +244,5 @@ def cov_ellipse_fancy(X, mean, cov, p=[0.99, 0.95, 0.90]):
     axes.scatter(X[:, 0], X[:, 1], linewidths=0, alpha=1, c = colors_array)
     plt.legend(title="p-value", loc=2, prop={'size': 15}, handleheight=0.01)
     plt.show()
+
 
