@@ -11,7 +11,7 @@ from matplotlib.patches import Ellipse
 import math
 
 class KalmanFilter:
-    def __init__(self, x_hat0, f, A, h, Q, R, H=None, u=0):
+    def __init__(self, x_hat0, f, A, h, Q, W, R, H=None, u=0, dt=1):
         """
         Initialize the Extended Kalman Filter object
         :param x_hat0: initial state vector
@@ -23,7 +23,8 @@ class KalmanFilter:
         :param H: Matrix transforming the process state vector into a measurement state vector
         :param u: Control vector
         """
-        self.Q = Q  # process noise covariance
+        self.Q = Q * dt  # process noise covariance
+        self.W = W # rotation matrix
         self.R = R  # measurement noise covariance
         self.f = f  # process function
         self.h = h  # measurement function
@@ -52,32 +53,19 @@ class KalmanFilter:
         # The extended Kalman Filter
         if measurement is None:
             self.x_hat_minus = self.f(self.x_hat, self.u)
-            self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q
+            self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + (self.W(self.x_hat_minus) @ self.Q @ self.W(self.x_hat_minus).T)
+            print(self.P_minus)
             self.x_hat = self.x_hat_minus
         else:
             self.x_hat_minus = self.f(self.x_hat, self.u)
-            self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + self.Q #error, no W
-            self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R) #error, no V
+            self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + (self.W(self.x_hat_minus) @ self.Q @ self.W(self.x_hat_minus).T)
+            self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
             self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
             self.P = (np.eye(self.n) - self.K @ self.H) @ self.P_minus
-            self.mhlb_dis(measurement, measurement_array)
 
     # Return current a posteriori estimate
     def get_current_guess(self):
         return self.x_hat
-
-    def mhlb_dis(self, y, measurement_array):
-        error = y - self.h(self.x_hat_minus)
-        self.error_array.append(error)
-        # ree = self.H@self.P_minus@self.H.T + self.R
-        md = np.sqrt(error.T@linalg.inv(self.R)@error)
-
-    def plot(self):
-        arr = np.array(self.error_array).squeeze()
-        print(arr.shape)
-        # print(arr)
-        plt.scatter(arr[:, 0], arr[:, 1], color = "red")
-        plt.show()
 
 
 

@@ -66,6 +66,9 @@ class DataGenerator:
     def measure_noise(self):
         pass
 
+    def W(self,xt):
+        return np.eye(self.n, self.n)
+
     def process_function(self, xt, u):
         pass
 
