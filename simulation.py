@@ -40,9 +40,11 @@ class Simulation:
         process = self.generator.process(time_steps)
         self.processes[len(self.processes.keys())] = process
         self.measures[len(self.measures.keys())] = self.generator.measure(process)
+
+        # NOTE: This is hardcoded to support only one single object for now
         self.descs[len(self.descs.keys())] = {
-            "x0": str(self.generator.xt0[0, 0]),
-            "y0": str(self.generator.xt0[1, 0]),
+            "x0": str(self.generator.xt0[0][0]),
+            "y0": str(self.generator.xt0[0][1]),
             "Tangent Variance": str(self.generator.Q[2, 2]),
             "Normal Variance": str(self.generator.Q[3, 3]),
             "Measurement Noise Variance": str(self.generator.R[1, 1]),
@@ -63,26 +65,50 @@ class Simulation:
         if index is None:
             index = len(self.measures.keys()) - 1
 
+        #Extract the necessary functions and jacobians from the DataGenerator
         f = self.generator.process_function
         jac = self.generator.process_jacobian
         h = self.generator.measurement_function
 
-        self.kFilter_model = self.kFilter(x0, f, jac, h, Q, R, H, u)
-        measures = []
+        # Set up the filter with the desired parameters to test
+        # NOTE: Currently hardcoded to be single target
+        self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, R, H, u)
 
+        # Set up lists to store objects for later plotting
+        measures = []
         ellipses = []
-        for i in range(self.measures[index][0].size):
-            measure_t = self.measures[index][:, i]
-            measure_t.shape = (self.n // 2, 1)
-            measures.append(measure_t)
-            self.kFilter_model.predict(measure_t, np.array(measures))
-            kalman_output = self.kFilter_model.get_current_guess()
-            output = np.append(output, kalman_output, axis=1)
+        # Iterate through each time step for which we have measurements
+        for measures_t in self.measures[index]:
+
+            # Obtain a set of guesses for the current location of the object given the measurements
+            # Note this will need to change later to incorporate multiple objects
+            if len(measures_t) > 0:
+                for measure_t in measures_t:
+                    # Store each measure so we can compare future points to previous
+                    # points using a distance metric
+                    measures.append(measure_t)
+
+                    # Process the point using the filter
+                    self.kFilter_model.predict(measure_t, np.array(measures))
+                    kalman_output = self.kFilter_model.get_current_guess()
+                    output = np.append(output, kalman_output, axis=1)
+            else:
+                #If we don't have any measurements we need to guess for each object
+                self.kFilter_model.predict(None, np.array(measures))
+                kalman_output = self.kFilter_model.get_current_guess()
+                output = np.append(output, kalman_output, axis=1)
+
+            # Store the ellipse for later plottingS
             cov_ = self.kFilter_model.P[0:2, 0:2]
             mean_ = (self.kFilter_model.x_hat[0, 0], self.kFilter_model.x_hat[1, 0])
             ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
+
+        # Store our output as an experiment
         self.trajectories[len(self.trajectories.keys())] = output[:, 1:]  # delete the first column (initial data)
+
+        # Store the error of the Kalman filter
         err_arr = np.array(self.kFilter_model.error_array).squeeze()
+
         # self.cov_ellipse(err_arr, np.mean(err_arr, axis = 0), self.kFilter_model.R)
         self.ellipses[len(self.ellipses.keys())] = ellipses
 
@@ -94,6 +120,13 @@ class Simulation:
                 self.predict()
 
     def experiment_plot(self, ts, var, **kwargs):
+        """
+        Run multiple experiments and plot all experiments run
+        :param ts: Number of time steps to run
+        :param var: Variable to display in title. This should change across experiments
+        :param kwargs: Values to test in experiments
+        :return:
+        """
         self.experiment(ts, **kwargs)
         self.plot_all(var)
 
@@ -177,7 +210,7 @@ class Simulation:
     def cov_ellipse(self, mean, cov, zoom_factor=5, p=0.95):
         s = -2 * np.log(1 - p)
         w, v = np.linalg.eig(s*cov)
-        ang = np.arctan2(v[0, 0], v[0, 1]) / np.pi * 180
+        ang = np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
         ellipse = Ellipse(xy=mean, width=zoom_factor*w[0], height=zoom_factor*w[1], angle=ang, edgecolor='g', fc='none', lw=1)
         return ellipse
 
