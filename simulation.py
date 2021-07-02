@@ -22,7 +22,7 @@ class Simulation:
         :param generator: Data Generator object
         :param kFilter: function for predicting the trajectory
         """
-        self.seed_value = seed_value
+        self.rng = np.random.default_rng(seed_value)
         self.generator = generator
         self.kFilter = kFilter
         self.tracker = tracker
@@ -42,12 +42,11 @@ class Simulation:
         """
         Generates process and measurement data
         """
-        random.seed(self.seed_value)
 
         #we generate the process data and the measure data and assign it to the instances of processes and measures
-        process = self.generator.process(time_steps)
+        process = self.generator.process(time_steps, self.rng)
         self.processes[len(self.processes.keys())] = process
-        self.measures[len(self.measures.keys())] = self.generator.measure(process)
+        self.measures[len(self.measures.keys())] = self.generator.measure(process, self.rng)
 
         # NOTE: This is hardcoded to support only one single object for now
         self.descs[len(self.descs.keys())] = {
@@ -125,6 +124,7 @@ class Simulation:
         :param kwargs: Values to test in experiments
         :return:
         """
+        self.clear()
         self.experiment(ts, **kwargs)
         self.plot_all(var)
 
