@@ -54,7 +54,7 @@ class Simulation:
             "y0": str(self.generator.xt0[0][1]),
             "Tangent Variance": str(self.generator.Q[2, 2]),
             "Normal Variance": str(self.generator.Q[3, 3]),
-            "Measurement Noise Variance": str(self.generator.R[1, 1]),
+            "Measurement Noise": str(self.generator.R[1, 1]),
             "Time Steps": str(time_steps)
         }
 
@@ -188,7 +188,7 @@ class Simulation:
             #plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
 
             if legend is True:
-                ax.legend(["Process", "Filter", "Measure", "Covariance"])
+                ax.legend(["Process", "Filter", "Measure", "Covariance"],prop={'size': legend_size})
             return lines;
         elif self.n // 2 == 3:
             # title = title + ", seed=" + str(self.seed_value)
@@ -200,7 +200,7 @@ class Simulation:
             ax.set_ylabel(y_label)
             ax.set_zlabel(z_label)
             ax.set_title(title)
-            plt.legend(["Process", "Filter", "Measure"])
+            plt.legend(["Process", "Filter", "Measure"], prop={'size': legend_size})
             plt.show()
         else:
             print("Number of dimensions cannot be graphed.")
