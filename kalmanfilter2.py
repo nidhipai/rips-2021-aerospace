@@ -48,6 +48,8 @@ class KalmanFilter:
         self.x_hat_minus = x_hat0  # set a posteriori estimate to initial guess
         self.error_array = [] #array to store our innovations
 
+        self.xt0 = x_hat0 # for plotting
+
     # Update a posteriori estimate based on a priori estimate and measurement
     def predict(self, measurement=None, measurement_array=None):
         #In case measurements are missing, we can handle this by not accounting for the missed measurement and only the process.
