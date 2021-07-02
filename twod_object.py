@@ -61,7 +61,7 @@ class TwoDObject(DataGenerator):
         # Iterate through each state in the list of previous object states
         for xt_prev in xt_prevs:
             # calculate the next state and add to output
-            xt_output = self.A @ xt_prev + self.process_noise(xt_prev, rng)
+            xt_output = self.A @ xt_prev + dt*self.process_noise(xt_prev, rng)
             output.append(xt_output)
         return output
 

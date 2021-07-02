@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy
 # plt.rcParams['text.usetex'] = True
+from single_target_evaluation import SingleTargetEvaluation
 
 import random as random
 from mpl_toolkits import mplot3d
@@ -54,7 +55,7 @@ class Simulation:
             "Tangent Variance": str(self.generator.Q[2, 2]),
             "Normal Variance": str(self.generator.Q[3, 3]),
             "Measurement Noise": str(self.generator.R[1, 1]),
-            "Time Steps": str(time_steps),
+            "Time Steps": str(time_steps)
         }
 
     #We use the kalman filter and the generated data to predict the trajectory of the simulated object
@@ -140,7 +141,7 @@ class Simulation:
         else:
             print("Not a valid test type. Choose either data or filter")
 
-    def experiment_plot(self, ts, var, test = "data", **kwargs):
+    def experiment_plot(self, ts, var, plot_error_q=False, test="data", **kwargs):
         """
         Run multiple experiments and plot all experiments run
         :param ts: Number of time steps to run
@@ -151,6 +152,41 @@ class Simulation:
         self.clear()
         self.experiment(ts, test, **kwargs)
         self.plot_all(var)
+        if plot_error_q:
+            self.plot_all(error=True, var=var)
+
+    def plot_error(self, index=None, ax=None, title="Error", var=""):
+        if index is None:
+            index = len(self.processes.keys()) - 1
+        process = self.processes[index]
+        process = np.array([point for sublist in process for point in sublist])
+        process = process[:, :2, ]  # get first two position coordinates
+        traj = self.trajectories[index]
+        traj = np.array([point for sublist in traj for point in sublist])
+
+        # legend should be true if the plot needs a legend (it's only one plot and the legend isn't on an outside axis)
+        legend = False
+        if ax is None:
+            fig, ax = plt.subplots()
+            legend = True
+        plt.rcParams.update({'font.size': 10})
+
+        if self.n // 2 == 2:
+            center_errors = SingleTargetEvaluation.center_error(process, traj)
+            line1, = ax.plot(center_errors)
+            lines = [line1]
+
+            ax.set_title(title + "\n" + var + " = " + str(self.descs[index][var]))
+            ax.set_xlabel("Time")
+            ax.set_ylabel("Error")
+            #ax.axis('square')
+            if legend is True:
+                legend_size = 3
+                ax.legend(["Error"],prop={'size': legend_size})
+            return lines
+        else:
+            print("Number of dimensions cannot be graphed (error plot).")
+
 
     '''We plot our trajectory based on the predicted trajectories given by the kalman filter object. '''
     def plot(self, var="Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0):
@@ -178,7 +214,6 @@ class Simulation:
             fig, ax = plt.subplots()
             legend = True
         plt.rcParams.update({'font.size': 10})
-
 
         if self.n // 2 == 2:
             line1, = ax.plot(process[0], process[1], lw=1.5, markersize=8, marker=',')
@@ -227,28 +262,33 @@ class Simulation:
 
     '''the plot_all function takes in a variable name, and an ellipse frequency between 0 and 1. Then, all stored experiments
     are plotted in one single figure with subplots'''
-    def plot_all(self, var = "Time Steps", test = "data", ellipse_freq = 0):
-        labs = ["Process", "Measure", "Filter"]
+    def plot_all(self, var="Time Steps", error=False, test="data", labs=["Process", "Measure", "Filter"], ellipse_freq = 0):
         num_plots = len(self.processes)
         num_rows = int(np.ceil(num_plots / 3))
-        if num_plots > 3:
-            fig, ax = plt.subplots(num_rows, 3)
-            fig.set_figheight(8)
+        if num_plots > 1:
+            fig, ax = plt.subplots(num_rows, 3, sharey=True) if error else plt.subplots(num_rows, 3)
+            #fig.set_figheight(8)
             fig.set_figwidth(12)
-            plt.subplots_adjust(hspace=.5, bottom=.15)
+            plt.subplots_adjust(hspace=.5, bottom=.2)
             lines = []
             for i in range(0, len(self.processes)):
-                lines = self.plot(index=i, var=var, ax=ax[i // 3, i % 3], ellipse_freq=ellipse_freq)
+                single_ax = ax[i // 3, i % 3] if num_plots > 3 else ax[i % 3]
+                if error:
+                    lines = self.plot_error(index=i, ax=single_ax, var=var)
+                else:
+                    lines = self.plot(index=i, var=var, ax=single_ax, ellipse_freq=ellipse_freq)
+            legend_labels = ["Error"] if error else ["Process", "Filter", "Measure"]
             if num_plots % 3 == 1:  # one plot on last row
-                ax[num_rows - 1, 1].remove()
+                ax[num_rows - 1, 1].remove() if num_plots > 3 else ax[1].remove()
+                # the second part is redundant at the moment because if there's only one plot it won't use this section
             if num_plots % 3 != 0:  # one or two plots
-                ax[num_rows - 1, 2].remove()
-                fig.legend(handles=lines, labels=labs, loc='center',
-                           bbox_to_anchor=(.80, .25), fontsize=20)
-            else:
-                fig.legend(handles=lines, labels=labs, loc='lower center')
-        else:
-            self.plot(ellipse_freq=ellipse_freq)
+                ax[num_rows - 1, 2].remove() if num_plots > 3 else ax[2].remove()
+                fig.legend(handles=lines, labels=legend_labels, loc='center',
+                           bbox_to_anchor=(.73, .25))
+            else: # three plots on last row
+                fig.legend(handles=lines, labels=legend_labels, loc='lower center', bbox_to_anchor=(.5, -.015))
+        else: # just normally plots one plot
+            self.plot(ellipse_freq=ellipse_freq) if not error else self.plot_error(var=var)
         plt.tight_layout()
 
     '''This function clears all the processes, measures, trajectories, descriptions, and the ellipses.'''
