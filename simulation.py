@@ -33,6 +33,7 @@ class Simulation:
         self.measures = dict()
         self.trajectories = dict()
         self.descs = dict()
+        self.kdescs = dict()
         self.ellipses = dict()
 
 
@@ -50,12 +51,10 @@ class Simulation:
 
         # NOTE: This is hardcoded to support only one single object for now
         self.descs[len(self.descs.keys())] = {
-            "x0": str(self.generator.xt0[0][0]),
-            "y0": str(self.generator.xt0[0][1]),
             "Tangent Variance": str(self.generator.Q[2, 2]),
             "Normal Variance": str(self.generator.Q[3, 3]),
             "Measurement Noise": str(self.generator.R[1, 1]),
-            "Time Steps": str(time_steps)
+            "Time Steps": str(time_steps),
         }
 
     #We use the kalman filter and the generated data to predict the trajectory of the simulated object
@@ -72,7 +71,6 @@ class Simulation:
             H = self.generator.H
         if index is None:
             index = len(self.measures.keys()) - 1
-
         #Extract the necessary functions and jacobians from the DataGenerator
         f = self.generator.process_function
         jac = self.generator.process_jacobian
@@ -108,15 +106,41 @@ class Simulation:
         err_arr = np.array(self.kFilter_model.error_array).squeeze()
 
         self.ellipses[len(self.ellipses.keys())] = ellipses
+        #only updating the last one
 
-    def experiment(self, ts, **kwargs):
-        for arg in kwargs.items():
-            for value in arg[1]:
-                self.generator = self.generator.mutate(**{arg[0]: value})
-                self.generate(ts)
-                self.predict()
+        self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
+            "Q": str(self.kFilter_model.Q),
+            "R": str(self.kFilter_model.R),
+            "x0": str(self.kFilter_model.xt0[0, 0]),
+            "y0": str(self.kFilter_model.xt0[1, 0])
+        }}
 
-    def experiment_plot(self, ts, var, **kwargs):
+    def experiment(self, ts, test="data", **kwargs):
+        if type(ts) != list:
+            ts_modified = [ts]
+        else:
+            ts_modified = ts
+        if test == "data":
+            for ts_item in ts_modified:
+                for arg in kwargs.items():
+                    for value in arg[1]:
+                        self.generator = self.generator.mutate(**{arg[0]: value})
+                        self.generate(ts_item)
+                        self.predict()
+        elif test == "filter":
+            for ts_item in ts_modified:
+                self.generate(ts_item)
+                for arg in kwargs.items():
+                    for i, value in enumerate(arg[1]):
+                        if i != 0:
+                            self.processes[len(self.processes)] = self.processes[len(self.processes) - 1]
+                            self.measures[len(self.measures)] = self.measures[len(self.measures) - 1]
+                            self.descs[len(self.descs)] = self.descs[len(self.descs)-1]
+                        self.predict(index = i, **{arg[0]: value})
+        else:
+            print("Not a valid test type. Choose either data or filter")
+
+    def experiment_plot(self, ts, var, test = "data", **kwargs):
         """
         Run multiple experiments and plot all experiments run
         :param ts: Number of time steps to run
@@ -125,12 +149,12 @@ class Simulation:
         :return:
         """
         self.clear()
-        self.experiment(ts, **kwargs)
+        self.experiment(ts, test, **kwargs)
         self.plot_all(var)
 
     '''We plot our trajectory based on the predicted trajectories given by the kalman filter object. '''
-    def plot(self, var = "Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0):
-
+    def plot(self, var="Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0):
+        labs = ["Process", "Measure", "Filter"]
         if index is None:
             index = len(self.processes.keys()) - 1
 
@@ -168,27 +192,23 @@ class Simulation:
             # Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
             #ax.set_title(title + "\n" + self.descs[index], loc="left", y=1)
             ax.set_title(title + "\n" + var + " = " + str(self.descs[index][var]))
-            ax.set_xlabel(y_label)
-            ax.set_ylabel(x_label)
+            ax.set_xlabel(x_label)
+            ax.set_ylabel(y_label)
             ax.patches = []
             if ellipse_freq != 0:
                 count = 0
                 for j, ellipse in enumerate(ellipses):
                     if j % (1/ellipse_freq) == 0:
                         count+=1
-                        # print(j)
-                        # print("---", j)
                         new_c=copy(ellipse)
                         ax.add_patch(new_c)
-                print(count)
             ax.set_aspect(1)
             ax.axis('square')
 
             #Below is an old method, if we want to include the full Q and R matrix
             #plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
-
             if legend is True:
-                ax.legend(["Process", "Filter", "Measure", "Covariance"],prop={'size': legend_size})
+                ax.legend(["Process", "Measure", "Filter", "Covariance"], fontsize='x-large')
             return lines;
         elif self.n // 2 == 3:
             # title = title + ", seed=" + str(self.seed_value)
@@ -200,14 +220,15 @@ class Simulation:
             ax.set_ylabel(y_label)
             ax.set_zlabel(z_label)
             ax.set_title(title)
-            plt.legend(["Process", "Filter", "Measure"], prop={'size': legend_size})
+            plt.legend(labs, fontsize = 'x-large')
             plt.show()
         else:
             print("Number of dimensions cannot be graphed.")
 
     '''the plot_all function takes in a variable name, and an ellipse frequency between 0 and 1. Then, all stored experiments
     are plotted in one single figure with subplots'''
-    def plot_all(self, var = "Time Steps", ellipse_freq = 0):
+    def plot_all(self, var = "Time Steps", test = "data", ellipse_freq = 0):
+        labs = ["Process", "Measure", "Filter"]
         num_plots = len(self.processes)
         num_rows = int(np.ceil(num_plots / 3))
         if num_plots > 3:
@@ -217,15 +238,15 @@ class Simulation:
             plt.subplots_adjust(hspace=.5, bottom=.15)
             lines = []
             for i in range(0, len(self.processes)):
-                lines = self.plot(index=i, var = var, ax=ax[i // 3, i % 3], ellipse_freq=ellipse_freq)
+                lines = self.plot(index=i, var=var, ax=ax[i // 3, i % 3], ellipse_freq=ellipse_freq)
             if num_plots % 3 == 1:  # one plot on last row
                 ax[num_rows - 1, 1].remove()
             if num_plots % 3 != 0:  # one or two plots
                 ax[num_rows - 1, 2].remove()
-                fig.legend(handles=lines, labels=["Process", "Filter", "Measure"], loc='center',
-                           bbox_to_anchor=(.73, .25))
+                fig.legend(handles=lines, labels=labs, loc='center',
+                           bbox_to_anchor=(.80, .25), fontsize=20)
             else:
-                fig.legend(handles=lines, labels=["Process", "Filter", "Measure"], loc='lower center')
+                fig.legend(handles=lines, labels=labs, loc='lower center')
         else:
             self.plot(ellipse_freq=ellipse_freq)
         plt.tight_layout()
@@ -237,6 +258,10 @@ class Simulation:
         self.trajectories = dict()
         self.descs = dict()
         self.ellipses = dict()
+
+    def reset_generator(self, **kwargs):
+        for arg in kwargs.items():
+            self.generator = self.generator.mutate(**{arg[0]: arg[1]})
 
 
     '''The cov ellipse returns an ellipse path that can be added to a plot based on the given mean, covariance matrix
