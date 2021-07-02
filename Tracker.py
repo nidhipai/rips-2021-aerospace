@@ -30,7 +30,11 @@ class Tracker:
         return self.current_guess
 
     def remove_fas(self, measure_t):
-        return measure_t[0]
+        dists = []
+        for point in measure_t:
+            dists.append(self.mahalanobis_dist(point))
+        return measure_t[np.argmin(dists)]
+
 
     def mahalanobis_dist(self, y):
         error = y - self.kFilter_model.h(self.kFilter_model.x_hat_minus)

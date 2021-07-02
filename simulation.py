@@ -208,7 +208,7 @@ class Simulation:
             #Below is an old method, if we want to include the full Q and R matrix
             #plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
             if legend is True:
-                ax.legend(["Process", "Measure", "Filter", "Covariance"], fontsize='x-large')
+                ax.legend(["Process", "Measure", "Filter", "Covariance"], fontsize=20)
             return lines;
         elif self.n // 2 == 3:
             # title = title + ", seed=" + str(self.seed_value)
@@ -220,7 +220,7 @@ class Simulation:
             ax.set_ylabel(y_label)
             ax.set_zlabel(z_label)
             ax.set_title(title)
-            plt.legend(labs, fontsize = 'x-large')
+            plt.legend(labs, fontsize = 20)
             plt.show()
         else:
             print("Number of dimensions cannot be graphed.")
