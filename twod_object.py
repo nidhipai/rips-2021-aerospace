@@ -51,7 +51,7 @@ class TwoDObject(DataGenerator):
                            np.append(np.zeros((self.dim, self.dim)), np.eye(self.dim), axis=1), axis=0)
         self.nu = nu #measurement noise variance
 
-    def process_step(self, xt_prevs):
+    def process_step(self, xt_prevs, rng):
         """
         Generate the next process state from the previous
         :param xt_prev: Previous process state
@@ -61,11 +61,11 @@ class TwoDObject(DataGenerator):
         # Iterate through each state in the list of previous object states
         for xt_prev in xt_prevs:
             # calculate the next state and add to output
-            xt_output = self.A @ xt_prev + self.process_noise(xt_prev)
+            xt_output = self.A @ xt_prev + self.process_noise(xt_prev, rng)
             output.append(xt_output)
         return output
 
-    def measure_step(self, xts):
+    def measure_step(self, xts, rng):
         """
         Generate the next measure from the current process state vector
         :param xt: Current state vector
@@ -77,20 +77,20 @@ class TwoDObject(DataGenerator):
         for xt in xts:
             #Calculate whether the measurement is missed
             if np.random.rand() > self.miss_p:
-                output.append(self.H @ xt + self.measure_noise())
+                output.append(self.H @ xt + self.measure_noise(rng))
 
-        for i in range(np.random.poisson(self.lam)):
-            output.append(self.H @ xt + self.measure_noise()*self.fa_scale)
+        for i in range(rng.poisson(self.lam)):
+            output.append(self.H @ xt + self.measure_noise(rng)*self.fa_scale)
 
         return output
 
-    def measure_noise(self):
+    def measure_noise(self, rng):
         """
         Generate measure noise
         """
-        return np.random.normal(scale=self.nu, size=(self.dim, 1))
+        return rng.normal(scale=self.nu, size=(self.dim, 1))
 
-    def process_noise(self, xt):
+    def process_noise(self, xt, rng):
 
         """
         Generate process noise
@@ -102,7 +102,7 @@ class TwoDObject(DataGenerator):
         #Also this uses radians
         pad = np.array([0, 0])
         rotation = self.W(xt)[2:4, 2:4]
-        noise = np.random.multivariate_normal((0, 0), rotation @ self.Q[2:4, 2:4] @ rotation.T)
+        noise = rng.multivariate_normal((0, 0), rotation @ self.Q[2:4, 2:4] @ rotation.T)
         output = np.append(pad, noise)
         output.shape = (4, 1)
         return output
@@ -125,7 +125,6 @@ class TwoDObject(DataGenerator):
 
     def measurement_jacobian(self, xt):
         return self.H
-
 
     def mutate(self, **kwargs):
         clone = copy(self)
