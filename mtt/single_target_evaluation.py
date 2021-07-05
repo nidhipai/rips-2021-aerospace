@@ -1,9 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 class SingleTargetEvaluation:
 
-# in this class, truth/prediction are 3D arrays - for example, truth is a list of column vectors (and column vectors are 2D themselves)
+    # in this class, truth/prediction are 3D arrays - for example, truth is a list of column vectors (and column vectors are 2D themselves)
 
     @staticmethod
     def center_error(truth, prediction):
@@ -25,14 +26,14 @@ class SingleTargetEvaluation:
         return np.sqrt(1 / len(truth) * np.sum(norms))
 
     @staticmethod
-    def failure_rate(truth, prediction, error_threshold = .5):
+    def failure_rate(truth, prediction, error_threshold=.5):
         # basically measures how many times it goes off track
         # not a very good measure for accuracy, but it tells you something about how much it relies on it's own prediction and follows a consistent path
         failures = 0
         off_track = False
         center_error = SingleTargetEvaluation.center_error(truth, prediction)
         for i in range(0, len(truth)):
-            #print(center_error[i] - error_threshold)
+            # print(center_error[i] - error_threshold)
             if center_error[i] > error_threshold:
                 if not off_track:
                     failures += 1
