@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy
 # plt.rcParams['text.usetex'] = True
-from single_target_evaluation import SingleTargetEvaluation
+from .single_target_evaluation import SingleTargetEvaluation
 
 import random as random
 from mpl_toolkits import mplot3d
