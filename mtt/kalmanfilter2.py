@@ -30,27 +30,34 @@ class KalmanFilter:
         # calculate dimension of x
         self.n = x_hat0.shape[0]
 
-        #Set default H if it is not defined
+        # set default H if it is not defined
         if H is None:
             self.H = np.eye(self.n, self.n)
         else:
             self.H = H  # jacobian of the measurement function
 
-        self.u = u #optional control input
+        self.u = u # optional control input
 
         # set a priori and a posteriori estimate error covariances to all ones (not all zeros)
-        self.P = np.eye(self.n) #Posteriori estimate error covariance initialized to the identity matrix
-        self.P_minus = np.eye(self.n) #priori estimate error coviariance matrix initialized to the identity matrix
+        self.P = np.eye(self.n) # posteriori estimate error covariance initialized to the identity matrix
+        self.P_minus = np.eye(self.n) # priori estimate error coviariance matrix initialized to the identity matrix
         self.x_hat = x_hat0  # set a priori estimate to initial guess
         self.x_hat_minus = x_hat0  # set a posteriori estimate to initial guess
-        self.error_array = [] #array to store our innovations
+        self.error_array = [] # array to store our innovations
 
         self.xt0 = x_hat0 # for plotting
 
     # Update a posteriori estimate based on a priori estimate and measurement
     def predict(self, measurement=None, measurement_array=None):
-        #In case measurements are missing, we can handle this by not accounting for the missed measurement and only the process.
+        """
+        Update a posteriori estimate based on a priori estimate and measurement
+        In case measurements are missing, we can handle this by not accounting for the missed measurement and only the process.
 
+        Args:
+            measurement (ndarray): the measurement vector
+
+            measurement_array(ndarray): the measurement array containing all previous measurements
+        """
         if measurement is None:
             self.x_hat_minus = self.f(self.x_hat, self.u)
             self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + (self.W(self.x_hat_minus) @ self.Q @ self.W(self.x_hat_minus).T)
@@ -64,4 +71,8 @@ class KalmanFilter:
 
     # Return current a posteriori estimate
     def get_current_guess(self):
+        """
+        Returns:
+            self.x_hat (ndarray): return the current state vector
+        """
         return self.x_hat
