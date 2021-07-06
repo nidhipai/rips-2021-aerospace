@@ -203,10 +203,10 @@ class Simulation:
         if index is None:
             index = len(self.processes.keys()) - 1
         process = self.processes[index]
-        process = np.array([point for sublist in process for point in sublist])
-        process = process[:, :2, ]  # get first two position coordinates
+        process = self.clean_process(process)  # get first two position coordinates
         traj = self.trajectories[index]
-        traj = np.array([point for sublist in traj for point in sublist])
+        traj = self.clean_process(traj)
+
 
         # legend should be true if the plot needs a legend (it's only one plot and the legend isn't on an outside axis)
         legend = False
@@ -426,8 +426,8 @@ class Simulation:
         processes_copy = deepcopy(processes)
         temp = []
         while sum([len(step) for step in processes_copy]) > 0:
-            temp.append([step.pop() for step in processes_copy if len(step) > 0])
-        return [np.array([point[0:2, ] for point in process]).squeeze().T for process in temp]
+        #    temp.append([step.pop() for step in processes_copy if len(step) > 0])
+        #return [np.array([point[0:2, ] for point in process]).squeeze().T for process in temp]
 
 
 
