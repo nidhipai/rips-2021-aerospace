@@ -1,5 +1,5 @@
 """
-Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
+Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai -
 Aerospace Team
 Simulation
 """
@@ -14,8 +14,8 @@ from mpl_toolkits import mplot3d
 from matplotlib.patches import Ellipse
 plt.rcParams["figure.figsize"] = (12,8)
 
-#The Simulation class runs the data generator and the kalman filter to simulate an object in 2D.
 class Simulation:
+    """The Simulation class runs the data generator and the kalman filter to simulate an object in 2D."""
     def __init__(self, generator, kFilter, tracker, seed_value=1):
         """
         Constructs a simulation environment for one-line plotting data
@@ -37,14 +37,14 @@ class Simulation:
         self.kdescs = dict()
         self.ellipses = dict()
 
-
-    #the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
-    #data generator object to create the dictionary of processes and measures. 
     def generate(self, time_steps):
         """
-        Generates process and measurement data
-        """
+        The generate function takes in the number of time_steps of data to be generated and then proceeds to use the
+        data generator object to create the dictionary of processes and measures. 
 
+        Args:
+            time_steps (int): the number of time steps
+        """
         #we generate the process data and the measure data and assign it to the instances of processes and measures
         process = self.generator.process(time_steps, self.rng)
         self.processes[len(self.processes.keys())] = process
@@ -58,8 +58,19 @@ class Simulation:
             "Time Steps": str(time_steps)
         }
 
-    #We use the kalman filter and the generated data to predict the trajectory of the simulated object
+    
     def predict(self, index=None, x0=None, Q=None, R=None, H=None, u=None):
+        """
+        The predict function uses the kalman filter to create an estimated trajectory for our simulated object. 
+
+        Args:
+            index (int): --
+            x0 (ndarray): the starting state vector
+            Q (ndarray): the process noise covariance matrix
+            R (ndarray): the measurement noise covariance matrix
+            H (ndarray): the measurement function jacobian
+            u (ndarray): the input control vector
+        """
         output = np.empty((self.n, 1))
         # if any necessary variables for the filter have not been defined, assume we know them exactly
         if x0 is None:
@@ -117,6 +128,12 @@ class Simulation:
         }}
 
     def experiment(self, ts, test="data", **kwargs):
+        """
+        Args:
+            ts (int): the number of time steps
+            test (str): title of our experiment
+            kwargs: values to test in experiments
+        """
         if type(ts) != list:
             ts_modified = [ts]
         else:
@@ -142,12 +159,13 @@ class Simulation:
             print("Not a valid test type. Choose either data or filter")
 
     def experiment_plot(self, ts, var, plot_error_q=False, test="data", **kwargs):
-        """
-        Run multiple experiments and plot all experiments run
-        :param ts: Number of time steps to run
-        :param var: Variable to display in title. This should change across experiments
-        :param kwargs: Values to test in experiments
-        :return:
+       """
+        Args:
+            ts (int): the number of time steps
+            var (str) : variable to display in title. This should change across experiments
+            test(str) : name of our experiment
+            plot_error_q (bool): boolean for ewhether error should be plotted
+            kwargs: Values to test in experiments
         """
         self.clear()
         self.experiment(ts, test, **kwargs)
@@ -156,6 +174,19 @@ class Simulation:
             self.plot_all(error=True, var=var)
 
     def plot_error(self, index=None, ax=None, title="Error", var=""):
+        """
+        Plot our trajectory based on the predicted trajectories given by the kalman filter object.
+
+        Args:
+            var (str): variable to plot
+            index (int): --
+            title (str): title of the plot
+            x_label (str): label for the x-axis
+            y_label (str): label for the y-axis
+            z-label (str) : label for the z-axis if applicable
+            ax (pyplot): an already created plot
+            ellipse_freq (float) : a float between 0 and 1 that gives the relative frequency in which ellipses will be drawn per data point
+        """
         if index is None:
             index = len(self.processes.keys()) - 1
         process = self.processes[index]
@@ -188,8 +219,21 @@ class Simulation:
             print("Number of dimensions cannot be graphed (error plot).")
 
 
-    '''We plot our trajectory based on the predicted trajectories given by the kalman filter object. '''
+
     def plot(self, var="Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0):
+        """
+        Plot our trajectory based on the predicted trajectories given by the kalman filter object.
+
+        Args:
+            var (str): variable to plot
+            index (int): --
+            title (str): title of the plot
+            x_label (str): label for the x-axis
+            y_label (str): label for the y-axis
+            z-label (str) : label for the z-axis if applicable
+            ax (pyplot): an already created plot
+            ellipse_freq (float) : a float between 0 and 1 that gives the relative frequency in which ellipses will be drawn per data point
+        """
         labs = ["Process", "Measure", "Filter"]
         if index is None:
             index = len(self.processes.keys()) - 1
@@ -260,9 +304,15 @@ class Simulation:
         else:
             print("Number of dimensions cannot be graphed.")
 
-    '''the plot_all function takes in a variable name, and an ellipse frequency between 0 and 1. Then, all stored experiments
-    are plotted in one single figure with subplots'''
     def plot_all(self, var="Time Steps", error=False, test="data", labs=["Process", "Measure", "Filter"], ellipse_freq = 0):
+        """
+        the plot_all function takes in a variable name, and an ellipse frequency between 0 and 1. Then, all stored experiments
+        are plotted in one single figure with subplots
+
+        Args:
+            var (str): variable to plot
+            ellipse_freq (float): between 0 and 1, the relative frequency of how often an ellipse should be plotted
+        """
         num_plots = len(self.processes)
         num_rows = int(np.ceil(num_plots / 3))
         if num_plots > 1:
@@ -291,8 +341,9 @@ class Simulation:
             self.plot(ellipse_freq=ellipse_freq) if not error else self.plot_error(var=var)
         plt.tight_layout()
 
-    '''This function clears all the processes, measures, trajectories, descriptions, and the ellipses.'''
+
     def clear(self):
+        '''This function clears all the processes, measures, trajectories, descriptions, and the ellipses.'''
         self.processes = dict()
         self.measures = dict()
         self.trajectories = dict()
@@ -304,9 +355,21 @@ class Simulation:
             self.generator = self.generator.mutate(**{arg[0]: arg[1]})
 
 
-    '''The cov ellipse returns an ellipse path that can be added to a plot based on the given mean, covariance matrix
-    zoom_factor, and the p-value'''
     def cov_ellipse(self, mean, cov, zoom_factor=2, p=0.95):
+        """
+        The cov ellipse returns an ellipse path that can be added to a plot based on the given mean, covariance matrix
+        zoom_factor, and the p-value
+
+        Args:
+            mean (ndarray): set of coordinates representing the center of the ellipse to be plotted
+            cov (ndarray): covariance matrix associated with the ellipse
+            zoom_factor (int) : can be tweaked to make ellipses larger
+            p (float): the confidence interval
+
+        Returns:
+
+            Ellipse: return the Ellipse created.
+        """
         #the s-value takes into account the p-value given
         s = -2 * np.log(1 - p)
         #the w and v variables give the eigenvalues and the eigenvectors of the covariance matrix scaled by s
@@ -318,9 +381,18 @@ class Simulation:
         return ellipse
 
 
-'''The same as the cov_ellipse function, but draws multiple p-values depending on the passed on list. One can also 
-plot the scattered values using this function to see which points are outliers. '''
+
 def cov_ellipse_fancy(X, mean, cov, p=(0.99, 0.95, 0.90)):
+    """
+    The same as the cov_ellipse function, but draws multiple p-values depending on the passed on list. One can also 
+    plot the scattered values using this function to see which points are outliers. 
+
+    Args:
+        X (ndarray): list of points to be plotted on a scatterplot
+        mean (ndarray): set of coordinates representing the center of the plotted ellipse
+        cov (ndarray): the covariance matrix
+        p (list): list of confidence ellipses to be plotted
+    """
     plt.rcParams.update({'font.size': 22})
     fig = plt.figure(figsize=(12, 12))
     colors = ["black", "red", "purple", "blue"]
