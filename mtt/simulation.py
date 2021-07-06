@@ -308,7 +308,9 @@ class Simulation:
                         ax.add_patch(new_c)
                 labs.append("Covariance")
             ax.set_aspect(1)
-            ax.axis('square')
+            ax.set_xlim(-self.generator.x_lim, self.generator.x_lim)
+            ax.set_ylim(-self.generator.y_lim, self.generator.y_lim)
+            #ax.axis('square')
 
             #Below is an old method, if we want to include the full Q and R matrix
             #plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
