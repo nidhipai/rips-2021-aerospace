@@ -17,8 +17,8 @@ class Tracker:
 
         if len(measure_t) > 0:
             # Process the point using the filter
-            self.measures.append(measure_t)
             measure_t_new = self.remove_fas(measure_t)
+            self.measures.append(measure_t_new)
             self.kFilter_model.predict(measure_t_new, np.array(self.measures))
             self.current_guess = [self.kFilter_model.get_current_guess()[0:2]]
         else:

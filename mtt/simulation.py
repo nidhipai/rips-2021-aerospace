@@ -5,7 +5,7 @@ Simulation
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from copy import copy
+from copy import copy, deepcopy
 # plt.rcParams['text.usetex'] = True
 from .single_target_evaluation import SingleTargetEvaluation
 
@@ -196,7 +196,7 @@ class Simulation:
 
     '''We plot our trajectory based on the predicted trajectories given by the kalman filter object. '''
     def plot(self, var="Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0):
-        labs = ["Process", "Measure", "Filter"]
+        labs = []
         if index is None:
             index = len(self.processes.keys()) - 1
 
@@ -228,15 +228,20 @@ class Simulation:
         if self.n // 2 == 2:
             lines = []
             if len(self.processes) > 0:
-                for object in process:
+                for i, object in enumerate(process):
                     line1, = ax.plot(object[0], object[1], lw=1.5, markersize=8, marker=',')
                     lines.append(line1)
+                    labs.append("Obj" + str(i) + " Process")
+
             if measure.size != 0:
-                line2 = ax.scatter(measure[0], measure[1], s=15, lw=1.5, marker='+')
+                line2 = ax.scatter(measure[0], measure[1], c="black", s=20, marker='x')
                 lines.append(line2)
+                labs.append("Measure")
+
             if len(self.trajectories) > 0:
                 line3, = ax.plot(output[0], output[1], lw=0.4, markersize=8, marker='.')
                 lines.append(line3)
+                labs.append("Filter")
 
 
             # Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
@@ -250,13 +255,15 @@ class Simulation:
                     if j % ellipse_freq == 0:
                         new_c=copy(ellipse)
                         ax.add_patch(new_c)
+                labs.append("Covariance")
             ax.set_aspect(1)
             ax.axis('square')
 
             #Below is an old method, if we want to include the full Q and R matrix
             #plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
             if legend is True:
-                ax.legend(["Process", "Filter", "Measure", "Covariance"], fontsize=legend_size)
+                ax.legend(handles=lines, labels=labs, fontsize=legend_size)
+
             return lines;
         elif self.n // 2 == 3:
             # title = title + ", seed=" + str(self.seed_value)
@@ -332,15 +339,15 @@ class Simulation:
         return ellipse
 
     @staticmethod
-    def clean_process(self, processes):
+    def clean_process(processes):
         """
         Converts a single process from a list of lists of state vectors to a list of numpy arrays
         representing the position at each time step for plotting
         """
 
-        processes_copy = processes.copy()
+        processes_copy = deepcopy(processes)
         temp = []
-        while sum([len(step) for step in processes]) > 0:
+        while sum([len(step) for step in processes_copy]) > 0:
             temp.append([step.pop() for step in processes_copy if len(step) > 0])
         return [np.array([point[0:2, ] for point in process]).squeeze().T for process in temp]
 
