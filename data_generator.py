@@ -1,14 +1,12 @@
 
 """
-Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
-Aerospace Team
-Simulation
+Aerospace Team - Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
 """
 import numpy as np
 
-#Super class where we can generate data. We process and measure some generated randomized data using the covariance matrices for process
-#and measurement noise. 
 class DataGenerator:
+        """Super class where we can generate data. We process and measure some generated randomized data using the covariance matrices for process
+    and measurement noise. """
     def __init__(self, xt0, dt, Q, R):
         """
         Create an object to store the different aspects of the system being generated
@@ -25,8 +23,14 @@ class DataGenerator:
 
     def process(self, ts, rng):
         """
-        Generate the process data over the specified number of time points
-        :return: A matrix with each column a state vector representing the process at each time step
+        Generate the process data over the specified number of time points.
+
+        Args:
+            ts (int): the number of time steps.
+            rng: --
+
+        Returns:
+            output (ndarray): A matrix with each column a state vector representing the process at each time step
         """
 
         # Store the list of initial values to start
@@ -43,8 +47,13 @@ class DataGenerator:
     def measure(self, process_result, rng):
         """
         Generate a dataset of measurements given an underlying process dataset
-        :param proc_result: A matrix with each column a state vector at each time step
-        :return: A matrix with each column a state vector measurement at each time step
+
+        Args:
+            proc_result (ndarray): A matrix with each column a state vector at each time step.
+            rng: --
+
+        Returns:
+            output (ndarray): A matrix with each column a state vector measurement at each time step
         """
         output = []
         for process in process_result:
@@ -54,8 +63,14 @@ class DataGenerator:
 
     def process_measure(self, ts, rng):
         """
-        First generate a process, and then generate a dataset of measurements given an underlying process dataset
-        :return: A matrix with each column a state vector measurement at each time step
+        First generate a process, and then generate a dataset of measurements given an underlying process dataset.
+
+        Args:
+            ts (int): the number of time steps.
+            rng: --
+
+        Returns:
+            output (ndarray): A matrix with each column a state vector measurement at each time step
         """
         output = self.process(ts, rng)
         output = self.measure(output, rng)
