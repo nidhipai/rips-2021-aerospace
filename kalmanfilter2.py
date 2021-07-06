@@ -1,7 +1,6 @@
 """
-Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
+Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai -
 Aerospace Team
-Kalman Filter - Discrete
 """
 
 import numpy as np
@@ -50,9 +49,16 @@ class KalmanFilter:
 
         self.xt0 = x_hat0 # for plotting
 
-    # Update a posteriori estimate based on a priori estimate and measurement
     def predict(self, measurement=None, measurement_array=None):
-        #In case measurements are missing, we can handle this by not accounting for the missed measurement and only the process.
+        """
+        Update a posteriori estimate based on a priori estimate and measurement
+        In case measurements are missing, we can handle this by not accounting for the missed measurement and only the process.
+
+        Args:
+            measurement (ndarray): the measurement vector
+
+            measurement_array(ndarray): the measurement array containing all previous measurements
+        """
 
         if measurement is None:
             self.x_hat_minus = self.f(self.x_hat, self.u)
@@ -65,6 +71,9 @@ class KalmanFilter:
             self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
             self.P = (np.eye(self.n) - self.K @ self.H) @ self.P_minus
 
-    # Return current a posteriori estimate
     def get_current_guess(self):
+        """ 
+        Returns:
+            self.x_hat (ndarray): return the current state vector
+        """
         return self.x_hat
