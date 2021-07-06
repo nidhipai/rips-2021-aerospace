@@ -5,6 +5,7 @@ Simulation
 """
 
 import numpy as np
+import pandas as pd
 from copy import copy
 from data_generator import DataGenerator
 
@@ -50,6 +51,8 @@ class TwoDObject(DataGenerator):
         self.A = np.append(np.append(np.eye(self.dim), np.eye(self.dim) * self.dt, axis=1),
                            np.append(np.zeros((self.dim, self.dim)), np.eye(self.dim), axis=1), axis=0)
         self.nu = nu #measurement noise variance
+        self.dt = dt
+        self.state_names = ["x","y","vx","vy"]
 
     def process_step(self, xt_prevs, rng):
         """
@@ -57,13 +60,21 @@ class TwoDObject(DataGenerator):
         :param xt_prev: Previous process state
         :return: State vector of next step in the process
         """
-        output = []
+        df = pd.DataFrame(columns = ["step","timesl","x","y","vx","vy","obj"])
         # Iterate through each state in the list of previous object states
-        for xt_prev in xt_prevs:
+        for obj in df.obj.unique():
+            # index the next state vector with time step
+            prev = df.loc[np.where((df.obj == 1) & (df.step == df.step.max()))[0]]
+            xt_prev = np.array(prev[self.state_names])
+            xt_prev.shape = (4,1)
+            #Index the time step for this object's state vector
+            dt = prev["timesl"][0]
+
             # calculate the next state and add to output
-            xt_output = self.A @ xt_prev + dt*self.process_noise(xt_prev, rng)
-            output.append(xt_output)
-        return output
+            xt_output= self.A @ xt_prev + dt*self.process_noise(xt_prev, rng)
+            xt_output = xt_output = pd.DataFrame(xt_output.T, columns = ["x","y","vx","vy"])
+
+        pass
 
     def measure_step(self, xts, rng):
         """
