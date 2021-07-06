@@ -9,16 +9,16 @@ from copy import copy
 # plt.rcParams['text.usetex'] = True
 from .single_target_evaluation import SingleTargetEvaluation
 
-import random as random
 from mpl_toolkits import mplot3d
 from matplotlib.patches import Ellipse
-plt.rcParams["figure.figsize"] = (12,8)
+plt.rcParams["figure.figsize"] = (12, 8)
 
-font = {'size'   : 18}
+font = {'size': 18}
 
 plt.rc('font', **font)
 
-#The Simulation class runs the data generator and the kalman filter to simulate an object in 2D.
+
+# The Simulation class runs the data generator and the kalman filter to simulate an object in 2D.
 class Simulation:
     def __init__(self, generator, kFilter, tracker, seed_value=1):
         """
@@ -42,8 +42,8 @@ class Simulation:
         self.ellipses = dict()
 
 
-    #the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
-    #data generator object to create the dictionary of processes and measures. 
+    # the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
+    # data generator object to create the dictionary of processes and measures.
     def generate(self, time_steps):
         """
         Generates process and measurement data
@@ -203,8 +203,7 @@ class Simulation:
         #Create lists of points from the stored experiments
         if len(self.processes) > 0:
             process = self.processes[index]
-            process = [point for sublist in process for point in sublist]
-            process = np.array(process).squeeze().T
+            process = self.clean_process(process)
 
         if len(self.measures) > 0:
             measure = self.measures[index]
@@ -229,8 +228,9 @@ class Simulation:
         if self.n // 2 == 2:
             lines = []
             if len(self.processes) > 0:
-                line1, = ax.plot(process[0], process[1], lw=1.5, markersize=8, marker=',')
-                lines.append(line1)
+                for object in process:
+                    line1, = ax.plot(object[0], object[1], lw=1.5, markersize=8, marker=',')
+                    lines.append(line1)
             if measure.size != 0:
                 line2 = ax.scatter(measure[0], measure[1], s=15, lw=1.5, marker='+')
                 lines.append(line2)
@@ -330,6 +330,20 @@ class Simulation:
         ang = np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
         ellipse = Ellipse(xy=mean, width=zoom_factor*w[0], height=zoom_factor*w[1], angle=ang, edgecolor='g', fc='none', lw=1)
         return ellipse
+
+    @staticmethod
+    def clean_process(self, processes):
+        """
+        Converts a single process from a list of lists of state vectors to a list of numpy arrays
+        representing the position at each time step for plotting
+        """
+
+        processes_copy = processes.copy()
+        temp = []
+        while sum([len(step) for step in processes]) > 0:
+            temp.append([step.pop() for step in processes_copy if len(step) > 0])
+        return [np.array([point[0:2, ] for point in process]).squeeze().T for process in temp]
+
 
 
 '''The same as the cov_ellipse function, but draws multiple p-values depending on the passed on list. One can also 
