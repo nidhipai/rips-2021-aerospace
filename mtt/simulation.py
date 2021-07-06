@@ -7,14 +7,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy
 # plt.rcParams['text.usetex'] = True
-from single_target_evaluation import SingleTargetEvaluation
+from .single_target_evaluation import SingleTargetEvaluation
 
-import random as random
 from mpl_toolkits import mplot3d
 from matplotlib.patches import Ellipse
-plt.rcParams["figure.figsize"] = (12,8)
+plt.rcParams["figure.figsize"] = (12, 8)
 
-#The Simulation class runs the data generator and the kalman filter to simulate an object in 2D.
+font = {'size': 18}
+
+plt.rc('font', **font)
+
+
+# The Simulation class runs the data generator and the kalman filter to simulate an object in 2D.
 class Simulation:
     def __init__(self, generator, kFilter, tracker, seed_value=1):
         """
@@ -38,8 +42,8 @@ class Simulation:
         self.ellipses = dict()
 
 
-    #the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
-    #data generator object to create the dictionary of processes and measures. 
+    # the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
+    # data generator object to create the dictionary of processes and measures.
     def generate(self, time_steps):
         """
         Generates process and measurement data
@@ -85,9 +89,11 @@ class Simulation:
 
         # Set up lists to store objects for later plotting
         ellipses = []
-        output = []
+        first = x0[0][0:2,0]
+        first.shape = (2,1)
+        output = [[first]]
         # Iterate through each time step for which we have measurements
-        for i in range(len(self.processes[index])):
+        for i in range(len(self.processes[index])-1):
 
             # Obtain a set of guesses for the current location of the object given the measurements
             # Note this will need to change later to incorporate multiple objects
@@ -195,19 +201,23 @@ class Simulation:
             index = len(self.processes.keys()) - 1
 
         #Create lists of points from the stored experiments
-        process = self.processes[index]
-        process = [point for sublist in process for point in sublist]
-        process = np.array(process).squeeze().T
+        if len(self.processes) > 0:
+            process = self.processes[index]
+            process = self.clean_process(process)
 
-        measure = self.measures[index]
-        measure = [point for sublist in measure for point in sublist]
-        measure = np.array(measure).squeeze().T
+        if len(self.measures) > 0:
+            measure = self.measures[index]
+            measure = [point for sublist in measure for point in sublist]
+            measure = np.array(measure).squeeze().T
 
-        output = self.trajectories[index]
-        output = [point for sublist in output for point in sublist]
-        output = np.array(output).squeeze().T
-
-        ellipses = self.ellipses[index]
+        if len(self.trajectories) > 0:
+            output = self.trajectories[index]
+            output = [point for sublist in output for point in sublist]
+            output = np.array(output).squeeze().T
+        ellipses = None
+        if len(self.ellipses) > index:
+            ellipses = self.ellipses[index]
+        legend_size = 14
         legend = False
 
         if ax is None:
@@ -216,25 +226,28 @@ class Simulation:
         plt.rcParams.update({'font.size': 10})
 
         if self.n // 2 == 2:
-            line1, = ax.plot(process[0], process[1], lw=1.5, markersize=8, marker=',')
-            line3, = ax.plot(output[0], output[1], lw=0.4, markersize=8, marker='.')
+            lines = []
+            if len(self.processes) > 0:
+                for object in process:
+                    line1, = ax.plot(object[0], object[1], lw=1.5, markersize=8, marker=',')
+                    lines.append(line1)
             if measure.size != 0:
                 line2 = ax.scatter(measure[0], measure[1], s=15, lw=1.5, marker='+')
-            else:
-                line2 = None
-            lines = [line1, line2, line3]
+                lines.append(line2)
+            if len(self.trajectories) > 0:
+                line3, = ax.plot(output[0], output[1], lw=0.4, markersize=8, marker='.')
+                lines.append(line3)
+
 
             # Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
             #ax.set_title(title + "\n" + self.descs[index], loc="left", y=1)
-            ax.set_title(title + "\n" + var + " = " + str(self.descs[index][var]))
+            ax.set_title(title + "\n" + var + " = " + str(self.descs[index][var]), fontsize=20)
             ax.set_xlabel(x_label)
             ax.set_ylabel(y_label)
             ax.patches = []
-            if ellipse_freq != 0:
-                count = 0
+            if ellipse_freq != 0 and ellipses is not None:
                 for j, ellipse in enumerate(ellipses):
-                    if j % (1/ellipse_freq) == 0:
-                        count+=1
+                    if j % ellipse_freq == 0:
                         new_c=copy(ellipse)
                         ax.add_patch(new_c)
             ax.set_aspect(1)
@@ -243,7 +256,7 @@ class Simulation:
             #Below is an old method, if we want to include the full Q and R matrix
             #plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
             if legend is True:
-                ax.legend(["Process", "Measure", "Filter", "Covariance"], fontsize=20)
+                ax.legend(["Process", "Filter", "Measure", "Covariance"], fontsize=legend_size)
             return lines;
         elif self.n // 2 == 3:
             # title = title + ", seed=" + str(self.seed_value)
@@ -255,14 +268,15 @@ class Simulation:
             ax.set_ylabel(y_label)
             ax.set_zlabel(z_label)
             ax.set_title(title)
-            plt.legend(labs, fontsize = 20)
+            plt.legend(labs, fontsize=legend_size)
             plt.show()
         else:
             print("Number of dimensions cannot be graphed.")
 
     '''the plot_all function takes in a variable name, and an ellipse frequency between 0 and 1. Then, all stored experiments
     are plotted in one single figure with subplots'''
-    def plot_all(self, var="Time Steps", error=False, test="data", labs=["Process", "Measure", "Filter"], ellipse_freq = 0):
+    def plot_all(self, var="Time Steps", error=False, test="data", labs=("Process", "Filter", "Measure"), ellipse_freq = 0):
+        legend_size=14
         num_plots = len(self.processes)
         num_rows = int(np.ceil(num_plots / 3))
         if num_plots > 1:
@@ -277,16 +291,16 @@ class Simulation:
                     lines = self.plot_error(index=i, ax=single_ax, var=var)
                 else:
                     lines = self.plot(index=i, var=var, ax=single_ax, ellipse_freq=ellipse_freq)
-            legend_labels = ["Error"] if error else ["Process", "Filter", "Measure"]
+            legend_labels = ["Error"] if error else ["Process", "Measure", "Filter"]
             if num_plots % 3 == 1:  # one plot on last row
                 ax[num_rows - 1, 1].remove() if num_plots > 3 else ax[1].remove()
                 # the second part is redundant at the moment because if there's only one plot it won't use this section
             if num_plots % 3 != 0:  # one or two plots
                 ax[num_rows - 1, 2].remove() if num_plots > 3 else ax[2].remove()
                 fig.legend(handles=lines, labels=legend_labels, loc='center',
-                           bbox_to_anchor=(.73, .25))
+                           bbox_to_anchor=(.73, .25), fontsize = legend_size)
             else: # three plots on last row
-                fig.legend(handles=lines, labels=legend_labels, loc='lower center', bbox_to_anchor=(.5, -.015))
+                fig.legend(handles=lines, labels=legend_labels, loc='lower center', bbox_to_anchor=(.5, -.015), fontsize=legend_size)
         else: # just normally plots one plot
             self.plot(ellipse_freq=ellipse_freq) if not error else self.plot_error(var=var)
         plt.tight_layout()
@@ -306,7 +320,7 @@ class Simulation:
 
     '''The cov ellipse returns an ellipse path that can be added to a plot based on the given mean, covariance matrix
     zoom_factor, and the p-value'''
-    def cov_ellipse(self, mean, cov, zoom_factor=2, p=0.95):
+    def cov_ellipse(self, mean, cov, zoom_factor=1, p=0.95):
         #the s-value takes into account the p-value given
         s = -2 * np.log(1 - p)
         #the w and v variables give the eigenvalues and the eigenvectors of the covariance matrix scaled by s
@@ -316,6 +330,20 @@ class Simulation:
         ang = np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
         ellipse = Ellipse(xy=mean, width=zoom_factor*w[0], height=zoom_factor*w[1], angle=ang, edgecolor='g', fc='none', lw=1)
         return ellipse
+
+    @staticmethod
+    def clean_process(self, processes):
+        """
+        Converts a single process from a list of lists of state vectors to a list of numpy arrays
+        representing the position at each time step for plotting
+        """
+
+        processes_copy = processes.copy()
+        temp = []
+        while sum([len(step) for step in processes]) > 0:
+            temp.append([step.pop() for step in processes_copy if len(step) > 0])
+        return [np.array([point[0:2, ] for point in process]).squeeze().T for process in temp]
+
 
 
 '''The same as the cov_ellipse function, but draws multiple p-values depending on the passed on list. One can also 

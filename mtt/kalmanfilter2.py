@@ -6,9 +6,6 @@ Kalman Filter - Discrete
 
 import numpy as np
 import numpy.linalg as linalg
-import matplotlib.pyplot as plt
-from matplotlib.patches import Ellipse
-import math
 
 class KalmanFilter:
     def __init__(self, x_hat0, f, A, h, Q, W, R, H=None, u=0, dt=1):
