@@ -62,12 +62,11 @@ class MultiObjSimple(DataGenerator):
         :param rng: numpy rng object to generate random variable
         :return: State vector of next step in the process
         """
-        output = []
+        output = dict()
         # Iterate through each state in the list of previous object states
-        for xt_prev in xt_prevs:
+        for xt_key, xt_prev in xt_prevs.items():
             # calculate the next state and add to output
-            xt_output = self.A @ xt_prev + self.dt*self.process_noise(xt_prev, rng)
-            output.append(xt_output)
+            output[xt_key] = self.A @ xt_prev + self.dt*self.process_noise(xt_prev, rng)
         return output
 
     def measure_step(self, xts, rng):
@@ -80,7 +79,7 @@ class MultiObjSimple(DataGenerator):
 
         # Iterate through each object state in the input
         output = []
-        for xt in xts:
+        for xt in xts.values():
             # Calculate whether the measurement is missed
             if np.random.rand() > self.miss_p:
                 output.append(self.H @ xt + self.measure_noise(rng))
