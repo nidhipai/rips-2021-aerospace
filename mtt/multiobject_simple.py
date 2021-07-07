@@ -59,19 +59,32 @@ class MultiObjSimple(DataGenerator):
 		self.nu = nu  # measurement noise variance
 		self.dt = dt
 
-    def process_step(self, xt_prevs, rng):
-        """
-        Generate the next process state from the previous
-        :param xt_prevs: Previous process states for each object
-        :param rng: numpy rng object to generate random variable
-        :return: State vector of next step in the process
-        """
-        output = dict()
-        # Iterate through each state in the list of previous object states
-        for xt_key, xt_prev in xt_prevs.items():
-            # calculate the next state and add to output
-            output[xt_key] = self.A @ xt_prev + self.dt*self.process_noise(xt_prev, rng)
-        return output
+	def process_step(self, xt_prevs, rng):
+		"""
+		Generate the next process state from the previous
+		:param xt_prevs: Previous process states for each object
+		:param rng: numpy rng object to generate random variable
+		:return: State vector of next step in the process
+		"""
+		output = dict()
+		# Iterate through each state in the list of previous object states
+		max_index = 0
+		for xt_key, xt_prev in xt_prevs.items():
+			# calculate the next state and add to output
+			if abs(xt_prev[0]) > self.x_lim and abs(xt_prev[1]) > self.y_lim:
+				print("OUTSIDE FRAME")
+				continue
+			output[xt_key] = self.A @ xt_prev + self.dt*self.process_noise(xt_prev, rng)
+			if xt_key > max_index:
+				max_index = xt_key
+
+		# NOTE TODO: probability of new object hard-coded, fix later
+		if np.random.rand() > 0.9:
+			max_index += 1
+			new_state = np.array([[max_index], [max_index], [-1], [0]])
+			output[max_index] = new_state
+
+		return output
 
 	def measure_step(self, xts, rng):
 		"""
@@ -81,12 +94,12 @@ class MultiObjSimple(DataGenerator):
 		:return: State vector representing measure at the current process state
 		"""
 
-        # Iterate through each object state in the input
-        output = []
-        for xt in xts.values():
-            # Calculate whether the measurement is missed
-            if np.random.rand() > self.miss_p:
-                output.append(self.H @ xt + self.measure_noise(rng))
+		# Iterate through each object state in the input
+		output = []
+		for xt in xts.values():
+			# Calculate whether the measurement is missed
+			if np.random.rand() > self.miss_p:
+				output.append(self.H @ xt + self.measure_noise(rng))
 
 			for i in range(rng.poisson(self.lam)):
 				output.append(self.H @ xt + self.measure_noise(rng) * self.fa_scale)
