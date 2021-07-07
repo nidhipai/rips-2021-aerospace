@@ -281,8 +281,8 @@ class Simulation:
 		if self.n // 2 == 2:
 			lines = []
 			if len(self.processes) > 0:
-				for i, object in enumerate(process):
-					line1, = ax.plot(object[0], object[1], lw=1.5, markersize=1, marker=',')
+				for i, obj in enumerate(process):
+					line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=1, marker=',')
 					lines.append(line1)
 					labs.append("Obj" + str(i) + " Process")
 
@@ -313,6 +313,11 @@ class Simulation:
 			ax.set_xlim(-self.generator.x_lim, self.generator.x_lim)
 			ax.set_ylim(-self.generator.y_lim, self.generator.y_lim)
 			#ax.axis('square')
+
+			# QUIVER
+			for i, obj in enumerate(process):
+				a = 0.4
+				ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
 
 			#Below is an old method, if we want to include the full Q and R matrix
 			#plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))

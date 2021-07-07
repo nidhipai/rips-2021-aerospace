@@ -81,7 +81,22 @@ class MultiObjSimple(DataGenerator):
 		# NOTE TODO: probability of new object hard-coded, fix later
 		if np.random.rand() > 0.9:
 			max_index += 1
-			new_state = np.array([[max_index], [max_index], [-1], [0]])
+			side = np.random.rand()
+			c = np.random.rand()
+			if side <= 0.25:
+				new_x = -self.x_lim
+				new_y = c
+			elif side <= 0.5:
+				new_x = c
+				new_y = self.y_lim
+			elif side <= 0.75:
+				new_x = self.x_lim
+				new_y = c
+			else:
+				new_x = c
+				new_y = -self.y_lim
+			ang = np.arctan2(new_y, new_x)
+			new_state = np.array([[new_x], [new_y], [np.cos(-ang)], [np.sin(-ang)]])
 			output[max_index] = new_state
 
 		return output
