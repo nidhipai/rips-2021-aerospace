@@ -25,8 +25,7 @@ class DataAssociation:
 
 		self.tracks = tracks 
 
-
-	def predict(self, measurements, sigma = 2):
+	def predict(self, measurements):
 		''' Update the known tracks to the Gating object.
 
 		Args:
@@ -38,18 +37,24 @@ class DataAssociation:
 		#if two observations are picked by the same track, the measurement with the lowest distance gets the measurement
 		#the second 
 		linsum_matrix = []
-		index = 0
+		track_index = 0
 		for track in self.tracks:
 			linsum_matrix.append([])
-			for measurement in measurements:
-				distance = self.calculate_mhlb_dis(measurement, track.get_current_guess(), track.get_measurement_cov())
-				linsum_matrix[index].append(distance)
-				index +=1
-		linsum_matrix = linsum(linsum_matrix)
+			for i, measurement in enumerate(measurements):
+				if measurement in track.possible_observations:
+					distance = self.calculate_mhlb_dis(measurement, track.get_current_guess(), track.get_measurement_cov())
+					linsum_matrix[track_index][i] = distance
+			track_index +=1
+		linsum_matrix = np.array(linsum_matrix)
+		row_ind, col_ind = linsum(linsum_matrix)
 
-		
+		# TO DO: check to make sure that the values aren't infinity
+		print('sum ' + str(linsum_matrix[row_ind, col_ind].sum()))
 
-		return self.tracks
+		# for i, track_row in enumerate(linsum_matrix):
+		# 	WE NEED TO ADD THE RETURNED MEASUREMENTS TO THE CORRECT TRACK TO PASS TO THE KALMAN FILER
+		#
+
 
 	def calculate_mhlb_dis(self, measurement, prediction, cov):
 		''' Update the known tracks to the Gating object.
@@ -60,7 +65,7 @@ class DataAssociation:
 		'''
 
 		error = measurement - prediction
-        return np.sqrt(error.T @ np.linalg.inv(cov) @ error)
+		return np.sqrt(error.T @ np.linalg.inv(cov) @ error)
 
 
 

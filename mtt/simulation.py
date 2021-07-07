@@ -10,6 +10,8 @@ from copy import copy, deepcopy
 from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
 
+from .gating import DistanceGating
+
 
 from mpl_toolkits import mplot3d
 from matplotlib.patches import Ellipse
@@ -33,7 +35,7 @@ class Simulation:
 		self.generator = generator
 		self.kFilter = kFilter
 		self.tracker = tracker
-		self.kFilter_model = None
+		#self.kFilter_model = None
 		self.tracker_model = None
 		self.n = generator.n
 		self.processes = dict()
@@ -60,7 +62,6 @@ class Simulation:
 		self.processes[len(self.processes.keys())] = process
 		self.measures[len(self.measures.keys())] = self.generator.measure(process, self.rng)
 
-		# NOTE: This is hardcoded to support only one single object for now
 		self.descs[len(self.descs.keys())] = {
 			"Tangent Variance": str(self.generator.Q[2, 2]),
 			"Normal Variance": str(self.generator.Q[3, 3]),
@@ -68,7 +69,7 @@ class Simulation:
 			"Time Steps": str(time_steps)
 		}
 
-	#We use the kalman filter and the generated data to predict the trajectory of the simulated object
+	#  We use the kalman filter and the generated data to predict the trajectory of the simulated object
 	def predict(self, index=None, x0=None, Q=None, R=None, H=None, u=None):
 		"""
 		The predict function uses Tracker to create an estimated trajectory for our simulated object.
@@ -102,8 +103,10 @@ class Simulation:
 
 		# Set up the filter with the desired parameters to test
 		# NOTE: Currently hardcoded to be single target
-		self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, H, u)
-		self.tracker_model = self.tracker(self.kFilter_model)
+		self.tracker_model = self.tracker(DistanceGating)
+		self.tracker_model.set_kalman_params(f, jac, h, Q, W, R, H, u)
+		#self.new_kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, H, u)
+		self.tracker_model = self.tracker(DistanceGating)
 
 		# Set up lists to store objects for later plotting
 		ellipses = []
@@ -117,27 +120,28 @@ class Simulation:
 			# Note this will need to change later to incorporate multiple objects
 
 			self.tracker_model.predict(self.measures[index][i])
-			output.append(self.tracker_model.get_current_guess())
+			#output.append(self.tracker_model.get_current_guess())
+			output = self.tracker_model.get_trajectories()
 
 			# Store the ellipse for later plottingS
-			cov_ = self.tracker_model.kFilter_model.P[:2, :2]
-			mean_ = (self.tracker_model.kFilter_model.x_hat[0, 0], self.tracker_model.kFilter_model.x_hat[1, 0])
-			ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
+			# cov_ = self.tracker_model.kFilter_model.P[:2, :2]
+			# mean_ = (self.tracker_model.kFilter_model.x_hat[0, 0], self.tracker_model.kFilter_model.x_hat[1, 0])
+			# ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
 
 		# Store our output as an experiment
 		self.trajectories[len(self.trajectories.keys())] = output
 
 		# Store the error of the Kalman filter
-		err_arr = np.array(self.kFilter_model.error_array).squeeze()
+		#err_arr = np.array(self.kFilter_model.error_array).squeeze()
 
 		self.ellipses[len(self.ellipses.keys())] = ellipses
 		#only updating the last one
 
 		self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
-			"Q": str(self.kFilter_model.Q),
-			"R": str(self.kFilter_model.R),
-			"x0": str(self.kFilter_model.xt0[0, 0]),
-			"y0": str(self.kFilter_model.xt0[1, 0])
+			"Q": str(self.tracker.kalman_params['Q']),
+			"R": str(self.tracker.kalman_params['R']),
+			# "x0": str(self.new_kFilter_model.xt0[0, 0]),
+			# "y0": str(self.new_kFilter_model.xt0[1, 0])
 		}}
 
 	def experiment(self, ts, test="data", **kwargs):

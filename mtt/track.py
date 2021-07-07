@@ -7,10 +7,13 @@ class Track:
         self.kfilter = filter_model.__init__()
         self.possible_observations = [] # just for using to pass from gating to data association
 
-    def get_latest_prediction(self):
+    def get_current_guess(self):
         return self.kfilter.get_current_guess()
 
-    def add_measurement(self, measurement):
+    def get_measurement_cov(self):
+        return self.kfilter.R
+
+    def add_measurement(self, time, measurement):
         self.measurements.append(measurement)
 
     def add_possible_observations(self, observations):

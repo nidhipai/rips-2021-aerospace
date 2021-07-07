@@ -26,20 +26,6 @@ class DistanceGating:
 
     def mahalanobis(self, measurement, track):
         error = measurement - track.kfilter.h(track.kfilter.x_hat_minus)
-        track.kfilter.error_array.append(error)
         return np.sqrt(error.T @ np.linalg.inv(track.kfilter.R) @ error)
 
-# include short arc gating
-
-
-
-    # def predict(self, gating_results, tracks):
-    #     # 1: find the combination with the least distance
-    #     # first build the matrix of costs with tracks on the rows and observations on the column
-    #     for gating_track in gating_results:
-    #         track_row = []
-    #
-    #
-    #     # 2: track initiation
-    #
-    #     # 3: track deletion
+# include short arc gating and the other gating methods
