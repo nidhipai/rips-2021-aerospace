@@ -13,7 +13,7 @@ from .data_generator import DataGenerator
 
 
 class MultiObjSimple(DataGenerator):
-	def __init__(self, xt0, dt, ep_tangent, ep_normal, nu, miss_p=0, lam=0, fa_scale=10, x_lim = 30, y_lim = 30):
+	def __init__(self, xt0, dt, ep_tangent, ep_normal, nu, miss_p=0, lam=0, fa_scale=10, x_lim = 30, y_lim = 30, new_obj_prop = 0.1):
 		"""
 		Constructor for the 2DObject Data Generator.
 
@@ -37,9 +37,11 @@ class MultiObjSimple(DataGenerator):
 		self.lam = lam
 		self.fa_scale = fa_scale
 
-		# NOTE TODO: HARD-CODED, change to parameter??
 		self.x_lim = x_lim					# half-width of frame
 		self.y_lim = y_lim					# half-height of frame
+
+		self.new_obj_prop = new_obj_prop	# prob of new object spawning
+		self.num_objs = len(xt0) - 1
 
 		# We require our initial state vector to have all 4 needed components:
 		# x,y, velocity in the x direction, velocity in the y direction
@@ -69,8 +71,36 @@ class MultiObjSimple(DataGenerator):
 		output = dict()
 		# Iterate through each state in the list of previous object states
 		for xt_key, xt_prev in xt_prevs.items():
+			if abs(xt_prev[0]) > self.x_lim or abs(xt_prev[1]) > self.y_lim:
+				continue
 			# calculate the next state and add to output
 			output[xt_key] = self.A @ xt_prev + self.dt*self.process_noise(xt_prev, rng)
+
+		# NOTE TODO: probability of new object hard-coded, fix later
+		# With probability TODO, create new object on side of frame
+		if np.random.rand() > 1 - self.new_obj_prop:
+			self.num_objs += 1
+			side = np.random.rand()
+			c = np.random.rand() - 0.5
+			buff = 0.125
+			if side <= 0.25:
+				new_x = -self.x_lim + buff
+				new_y = c * 2 * self.y_lim
+			elif side <= 0.5:
+				new_x = c * 2 * self.x_lim
+				new_y = self.y_lim - buff
+			elif side <= 0.75:
+				new_x = self.x_lim - buff
+				new_y = c * 2 * self.y_lim
+			else:
+				new_x = c * 2 * self.x_lim
+				new_y = -self.y_lim + buff
+			ang = np.arctan2(new_y, new_x)
+			perturb = (np.random.rand() - 0.5) / 10
+			ang += perturb
+			new_state = np.array([[new_x], [new_y], [np.cos(ang + np.pi)], [np.sin(ang + np.pi)]])
+			output[self.num_objs] = new_state
+
 		return output
 
 	def measure_step(self, xts, rng):
