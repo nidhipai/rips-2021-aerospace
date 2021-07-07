@@ -9,7 +9,6 @@ class Tracker:
         Args:
             kFilter_model (KalmanFilter): A kalman filter to be used throughout.
         """
-
         self.kFilter_model = kFilter_model
 
         #Store the previous measures for future use
@@ -29,14 +28,14 @@ class Tracker:
 
         if len(measure_t) > 0:
             # Process the point using the filter
+            self.measures.append(measure_t)
             measure_t_new = self.remove_fas(measure_t)
-            self.measures.append(measure_t_new)
             self.kFilter_model.predict(measure_t_new, np.array(self.measures))
-            self.current_guess = {0: self.kFilter_model.get_current_guess()[0:2]}
+            self.current_guess = [self.kFilter_model.get_current_guess()[0:2]]
         else:
             # If we don't have any measurements we need to guess for each object
             self.kFilter_model.predict(None, np.array(self.measures))
-            self.current_guess = {0: self.kFilter_model.get_current_guess()[0:2]}
+            self.current_guess = [self.kFilter_model.get_current_guess()[0:2]]
 
     def get_current_guess(self):
         """
@@ -46,6 +45,8 @@ class Tracker:
         return self.current_guess
 
     def remove_fas(self, measure_t):
+        """
+        """
         dists = []
         for point in measure_t:
             dists.append(self.mahalanobis_dist(point))
@@ -58,7 +59,7 @@ class Tracker:
         measurement is an outlier.
 
         Args:
-            y (ndarray): the current measurement state vector
+            y (ndarray): the current measurement.
 
         Returns:
             float: the calculated mahalanobis distance.

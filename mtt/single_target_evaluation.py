@@ -9,7 +9,7 @@ class SingleTargetEvaluation:
 	@staticmethod
 	def center_error(truth, prediction):
 		# returns a list of the norm
-		return np.sqrt(np.square(truth[0] - prediction[0]).sum(axis=0))
+		return np.sqrt(np.square(truth - prediction).sum(axis=0))
 
 	@staticmethod
 	def average_error(truth, prediction):
