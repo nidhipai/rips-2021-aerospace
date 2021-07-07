@@ -1,5 +1,4 @@
-
-class Tracker:
+class MTTTracker:
     def __init__(self, methods):
         self.methods = methods
         self.tracks = [] # list of track objects
@@ -12,7 +11,7 @@ class Tracker:
             track.add_possible_observations(measurements)
 
         for method in self.methods:
-            method.predict(tracks=self.tracks)
+            method.predict(tracks=self.tracks, kalman_params=self.kalman_params)
 
         print(self.tracks)
 
