@@ -8,16 +8,19 @@ import numpy as np
 from abc import ABC, abstractmethod
 
 
-# Super class where we can generate data. We process and measure some generated randomized data using the
-# covariance matrices for process and measurement noise.
 class DataGenerator(ABC):
+    """Super class where we can generate data. We process and measure some generated randomized data using the covariance matrices for process
+        and measurement noise. """
     def __init__(self, xt0, dt, Q, R):
         """
-        Create an object to store the different aspects of the system being generated
-        :param xt0: a list of initial values of the state for each point
-        :param dt: Number of seconds between time points
-        :param Q: Covariance matrix of process noise
-        :param R: Covariance matrix of measure noise
+        Generate the process data over the specified number of time points.
+
+        Args:
+            ts (int): Number of time steps
+            rng (numpy.random.Generator): Random number generator object from numpy
+
+        Returns:
+            output (ndarray): A matrix with each column a state vector representing the process at each time step
         """
         self.xt0 = xt0
         self.dt = dt
@@ -44,10 +47,14 @@ class DataGenerator(ABC):
 
     def measure(self, process_result, rng):
         """
-        Generate a dataset of measurements given an underlying process dataset
-        :param process_result: A matrix with each column a state vector at each time step
-        :param rng: numpy rng object to generate random variable
-        :return: A matrix with each column a state vector measurement at each time step
+        Generates a dataset of measurements given underlying process data
+
+        Args:
+            process_result (ndarray): A matrix with each column a state vector at each time step.
+            rng (numpy.random.Generator): Random number generator object from numpy
+
+        Returns:
+            output (ndarray): A matrix with each column a state vector measurement at each time step
         """
         output = []
         for process in process_result:
@@ -57,8 +64,14 @@ class DataGenerator(ABC):
 
     def process_measure(self, ts, rng):
         """
-        First generate a process, and then generate a dataset of measurements given an underlying process dataset
-        :return: A matrix with each column a state vector measurement at each time step
+        First generates a process, and then generate a dataset of measurements given the underlying process data.
+
+        Args:
+            ts (int): the number of time steps.
+            rng (numpy.random.Generator): Random number generator object from numpy
+
+        Returns:
+            output (ndarray): A matrix with each column a state vector measurement at each time step
         """
         output = self.process(ts, rng)
         output = self.measure(output, rng)
