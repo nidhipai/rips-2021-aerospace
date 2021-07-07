@@ -109,7 +109,7 @@ class Simulation:
 		ellipses = []
 		first = x0[0][0:2,0]
 		first.shape = (2,1)
-		output = [[first]]
+		output = [{0: first}]
 		# Iterate through each time step for which we have measurements
 		for i in range(len(self.processes[index])-1):
 
@@ -202,13 +202,15 @@ class Simulation:
 			ax (pyplot): an already created plot
 			ellipse_freq (float) : a float between 0 and 1 that gives the relative frequency in which ellipses will be drawn per data point
 		"""
+
+		# THIS CURRENTLY ONLY HANDLES THE FIRST OBJECT
+		# NEED TO UPDATE
 		if index is None:
 			index = len(self.processes.keys()) - 1
 		process = self.processes[index]
-		process = self.clean_process(process)  # get first two position coordinates
+		process = self.clean_process(process)[0]  # get first two position coordinates
 		traj = self.trajectories[index]
-		traj = self.clean_process(traj)
-
+		traj = self.clean_trajectory(traj)[0]
 
 		# legend should be true if the plot needs a legend (it's only one plot and the legend isn't on an outside axis)
 		legend = False
@@ -218,7 +220,8 @@ class Simulation:
 		plt.rcParams.update({'font.size': 10})
 
 		if self.n // 2 == 2:
-			center_errors = SingleTargetEvaluation.center_error(process, traj)
+			center_errors = SingleTargetEvaluation.center_error(process[:2, :], traj)
+
 			line1, = ax.plot(center_errors)
 			lines = [line1]
 
@@ -265,8 +268,7 @@ class Simulation:
 
 		if len(self.trajectories) > 0:
 			output = self.trajectories[index]
-			output = [point for sublist in output for point in sublist]
-			output = np.array(output).squeeze().T
+			output = self.clean_trajectory(output)
 		ellipses = None
 		if len(self.ellipses) > index:
 			ellipses = self.ellipses[index]
@@ -281,20 +283,22 @@ class Simulation:
 		if self.n // 2 == 2:
 			lines = []
 			if len(self.processes) > 0:
-				for i, object in enumerate(process):
-					line1, = ax.plot(object[0], object[1], lw=1.5, markersize=1, marker=',')
+				for i, obj in enumerate(process):
+					line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=8, marker=',')
 					lines.append(line1)
 					labs.append("Obj" + str(i) + " Process")
 
 			if measure.size != 0:
-				line2 = ax.scatter(measure[0], measure[1], c="black", s=1, marker='x')
+				line2 = ax.scatter(measure[0], measure[1], c="black", s=8, marker='x')
 				lines.append(line2)
 				labs.append("Measure")
 
 			if len(self.trajectories) > 0:
-				line3, = ax.plot(output[0], output[1], lw=0.4, markersize=1, marker='.')
-				lines.append(line3)
-				labs.append("Filter")
+				for i, out in enumerate(output):
+					line3, = ax.plot(out[0], out[1], lw=0.4, markersize=8, marker=',')
+					lines.append(line3)
+					labs.append("Obj" + str(i) + " Filter")
+
 
 
 			# Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
@@ -309,10 +313,9 @@ class Simulation:
 						new_c=copy(ellipse)
 						ax.add_patch(new_c)
 				labs.append("Covariance")
-			ax.set_aspect(1)
 			ax.set_xlim(-self.generator.x_lim, self.generator.x_lim)
 			ax.set_ylim(-self.generator.y_lim, self.generator.y_lim)
-			#ax.axis('square')
+			ax.axis('square')
 
 			#Below is an old method, if we want to include the full Q and R matrix
 			#plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
@@ -415,7 +418,6 @@ class Simulation:
 		w, v = np.linalg.eig(a)
 		w = np.sqrt(w)
 		#calculate the tilt of the ellipse
-
 		ang = np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
 		ellipse = Ellipse(xy=mean, width=zoom_factor*w[0], height=zoom_factor*w[1], angle=ang, edgecolor='g', fc='none', lw=1)
 		return ellipse
@@ -428,6 +430,22 @@ class Simulation:
 		"""
 		output = list(repeat(np.empty((4, 1)), max([key for step in processes for key in step.keys()]) + 1))
 		for step in processes:
+			for key, value in step.items():
+				output[key] = np.append(output[key], value, axis=1)
+		# Remove the filler values from the start of each array
+		# and only keep the values representing position
+		for i, arr in enumerate(output):
+			output[i] = arr[:, 1:]
+		return output
+
+	@staticmethod
+	def clean_trajectory(trajectories):
+		"""
+		Converts a single process from a list of lists of state vectors to a list of numpy arrays
+		representing the position at each time step for plotting
+		"""
+		output = list(repeat(np.empty((2, 1)), max([key for step in trajectories for key in step.keys()]) + 1))
+		for step in trajectories:
 			for key, value in step.items():
 				output[key] = np.append(output[key], value, axis=1)
 		# Remove the filler values from the start of each array
@@ -456,7 +474,6 @@ def cov_ellipse_fancy(X, mean, cov, p=(0.99, 0.95, 0.90)):
 	colors = ["black", "red", "purple", "blue"]
 	#colors = Cube1_4.mpl_colors
 	axes = plt.gca()
-	axes.set_aspect(1)
 	colors_array = np.array([colors[0]] * X.shape[0])
 
 	#for loop to individually draw each of the p-ellipses.
