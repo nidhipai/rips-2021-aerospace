@@ -317,6 +317,11 @@ class Simulation:
 			ax.set_ylim(-self.generator.y_lim, self.generator.y_lim)
 			ax.axis('square')
 
+			# QUIVER
+			for i, obj in enumerate(process):
+				a = 0.4
+				ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
+
 			#Below is an old method, if we want to include the full Q and R matrix
 			#plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
 			if legend is True:
@@ -367,10 +372,10 @@ class Simulation:
 				else:
 					lines = self.plot(index=i, var=var, ax=single_ax, ellipse_freq=ellipse_freq)
 			legend_labels = ["Error"] if error else ["Process", "Measure", "Filter"]
-			if num_plots % 3 == 1:  # one plot on last row
+			if num_plots % 3 == 1:	# one plot on last row
 				ax[num_rows - 1, 1].remove() if num_plots > 3 else ax[1].remove()
 				# the second part is redundant at the moment because if there's only one plot it won't use this section
-			if num_plots % 3 != 0:  # one or two plots
+			if num_plots % 3 != 0:	# one or two plots
 				ax[num_rows - 1, 2].remove() if num_plots > 3 else ax[2].remove()
 				fig.legend(handles=lines, labels=legend_labels, loc='center',
 						   bbox_to_anchor=(.73, .25), fontsize = legend_size)
