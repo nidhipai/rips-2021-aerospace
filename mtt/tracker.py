@@ -32,11 +32,11 @@ class Tracker:
             measure_t_new = self.remove_fas(measure_t)
             self.measures.append(measure_t_new)
             self.kFilter_model.predict(measure_t_new, np.array(self.measures))
-            self.current_guess = [self.kFilter_model.get_current_guess()[0:2]]
+            self.current_guess = {0: self.kFilter_model.get_current_guess()[0:2]}
         else:
             # If we don't have any measurements we need to guess for each object
             self.kFilter_model.predict(None, np.array(self.measures))
-            self.current_guess = [self.kFilter_model.get_current_guess()[0:2]]
+            self.current_guess = {0: self.kFilter_model.get_current_guess()[0:2]}
 
     def get_current_guess(self):
         """
