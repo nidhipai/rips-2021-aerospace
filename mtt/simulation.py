@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from copy import copy, deepcopy
 # plt.rcParams['text.usetex'] = True
 from .single_target_evaluation import SingleTargetEvaluation
+from itertools import repeat
+
 
 from mpl_toolkits import mplot3d
 from matplotlib.patches import Ellipse
@@ -424,12 +426,15 @@ class Simulation:
 		Converts a single process from a list of lists of state vectors to a list of numpy arrays
 		representing the position at each time step for plotting
 		"""
-
-		processes_copy = deepcopy(processes)
-		temp = []
-		while sum([len(step) for step in processes_copy]) > 0:
-			temp.append([step.pop() for step in processes_copy if len(step) > 0])
-		return [np.array([point[0:2, ] for point in process]).squeeze().T for process in temp]
+		output = list(repeat(np.empty((4, 1)), max([key for step in processes for key in step.keys()]) + 1))
+		for step in processes:
+			for key, value in step.items():
+				output[key] = np.append(output[key], value, axis=1)
+		# Remove the filler values from the start of each array
+		# and only keep the values representing position
+		for i, arr in enumerate(output):
+			output[i] = arr[:, 1:]
+		return output
 
 
 
@@ -454,7 +459,7 @@ def cov_ellipse_fancy(X, mean, cov, p=(0.99, 0.95, 0.90)):
 	axes.set_aspect(1)
 	colors_array = np.array([colors[0]] * X.shape[0])
 
-	#for loop to individually draw each of the p-ellipses. 
+	#for loop to individually draw each of the p-ellipses.
 	for i in range(len(p)):
 		s = -2 * np.log(1 - p[i])
 		w, v = np.linalg.eig(s * cov)
@@ -467,12 +472,12 @@ def cov_ellipse_fancy(X, mean, cov, p=(0.99, 0.95, 0.90)):
 		x_val = (X[:, 0] - mean[0]) * cos_angle - (X[:, 1] - mean[1]) * sin_angle
 		y_val = (X[:, 0] - mean[0]) * sin_angle + (X[:, 1] - mean[1]) * cos_angle
 
-		#calculating whether a point is inside an ellipse. If it is, we change the color of the point to a specific desired color. 
+		#calculating whether a point is inside an ellipse. If it is, we change the color of the point to a specific desired color.
 		rad_cc = (x_val ** 2 / (w[0]) ** 2) + (y_val ** 2 / (w[1]) ** 2)
 		colors_array[np.where(rad_cc <= 1.)[0]] = colors[i+1]
 
 		axes.add_patch(ellipse)
-	#plot the scattered points with the ellipses. 
+	#plot the scattered points with the ellipses.
 	axes.scatter(X[:, 0], X[:, 1], linewidths=0, alpha=1, c = colors_array)
 	plt.legend(title="p-value", loc=2, prop={'size': 15}, handleheight=0.01)
 	plt.show()
