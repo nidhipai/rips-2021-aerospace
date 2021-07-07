@@ -30,6 +30,7 @@ class DataAssociation:
 
 
 	def predict(self, measurements, pvalue = 0.95):
+
 		''' Update the known tracks to the Gating object.
 
 		Args:
@@ -64,7 +65,7 @@ class DataAssociation:
 		return unassigned_measurements
 
 
-	def calculate_mhlb_dis(self, measurement, prediction, cov, cutoff):
+	def calculate_mhlb_dis(self, measurement, prediction, cov):
 		''' Update the known tracks to the Gating object.
 
 		Args:
@@ -77,6 +78,7 @@ class DataAssociation:
         if dis < cutoff:
         	inside_ellipse = True
         return dis, inside_ellipse
+
 
 
 
