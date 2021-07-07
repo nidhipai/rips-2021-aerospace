@@ -313,8 +313,8 @@ class Simulation:
 						new_c=copy(ellipse)
 						ax.add_patch(new_c)
 				labs.append("Covariance")
-			ax.set_xlim(-self.generator.x_lim, self.generator.x_lim)
-			ax.set_ylim(-self.generator.y_lim, self.generator.y_lim)
+			#ax.set_xlim(-self.generator.x_lim, self.generator.x_lim)
+			#ax.set_ylim(-self.generator.y_lim, self.generator.y_lim)
 			ax.axis('square')
 
 			# QUIVER
