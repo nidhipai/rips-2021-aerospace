@@ -69,6 +69,7 @@ class KalmanFilter:
             self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))
             self.P = (np.eye(self.n) - self.K @ self.H) @ self.P_minus
 
+
     # Return current a posteriori estimate
     def get_current_guess(self):
         """
