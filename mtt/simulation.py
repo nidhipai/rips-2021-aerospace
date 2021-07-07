@@ -103,10 +103,12 @@ class Simulation:
 
 		# Set up the filter with the desired parameters to test
 		# NOTE: Currently hardcoded to be single target
-		self.tracker_model = self.tracker(DistanceGating)
+		distance_gating = DistanceGating(3)
+
+		self.tracker_model = self.tracker([distance_gating])
 		self.tracker_model.set_kalman_params(f, jac, h, Q, W, R, H, u)
 		#self.new_kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, H, u)
-		self.tracker_model = self.tracker(DistanceGating)
+		#self.tracker_model = self.tracker(DistanceGating)
 
 		# Set up lists to store objects for later plotting
 		ellipses = []
