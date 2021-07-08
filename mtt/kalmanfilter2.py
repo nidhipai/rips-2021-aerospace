@@ -8,7 +8,7 @@ import numpy as np
 import numpy.linalg as linalg
 
 class KalmanFilter:
-    def __init__(self, x_hat0, f, A, h, Q, W, R, H=None, u=0, dt=1):
+    def __init__(self, x_hat0, f, A, h, Q, W, R, P, H=None, u=0, dt=1):
         """
         Initialize the Extended Kalman Filter object
         :param x_hat0: initial state vector
@@ -39,7 +39,7 @@ class KalmanFilter:
         self.u = u # optional control input
 
         # set a priori and a posteriori estimate error covariances to all ones (not all zeros)
-        self.P = np.eye(self.n) # posteriori estimate error covariance initialized to the identity matrix
+        self.P = P # posteriori estimate error covariance initialized to the identity matrix
         self.P_minus = np.eye(self.n) # priori estimate error coviariance matrix initialized to the identity matrix
         self.x_hat = x_hat0  # set a priori estimate to initial guess
         self.x_hat_minus = x_hat0  # set a posteriori estimate to initial guess
