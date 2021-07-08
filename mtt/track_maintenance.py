@@ -1,4 +1,3 @@
-
 class TrackMaintenance:
     def __init__(self, kfilter, filter_params, num_init, num_init_frames, num_delete):
         self.kfilter = kfilter
@@ -23,4 +22,3 @@ class TrackMaintenance:
                     # delete track
                     track.stage = 3
             # we don't currently bring objects back from the dead
-
