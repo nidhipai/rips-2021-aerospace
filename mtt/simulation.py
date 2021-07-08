@@ -11,6 +11,10 @@ from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
 
 from .gating import DistanceGating
+from .data_association import DataAssociation
+from .kalmanfilter2 import KalmanFilter
+from .track_maintenance import TrackMaintenance
+from .filter_predict import FilterPredict
 
 
 from mpl_toolkits import mplot3d
@@ -44,7 +48,6 @@ class Simulation:
 		self.descs = dict()
 		self.kdescs = dict()
 		self.ellipses = dict()
-
 
 	# the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
 	# data generator object to create the dictionary of processes and measures.
@@ -83,35 +86,36 @@ class Simulation:
 			u (ndarray): the input control vector
 		"""
 
-		output = np.empty((self.n, 1))
-		# if any necessary variables for the filter have not been defined, assume we know them exactly
-		if x0 is None:
-			x0 = self.generator.xt0
-		if Q is None:
-			Q = self.generator.Q
-		if R is None:
-			R = self.generator.R
-		if H is None:
-			H = self.generator.H
 		if index is None:
 			index = len(self.measures.keys()) - 1
-		#Extract the necessary functions and jacobians from the DataGenerator
-		f = self.generator.process_function
-		jac = self.generator.process_jacobian
-		h = self.generator.measurement_function
-		W = self.generator.W
+		output = np.empty((self.n, 1))
+
+		kalman_params = dict()
+
+		# if any necessary variables for the filter have not been defined, assume we know them exactly
+		kalman_params['x0'] = x0 if x0 is not None else self.generator.xt0
+		kalman_params['Q'] = Q if Q is not None else self.generator.Q
+		kalman_params['R'] = R if R is not None else self.generator.R
+		kalman_params['H'] = H if H is not None else self.generator.H
+
+		# Extract the necessary functions and jacobians from the DataGenerator
+		kalman_params['f'] = self.generator.process_function
+		kalman_params['jac'] = self.generator.process_jacobian
+		kalman_params['h'] = self.generator.measurement_function
+		kalman_params['W'] = self.generator.W
 
 		# Set up the filter with the desired parameters to test
-		# NOTE: Currently hardcoded to be single target
-		distance_gating = DistanceGating(3)
+		#distance_gating = DistanceGating(3)
+		data_association = DataAssociation()
+		track_maintenance = TrackMaintenance(KalmanFilter, kalman_params, 3, 4, 5)
+		filter_predict = FilterPredict()
 
-		self.tracker_model = self.tracker([distance_gating])
-		self.tracker_model.set_kalman_params(f, jac, h, Q, W, R, H, u)
-		#self.new_kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, H, u)
-		#self.tracker_model = self.tracker(DistanceGating)
+		self.tracker_model = self.tracker([data_association, track_maintenance, filter_predict])
 
 		# Set up lists to store objects for later plotting
 		ellipses = []
+		print(str(x0))
+		print(str(x0[0]))
 		first = x0[0][0:2,0]
 		first.shape = (2,1)
 		output = [{0: first}]
@@ -122,8 +126,8 @@ class Simulation:
 			# Note this will need to change later to incorporate multiple objects
 
 			self.tracker_model.predict(self.measures[index][i])
-			#output.append(self.tracker_model.get_current_guess())
-			output = self.tracker_model.get_trajectories()
+			#output.append(self.tracker_model.get_current_guess()) - now we're just getting it in the end instead
+			#output = self.tracker_model.get_trajectories()
 
 			# Store the ellipse for later plottingS
 			# cov_ = self.tracker_model.kFilter_model.P[:2, :2]
@@ -131,17 +135,14 @@ class Simulation:
 			# ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
 
 		# Store our output as an experiment
-		self.trajectories[len(self.trajectories.keys())] = output
-
-		# Store the error of the Kalman filter
-		#err_arr = np.array(self.kFilter_model.error_array).squeeze()
+		self.trajectories[len(self.trajectories.keys())] = self.tracker_model.get_trajectories()
 
 		self.ellipses[len(self.ellipses.keys())] = ellipses
 		#only updating the last one
 
 		self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
-			"Q": str(self.tracker.kalman_params['Q']),
-			"R": str(self.tracker.kalman_params['R']),
+			"Q": str(kalman_params['Q']),
+			"R": str(kalman_params['R']),
 			# "x0": str(self.new_kFilter_model.xt0[0, 0]),
 			# "y0": str(self.new_kFilter_model.xt0[1, 0])
 		}}
