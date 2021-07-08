@@ -23,7 +23,7 @@ class SingleTargetEvaluation:
 		Args:
 			truth (ndarray): the true process matrix output by the data generator.
 			prediction (ndarray): the predicted trajectory output by the tracker or filter.
-			
+
 		Returns:
 			numeric: the max error between the true and predicted values after n time steps
 		"""

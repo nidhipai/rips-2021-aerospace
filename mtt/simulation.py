@@ -10,7 +10,6 @@ from copy import copy
 from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
 
-
 from mpl_toolkits import mplot3d
 from matplotlib.patches import Ellipse
 plt.rcParams["figure.figsize"] = (12, 8)
@@ -38,9 +37,9 @@ class Simulation:
 		self.n = generator.n
 		self.processes = dict()
 		self.measures = dict()
+		self.measure_colors = dict()
 		self.trajectories = dict()
 		self.descs = dict()
-		self.kdescs = dict()
 		self.ellipses = dict()
 
 
@@ -58,9 +57,8 @@ class Simulation:
 		#we generate the process data and the measure data and assign it to the instances of processes and measures
 		process = self.generator.process(time_steps, self.rng)
 		self.processes[len(self.processes.keys())] = process
-		self.measures[len(self.measures.keys())] = self.generator.measure(process, self.rng)
+		self.measures[len(self.measures.keys())], self.measure_colors[len(self.measure_colors.keys())] = self.generator.measure(process, self.rng)
 
-		# NOTE: This is hardcoded to support only one single object for now
 		self.descs[len(self.descs.keys())] = {
 			"Tangent Variance": str(self.generator.Q[2, 2]),
 			"Normal Variance": str(self.generator.Q[3, 3]),
@@ -102,7 +100,7 @@ class Simulation:
 
 		# Set up the filter with the desired parameters to test
 		# NOTE: Currently hardcoded to be single target
-		self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, H, u)
+		self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, P=None, H=H, u=0)
 		self.tracker_model = self.tracker(self.kFilter_model)
 
 		# Set up lists to store objects for later plotting
@@ -276,12 +274,15 @@ class Simulation:
 
 		if len(self.measures) > 0:
 			measure = self.measures[index]
-			measure = [point for sublist in measure for point in sublist]
-			measure = np.array(measure).squeeze().T
+			measure = self.clean_measure(measure)
 
 		if len(self.trajectories) > 0:
 			output = self.trajectories[index]
 			output = self.clean_trajectory(output)
+
+		if len(self.measure_colors) > 0:
+			colors = self.measure_colors[index]
+			colors = self.clean_measure(colors)
 
 		# Select proper ellipses to plot
 		ellipses = None
@@ -311,7 +312,7 @@ class Simulation:
 
 			# Add the measures to the plot
 			if measure.size != 0:
-				line2 = ax.scatter(measure[0], measure[1], c="black", s=8, marker='x')
+				line2 = ax.scatter(measure[0], measure[1], c=colors, s=8, marker='x')
 				lines.append(line2)
 				labs.append("Measure")
 
@@ -476,6 +477,12 @@ class Simulation:
 		# and only keep the values representing position
 		for i, arr in enumerate(output):
 			output[i] = arr[:, 1:]
+		return output
+
+	@staticmethod
+	def clean_measure(measure):
+		output = [point for sublist in measure for point in sublist]
+		output = np.array(output).squeeze().T
 		return output
 
 	@staticmethod
