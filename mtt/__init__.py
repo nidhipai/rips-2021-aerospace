@@ -5,7 +5,7 @@ from .multiobject_simple import *
 
 # Multi-target tracking tools
 from .kalmanfilter2 import *
-from .tracker import *
+from .tracker2 import *
 
 # Experimentation classes
 from .single_target_evaluation import *
