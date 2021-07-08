@@ -40,7 +40,6 @@ class Simulation:
 		self.measures = dict()
 		self.trajectories = dict()
 		self.descs = dict()
-		self.kdescs = dict()
 		self.ellipses = dict()
 
 
