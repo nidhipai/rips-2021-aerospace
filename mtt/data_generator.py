@@ -31,7 +31,9 @@ class DataGenerator(ABC):
     def process(self, ts, rng):
         """
         Generate the process data over the specified number of time points
-        :return: A matrix with each column a state vector representing the process at each time step
+
+        Returns:
+            output (ndarray): A matrix with each column a state vector representing the process at each time step
         """
 
         # Store the list of initial values to start
