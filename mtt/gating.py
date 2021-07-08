@@ -16,10 +16,10 @@ class DistanceGating:
     def predict(self, tracks=None):
         if tracks is None:
             print("Error tracks is none in gating")
-        for track in tracks:
-            for observation in track.possible_observations:
-                if self.distance_function(observation, track) < self.error_threshold:
-                    track.possible_observations.remove(observation)
+        for key, track in tracks:
+            for observation_key in track.possible_observations:
+                if self.distance_function(track.possible_observations[observation_key], track.get_current_guess()) < self.error_threshold:
+                    track.possible_observations.pop('observation_key', None)
 
     def euclidean(self, measurement, track):
         return np.linalg.norm(measurement, track.get_latest_prediction())
