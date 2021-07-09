@@ -68,7 +68,7 @@ class Simulation:
 		}
 
 	#We use the kalman filter and the generated data to predict the trajectory of the simulated object
-	def predict(self, index=None, x0=None, Q=None, R=None, H=None, u=None):
+	def predict(self, index=None, x0=None, Q=None, R=None, P = None, H=None, u=None):
 		"""
 		The predict function uses Tracker to create an estimated trajectory for our simulated object.
 
@@ -101,7 +101,7 @@ class Simulation:
 
 		# Set up the filter with the desired parameters to test
 		# NOTE: Currently hardcoded to be single target
-		self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, H, u)
+		self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, P,H, u)
 		self.tracker_model = self.tracker(self.kFilter_model)
 
 		# Set up lists to store objects for later plotting
@@ -460,6 +460,8 @@ class Simulation:
 
 		ellipse = Ellipse(xy=mean, width=zoom_factor*width, height=zoom_factor*height, angle=ang, edgecolor='g', fc='none', lw=1)
 		return ellipse
+
+
 
 	@staticmethod
 	def clean_process(processes):

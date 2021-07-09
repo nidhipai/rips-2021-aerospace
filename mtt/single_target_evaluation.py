@@ -4,19 +4,43 @@ import matplotlib.pyplot as plt
 
 class SingleTargetEvaluation:
 
-	# in this class, truth/prediction are 3D arrays - for example, truth is a list of column vectors (and column vectors are 2D themselves)
+	def __init__(self, simulation, time_steps, runs = 1):
+		self.simulation = simulation
+		self.time_steps = time_steps
+		self.runs = runs
 
-	@staticmethod
-	def center_error(truth, prediction):
+	def run(self):
+		self.truth = []
+		self.prediction = []
+		for i in range(self.runs):
+			self.simulation.generate(self.time_steps)
+			self.simulation.predict()
+			truth_sim = self.simulation.clean_process(self.simulation.processes[i])[0][:2,:]
+			predicted_sim = self.simulation.clean_trajectory(self.simulation.trajectories[i])[0]
+			self.truth.append(truth_sim)
+			self.prediction.append(predicted_sim)
+		self.truth = np.array(self.truth).squeeze()
+		self.prediction = np.array(self.prediction).squeeze()
+
+	def plot_error(self, x, y, title = None, x_label = None, y_label = None):
+		fig,ax = plt.subplots()
+		ax.plot(x, y, color = "red")
+		ax.set_title(title)
+		ax.set_xlabel(x_label)
+		ax.set_ylabel(y_label)
+		plt.show()
+
+	def center_error(self):
 		# returns a list of the norm
-		return np.sqrt(np.square(truth - prediction).sum(axis=0))
+		error = np.sqrt(np.square(self.truth - self.prediction).sum(axis=1))
+		error = np.mean(error, axis = 0)
+		return error
 
-	@staticmethod
-	def average_error(truth, prediction):
-		return 1 / len(truth) * np.sum(SingleTargetEvaluation.center_error(truth, prediction))
 
-	@staticmethod
-	def max_error(truth, prediction, n):
+	def average_error(self):
+		return np.mean(np.sqrt(np.square(self.truth - self.prediction).sum(axis=1)),axis = 1)
+
+	def max_error(self, n = 0):
 		"""
 		Calculates the maximum error at a given time point after the first n time points.
 
@@ -27,37 +51,28 @@ class SingleTargetEvaluation:
 		Returns:
 			numeric: the max error between the true and predicted values after n time steps
 		"""
-		truth_new = truth[:, n:]
-		pred_new = prediction[:, n:]
-		return np.max(SingleTargetEvaluation.center_error(truth_new, pred_new))
+		truth_new = self.truth[:, n:]
+		pred_new = self.prediction[:, n:]
+		return np.max(np.sqrt(np.square(self.truth - self.prediction).sum(axis=1)), axis = 1)
 
-	@staticmethod
-	def rmse(truth, prediction):
-		norms = np.square(np.subtract(truth, prediction))
-		return np.sqrt(1 / len(truth) * np.sum(norms))
+	def rmse(self):
+		norms = np.square(self.truth - self.prediction).sum(axis = 1)
+		print(norms.shape)
+		return np.sqrt(1 / len(self.truth) * np.sum(norms, axis = 1))
 
-	@staticmethod
-	def failure_rate(truth, prediction, error_threshold=.5):
-		# basically measures how many times it goes off track
-		# not a very good measure for accuracy, but it tells you something about how much it relies on it's own prediction and follows a consistent path
-		failures = 0
-		off_track = False
-		center_error = SingleTargetEvaluation.center_error(truth, prediction)
-		for i in range(0, len(truth)):
-			# print(center_error[i] - error_threshold)
-			if center_error[i] > error_threshold:
-				if not off_track:
-					failures += 1
-				off_track = True
-			else:
-				off_track = False
-		return failures
-
-	@staticmethod
-	def center_error_plot(truth, prediction, ax = None):
-		# this method isn't really used because it's in simulation
-		if ax is None:
-			fig, ax = plt.subplots()
-		center_errors = SingleTargetEvaluation.center_error(truth, prediction)
-		fig = plt.figure()
-		plt.plot(center_errors)
+	# def failure_rate(self,error_threshold=.5):
+	# 	# basically measures how many times it goes off track
+	# 	# not a very good measure for accuracy, but it tells you something about how much it relies on it's own prediction and follows a consistent path
+	# 	failures = 0
+	# 	off_track = False
+	# 	center_error = np.sqrt(np.square(self.truth - self.prediction).sum(axis=1))
+	# 	for i in range(self.truth.shape[0]):
+	# 		for j in range(self.truth.shape[1]):
+	# 		# print(center_error[i] - error_threshold)
+	# 		if center_error[i] > error_threshold:
+	# 			if not off_track:
+	# 				failures += 1
+	# 			off_track = True
+	# 		else:
+	# 			off_track = False
+	# 	return failures
