@@ -86,6 +86,7 @@ class Simulation:
 			u (ndarray): the input control vector
 		"""
 
+
 		if index is None:
 			index = len(self.measures.keys()) - 1
 		output = np.empty((self.n, 1))
@@ -93,19 +94,19 @@ class Simulation:
 		kalman_params = dict()
 
 		# if any necessary variables for the filter have not been defined, assume we know them exactly
-		kalman_params['x0'] = x0 if x0 is not None else self.generator.xt0
+		#kalman_params['x_hat0'] = x0 if x0 is not None else self.generator.xt0
 		kalman_params['Q'] = Q if Q is not None else self.generator.Q
 		kalman_params['R'] = R if R is not None else self.generator.R
 		kalman_params['H'] = H if H is not None else self.generator.H
 
 		# Extract the necessary functions and jacobians from the DataGenerator
 		kalman_params['f'] = self.generator.process_function
-		kalman_params['jac'] = self.generator.process_jacobian
+		kalman_params['A'] = self.generator.process_jacobian
 		kalman_params['h'] = self.generator.measurement_function
 		kalman_params['W'] = self.generator.W
 
 		# Set up the filter with the desired parameters to test
-		#distance_gating = DistanceGating(3)
+		#distance_gating = DistanceGating(3) save gating for later
 		data_association = DataAssociation()
 		track_maintenance = TrackMaintenance(KalmanFilter, kalman_params, 3, 4, 5)
 		filter_predict = FilterPredict()
@@ -114,11 +115,9 @@ class Simulation:
 
 		# Set up lists to store objects for later plotting
 		ellipses = []
-		print(str(x0))
-		print(str(x0[0]))
-		first = x0[0][0:2,0]
-		first.shape = (2,1)
-		output = [{0: first}]
+		# first = kalman_params['x_hat0'][0][0:2,0]
+		# first.shape = (2,1)
+		# output = [{0: first}]
 		# Iterate through each time step for which we have measurements
 		for i in range(len(self.processes[index])-1):
 
