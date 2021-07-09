@@ -6,7 +6,12 @@ Simulation
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy, deepcopy
-# plt.rcParams['text.usetex'] = True
+#plt.rcParams['text.usetex'] = True
+#plt.rcParams.update({
+	#"text.usetex": True,
+	#"font.family": "sans-serif",
+	#"font.serif": ["Helvetica"]})
+
 from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
 
@@ -69,7 +74,7 @@ class Simulation:
 		}
 
 	#We use the kalman filter and the generated data to predict the trajectory of the simulated object
-	def predict(self, index=None, x0=None, Q=None, R=None, H=None, u=None):
+	def predict(self, index=None, x0=None, P = None, Q=None, R=None, H=None, u=None, zoom_factor = 1):
 		"""
 		The predict function uses Tracker to create an estimated trajectory for our simulated object.
 
@@ -102,7 +107,7 @@ class Simulation:
 
 		# Set up the filter with the desired parameters to test
 		# NOTE: Currently hardcoded to be single target
-		self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, H, u)
+		self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, P, H, u)
 		self.tracker_model = self.tracker(self.kFilter_model)
 
 		# Set up lists to store objects for later plotting
@@ -122,7 +127,7 @@ class Simulation:
 			# Store the ellipse for later plottingS
 			cov_ = self.tracker_model.kFilter_model.P[:2, :2]
 			mean_ = (self.tracker_model.kFilter_model.x_hat[0, 0], self.tracker_model.kFilter_model.x_hat[1, 0])
-			ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
+			ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_, zoom_factor = zoom_factor))
 
 		# Store our output as an experiment
 		self.trajectories[len(self.trajectories.keys())] = output
@@ -135,10 +140,31 @@ class Simulation:
 
 		self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
 			"Q": str(self.kFilter_model.Q),
+			"fep_at": str(self.kFilter_model.Q[2][2]),
+			"fep_ct": str(self.kFilter_model.Q[3][3]),
 			"R": str(self.kFilter_model.R),
-			"x0": str(self.kFilter_model.xt0[0, 0]),
-			"y0": str(self.kFilter_model.xt0[1, 0])
+			"fnu": str(self.kFilter_model.R[0][0]),
+			"x0": str(self.generator.xt0[0][0][0]),
+			"y0": str(self.generator.xt0[0][1][0]),
+			"vx0": str(self.generator.xt0[0][2][0]),
+			"vy0": str(self.generator.xt0[0][3][0]),
+			"fx0": str(self.kFilter_model.xt0[0, 0]),
+			"fy0": str(self.kFilter_model.xt0[1, 0]),
+			"fvx0": str(self.kFilter_model.xt0[2, 0]),
+			"fvy0": str(self.kFilter_model.xt0[3, 0]),
+			"P": str(P[0][0])
 		}}
+
+		index = len(self.processes.keys()) - 1
+		# THIS CURRENTLY ONLY HANDLES THE FIRST OBJECT
+		# NEED TO UPDATE
+		process = self.processes[index]
+		process = self.clean_process(process)[0]  # get first two position coordinates
+		traj = self.trajectories[index]
+		traj = self.clean_trajectory(traj)[0]
+		center_errors = SingleTargetEvaluation.center_error(process[:2, :], traj)
+		self.RMSE = np.sqrt(np.dot(center_errors, center_errors) / len(center_errors))
+
 
 	def experiment(self, ts, test="data", **kwargs):
 		"""
@@ -238,7 +264,7 @@ class Simulation:
 
 
 	'''We plot our trajectory based on the predicted trajectories given by the kalman filter object. '''
-	def plot(self, var="Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0):
+	def plot(self, var="Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0, tail = 0):
 		"""
 		Plot our trajectory based on the predicted trajectories given by the kalman filter object.
 
@@ -284,18 +310,27 @@ class Simulation:
 			lines = []
 			if len(self.processes) > 0:
 				for i, obj in enumerate(process):
-					line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=8, marker=',')
+					if tail > 0:
+						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=1.5, markersize=8, marker=',')
+					else:
+						line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=8, marker=',')
 					lines.append(line1)
 					labs.append("Obj" + str(i) + " Process")
 
 			if measure.size != 0:
-				line2 = ax.scatter(measure[0], measure[1], c="black", s=8, marker='x')
+				if tail > 0:
+					line2 = ax.scatter(measure[0][-tail:], measure[1][-tail:], c="black", s=8, marker='x')
+				else:
+					line2 = ax.scatter(measure[0], measure[1], c="black", s=8, marker='x')
 				lines.append(line2)
 				labs.append("Measure")
 
 			if len(self.trajectories) > 0:
 				for i, out in enumerate(output):
-					line3, = ax.plot(out[0], out[1], lw=0.4, markersize=8, marker=',')
+					if tail > 0:
+						line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=0.4, markersize=8, marker=',')
+					else:
+						line3, = ax.plot(out[0], out[1], lw=0.4, markersize=8, marker=',')
 					lines.append(line3)
 					labs.append("Obj" + str(i) + " Filter")
 
@@ -303,6 +338,8 @@ class Simulation:
 
 			# Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
 			#ax.set_title(title + "\n" + self.descs[index], loc="left", y=1)
+			if tail > 0:
+				title = "Zoom to End of " + title
 			ax.set_title(title + "\n" + var + " = " + str(self.descs[index][var]), fontsize=20)
 			ax.set_xlabel(x_label)
 			ax.set_ylabel(y_label)
@@ -310,22 +347,44 @@ class Simulation:
 			if ellipse_freq != 0 and ellipses is not None:
 				for j, ellipse in enumerate(ellipses):
 					if j % ellipse_freq == 0:
-						new_c=copy(ellipse)
-						ax.add_patch(new_c)
+						if tail > 0:
+							if j >= len(ellipses) - tail:
+								new_c=copy(ellipse)
+								ax.add_patch(new_c)
+						else:
+							new_c=copy(ellipse)
+							ax.add_patch(new_c)
 				labs.append("Covariance")
+			ax.set_aspect(1)
 			ax.axis('square')
-			ax.set_xlim(-self.generator.x_lim, self.generator.x_lim)
-			ax.set_ylim(-self.generator.y_lim, self.generator.y_lim)
+			#ax.set_xlim(-self.generator.x_lim, self.generator.x_lim)
+			#ax.set_ylim(-self.generator.y_lim, self.generator.y_lim)
 
 			# QUIVER
 			for i, obj in enumerate(process):
-				a = 0.4
-				ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
+				a = 0.2
+				if tail > 0:
+					ax.quiver(obj[0][-tail:], obj[1][-tail:], obj[2][-tail:], obj[3][-tail:], alpha = a)
+				else:
+					ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
 
 			#Below is an old method, if we want to include the full Q and R matrix
 			#plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
 			if legend is True:
 				ax.legend(handles=lines, labels=labs, fontsize=legend_size)
+			# Plot labels
+			if tail == 0:
+				true_noises = "true ep_at = " + str(self.generator.ep_tangent) + ", true ep_ct = " + str(self.generator.ep_normal)
+				filter_noises = "filter ep_at = " + self.descs[0]["fep_at"] + ", filter ep_ct = " + self.descs[0]["fep_ct"]
+				measurement_noise = "measurement noise = " + str(self.generator.R[0][0])
+				filter_measurement_noise = "filter measurement noise = " + str(self.kFilter_model.R[0][0])
+				true_state = "true state = " + "[" + self.descs[0]["x0"] + ", " + self.descs[0]["y0"] + ", " + self.descs[0]["vx0"] + ", " + self.descs[0]["vy0"] + "]"
+				filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
+				covariance = "P = " + self.descs[0]["P"]
+
+				caption = true_noises + "\n" + filter_noises + "\n" + measurement_noise + "\n" + filter_measurement_noise + "\n" + true_state + "\n" + filter_state + "\n" + covariance + "\n" + "RMSE = " + str(self.RMSE)
+				#fig.text(0.5, -0.15, caption, ha='center', fontsize = 14)
+				fig.text(1.1, 0.5, caption, ha='center', fontsize = 14)
 
 			return lines;
 		elif self.n // 2 == 3:
@@ -423,7 +482,7 @@ class Simulation:
 		w, v = np.linalg.eig(a)
 		w = np.sqrt(w)
 		#calculate the tilt of the ellipse
-		ang = np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
+		ang = 90 - np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
 		ellipse = Ellipse(xy=mean, width=zoom_factor*w[0], height=zoom_factor*w[1], angle=ang, edgecolor='g', fc='none', lw=1)
 		return ellipse
 
