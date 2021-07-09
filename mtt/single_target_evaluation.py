@@ -16,6 +16,22 @@ class SingleTargetEvaluation:
 		return 1 / len(truth) * np.sum(SingleTargetEvaluation.center_error(truth, prediction))
 
 	@staticmethod
+	def max_error(truth, prediction, n):
+		"""
+		Calculates the maximum error at a given time point after the first n time points.
+
+		Args:
+			truth (ndarray): the true process matrix output by the data generator.
+			prediction (ndarray): the predicted trajectory output by the tracker or filter.
+
+		Returns:
+			numeric: the max error between the true and predicted values after n time steps
+		"""
+		truth_new = truth[:, n:]
+		pred_new = prediction[:, n:]
+		return np.max(SingleTargetEvaluation.center_error(truth_new, pred_new))
+
+	@staticmethod
 	def rmse(truth, prediction):
 		norms = np.square(np.subtract(truth, prediction))
 		return np.sqrt(1 / len(truth) * np.sum(norms))

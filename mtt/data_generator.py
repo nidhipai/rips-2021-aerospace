@@ -31,7 +31,9 @@ class DataGenerator(ABC):
     def process(self, ts, rng):
         """
         Generate the process data over the specified number of time points
-        :return: A matrix with each column a state vector representing the process at each time step
+
+        Returns:
+            output (ndarray): A matrix with each column a state vector representing the process at each time step
         """
 
         # Store the list of initial values to start
@@ -54,13 +56,17 @@ class DataGenerator(ABC):
             rng (numpy.random.Generator): Random number generator object from numpy
 
         Returns:
-            output (ndarray): A matrix with each column a state vector measurement at each time step
+            output (ndarray): A list of state vector measurements at each time step
+            colors (ndarray): A list of colors corresponding to each state vector
+
         """
         output = []
+        colors = []
         for process in process_result:
-            xt_measures = self.measure_step(process, rng)
+            xt_measures, xt_colors = self.measure_step(process, rng)
             output.append(xt_measures)
-        return output
+            colors.append(xt_colors)
+        return output, colors
 
     def process_measure(self, ts, rng):
         """

@@ -12,7 +12,7 @@ from .data_generator import DataGenerator
 # with its position and velocity as part of the state vector
 
 
-class MultiObjSimple(DataGenerator):
+class MultiObjFixed(DataGenerator):
 	def __init__(self, xt0, dt, ep_tangent, ep_normal, nu, miss_p=0, lam=0, fa_scale=10, x_lim = 30, y_lim = 30, new_obj_prop = 0.1):
 		"""
 		Constructor for the 2DObject Data Generator.
