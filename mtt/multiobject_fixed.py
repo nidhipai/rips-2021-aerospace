@@ -112,16 +112,19 @@ class MultiObjFixed(DataGenerator):
 
 		# Iterate through each object state in the input
 		output = []
+		colors = []
 		for xt in xts.values():
 			# Calculate whether the measurement is missed
 			# NOTE TODO: Should this be rng.random() instead of np.random.rand()?
 			if np.random.rand() > self.miss_p:
 				output.append(self.H @ xt + self.measure_noise(rng))
+				colors.append("red")
 
 			for i in range(rng.poisson(self.lam)):
 				output.append(self.H @ xt + self.measure_noise(rng) * self.fa_scale)
+				colors.append("red")
 
-		return output
+		return output, colors
 
 	def measure_noise(self, rng):
 		"""
