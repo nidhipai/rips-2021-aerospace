@@ -1,3 +1,5 @@
+from mtt import Track
+
 class TrackMaintenance:
     def __init__(self, kfilter, filter_params, num_init, num_init_frames, num_delete):
         self.kfilter = kfilter
@@ -6,10 +8,13 @@ class TrackMaintenance:
         self.num_init_frames = num_init_frames
         self.num_delete = num_delete
 
-    def predict(self, tracks):
-        for track_key, track in tracks:
-            if track.stage == 0:
-                track.set_filter(self.kfilter, self.filter_params) # we need a filter even if it's unconfirmed
+    def predict(self, tracks = None, measurements=None):
+        for measurement in measurements:
+            if measurement is not None:
+                tracks[len(tracks)] = Track(self.kfilter, self.filter_params, measurement)
+        print("tracks in maintain " + str(tracks))
+        for track_key, track in tracks.items():
+            if track.stage == 0: # check to confirm
                 last_init_frame_obs = track.measurements[len(track.measurements) - self.num_init_frames:]
                 appearances = sum(x is not None for x in last_init_frame_obs)
                 if appearances >= self.num_init:
