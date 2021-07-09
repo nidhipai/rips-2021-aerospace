@@ -8,7 +8,7 @@ import numpy as np
 import numpy.linalg as linalg
 
 class KalmanFilter:
-    def __init__(self, x_hat0, f, A, h, Q, W, R, P = None, H=None, u=0, dt=1):
+    def __init__(self, x_hat0, f, A, h, Q, W, R, P=None, H=None, u=0, dt=1):
         """
         Initialize the Extended Kalman Filter object
         :param x_hat0: initial state vector
@@ -29,6 +29,7 @@ class KalmanFilter:
 
         # calculate dimension of x
         self.n = x_hat0.shape[0]
+
 
         # set default H if it is not defined
         if H is None:
