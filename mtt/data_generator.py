@@ -16,7 +16,10 @@ class DataGenerator(ABC):
         Generate the process data over the specified number of time points.
 
         Args:
-            ts (int): Number of time steps
+            xt0 (ndarray): Initial value state vector
+            dt (numeric): Time step
+            Q (ndarray): Process noise matrix
+            R (ndarray): Measurement noise matrix
             rng (numpy.random.Generator): Random number generator object from numpy
 
         Returns:
