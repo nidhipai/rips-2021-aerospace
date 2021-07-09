@@ -13,6 +13,7 @@ class MTTTracker:
         for key, track in self.tracks.items():
             track.add_all_possible_observations(measurements)
 
+        # Apply each method to the set of tracks
         for method in self.methods:
             method.predict(tracks=self.tracks, measurements=measurements, time=self.time)
 
