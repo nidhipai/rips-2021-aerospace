@@ -44,9 +44,9 @@ class Simulation:
 		self.n = generator.n
 		self.processes = dict()
 		self.measures = dict()
+		self.measure_colors = dict()
 		self.trajectories = dict()
 		self.descs = dict()
-		self.kdescs = dict()
 		self.ellipses = dict()
 
 	# the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
@@ -63,8 +63,11 @@ class Simulation:
 		#we generate the process data and the measure data and assign it to the instances of processes and measures
 		process = self.generator.process(time_steps, self.rng)
 		self.processes[len(self.processes.keys())] = process
-		self.measures[len(self.measures.keys())] = self.generator.measure(process, self.rng)
-
+		#print("line 66: " + str(self.generator.measure(process, self.rng)))
+		self.measures[len(self.measures.keys())], self.measure_colors[len(self.measure_colors.keys())] = self.generator.measure(process, self.rng)
+		#print("line 68: " + str(self.measures))
+		#print("line 69: " + str(self.measures))
+		# NOTE: This is hardcoded to support only one single object for now
 		self.descs[len(self.descs.keys())] = {
 			"Tangent Variance": str(self.generator.Q[2, 2]),
 			"Normal Variance": str(self.generator.Q[3, 3]),
@@ -88,7 +91,7 @@ class Simulation:
 
 
 		if index is None:
-			index = len(self.measures.keys()) - 1
+			index = len(self.processes.keys()) - 1
 		output = np.empty((self.n, 1))
 
 		kalman_params = dict()
@@ -119,12 +122,14 @@ class Simulation:
 		# first.shape = (2,1)
 		# output = [{0: first}]
 		# Iterate through each time step for which we have measurements
+		print("line 131 : " + str(self.measures[index]))
 		for i in range(len(self.processes[index])-1):
 
 			# Obtain a set of guesses for the current location of the object given the measurements
 			# Note this will need to change later to incorporate multiple objects
 
-			self.tracker_model.predict(self.measures[index][i])
+			self.tracker_model.predict(deepcopy(self.measures[index][i]))
+
 			#output.append(self.tracker_model.get_current_guess()) - now we're just getting it in the end instead
 			#output = self.tracker_model.get_trajectories()
 
@@ -134,6 +139,7 @@ class Simulation:
 			# ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
 
 		# Store our output as an experiment
+		#self.trajectories[len(self.trajectories.keys())] = 1
 		self.trajectories[len(self.trajectories.keys())] = self.tracker_model.get_trajectories()
 
 		self.ellipses[len(self.ellipses.keys())] = ellipses
@@ -148,17 +154,22 @@ class Simulation:
 
 	def experiment(self, ts, test="data", **kwargs):
 		"""
-		Runs an experiment
+		Runs an experiment, generating data and producing a trajectory
 
 		Args:
 			ts (int): the number of time steps to simulate
 			test (str): Whether the experiment is affecting the underlying data generation or the parameters of the filter. Options = ("data", "filter")
 			kwargs: values to test in experiments. These should be inputs to the data generator (for test="data") or the filter (for test="filter")
 		"""
+
+		# Cast to a list if time steps are not already in a list
 		if type(ts) != list:
 			ts_modified = [ts]
 		else:
 			ts_modified = ts
+
+		# If we are testing multiple potential values of parameters for data generation, we generate
+		# several sets of data and predict for all of them
 		if test == "data":
 			for ts_item in ts_modified:
 				for arg in kwargs.items():
@@ -166,6 +177,8 @@ class Simulation:
 						self.generator = self.generator.mutate(**{arg[0]: value})
 						self.generate(ts_item)
 						self.predict()
+		# If we are testing multiple potential values of parameters for the filter, we generate one set of data and for
+		# each experiment we run, copy it and run the filter
 		elif test == "filter":
 			for ts_item in ts_modified:
 				self.generate(ts_item)
@@ -181,6 +194,8 @@ class Simulation:
 
 	def experiment_plot(self, ts, var, plot_error_q=False, test="data", **kwargs):
 		"""
+		Function to both run an experiment and plot the results
+
 		Args:
 			ts (int): the number of time steps to simulate
 			var (str) : variable to display in title. This should change across experiments.
@@ -188,6 +203,8 @@ class Simulation:
 			plot_error_q (bool): Whether error should be plotted.
 			kwargs: values to test in experiments. These should be inputs to the data generator (for test="data") or the filter (for test="filter")
 		"""
+
+		# Must start by clearing so previous experiments are not added to the plot
 		self.clear()
 		self.experiment(ts, test, **kwargs)
 		self.plot_all(var)
@@ -199,14 +216,11 @@ class Simulation:
 		Plot our trajectory based on the predicted trajectories given by the kalman filter object.
 
 		Args:
-			var (str): variable to plot
-			index (int): Index of the stored data to plot
-			title (str): title of the plot
-			x_label (str): label for the x-axis
-			y_label (str): label for the y-axis
-			z-label (str) : label for the z-axis if applicable
-			ax (pyplot): an already created plot
-			ellipse_freq (float) : a float between 0 and 1 that gives the relative frequency in which ellipses will be drawn per data point
+			index (int): The experiment to plot the error
+			ax (matplotlib.pyplot): Matplotlib multiplot, only used if plotting multiple experiments
+			title (String): Text that appears at the top of the plot. Default = "Error"
+			var (String): Variable that you want to display in the title. Default = "Time Steps"
+
 		"""
 
 		# THIS CURRENTLY ONLY HANDLES THE FIRST OBJECT
@@ -225,7 +239,10 @@ class Simulation:
 			legend = True
 		plt.rcParams.update({'font.size': 10})
 
+		# Plot in two dimensions
 		if self.n // 2 == 2:
+
+			#Calculate the errors over time
 			center_errors = SingleTargetEvaluation.center_error(process[:2, :], traj)
 
 			line1, = ax.plot(center_errors)
@@ -256,55 +273,73 @@ class Simulation:
 			y_label (str): label for the y-axis
 			z-label (str) : label for the z-axis if applicable
 			ax (pyplot): an already created plot
-			ellipse_freq (float) : a float between 0 and 1 that gives the relative frequency in which ellipses will be drawn per data point
+			ellipse_freq (int) : an int representing how often ellipses are drawn.
+				At 1, ellipse is drawn at every point. At 2, ellipse is drawn at every other point
 		"""
 		labs = []
 		if index is None:
 			index = len(self.processes.keys()) - 1
 
-		#Create lists of points from the stored experiments
+		# Convert stored experiments into numpy matrices for plotting
+		# (or list for measures)
 		if len(self.processes) > 0:
 			process = self.processes[index]
 			process = self.clean_process(process)
 
 		if len(self.measures) > 0:
+			print("meausres beefore cleaning " + str(self.measures))
 			measure = self.measures[index]
-			measure = [point for sublist in measure for point in sublist]
-			measure = np.array(measure).squeeze().T
+			#print("meausres beefore cleaning " + str(measure))
+			measure = self.clean_measure(measure)
+		#print("measures line 288: " + str(measure))
 
 		if len(self.trajectories) > 0:
 			output = self.trajectories[index]
 			output = self.clean_trajectory(output)
+
+		if len(self.measure_colors) > 0:
+			colors = self.measure_colors[index]
+			colors = self.clean_measure(colors)
+
+		# Select proper ellipses to plot
 		ellipses = None
 		if len(self.ellipses) > index:
 			ellipses = self.ellipses[index]
+
+		# Modify the legend
 		legend_size = 14
 		legend = False
 
+		# Create subplots if we have not already passed an axis into the function
 		if ax is None:
 			fig, ax = plt.subplots()
 			legend = True
 		plt.rcParams.update({'font.size': 10})
 
+		# Plot in two dimensions
 		if self.n // 2 == 2:
 			lines = []
+
+			# Add each object's process to the plot
 			if len(self.processes) > 0:
 				for i, obj in enumerate(process):
 					line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=8, marker=',')
 					lines.append(line1)
 					labs.append("Obj" + str(i) + " Process")
 
+			# Add the measures to the plot
 			if measure.size != 0:
-				line2 = ax.scatter(measure[0], measure[1], c="black", s=8, marker='x')
+				# line2 = ax.scatter(measure[0], measure[1], c=colors, s=8, marker='x')
+				line2 = ax.scatter(measure[0], measure[1], s=8, marker='x')
 				lines.append(line2)
 				labs.append("Measure")
 
+			# Add the predicted trajectories to the plot
 			if len(self.trajectories) > 0:
 				for i, out in enumerate(output):
 					line3, = ax.plot(out[0], out[1], lw=0.4, markersize=8, marker=',')
 					lines.append(line3)
 					labs.append("Obj" + str(i) + " Filter")
-
 
 
 			# Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
@@ -323,17 +358,20 @@ class Simulation:
 			#ax.set_ylim(-self.generator.y_lim, self.generator.y_lim)
 			ax.axis('square')
 
-			# QUIVER
+			# Add the velocity vectors to the plot
 			for i, obj in enumerate(process):
 				a = 0.4
 				ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
 
 			#Below is an old method, if we want to include the full Q and R matrix
 			#plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
+
 			if legend is True:
 				ax.legend(handles=lines, labels=labs, fontsize=legend_size)
 
 			return lines;
+
+		#Plot in 3 dimensions
 		elif self.n // 2 == 3:
 			# title = title + ", seed=" + str(self.seed_value)
 			ax = plt.axes(projection='3d')
@@ -353,8 +391,8 @@ class Simulation:
 	are plotted in one single figure with subplots'''
 	def plot_all(self, var="Time Steps", error=False, test="data", labs=("Process", "Filter", "Measure"), ellipse_freq = 0):
 		"""
-		the plot_all function takes in a variable name, and an ellipse frequency between 0 and 1. Then, all stored experiments
-		are plotted in one single figure with subplots
+		This function takes in a variable name, and an ellipse frequency between 0 and 1.
+		Then, all stored experiments are plotted in one single figure with subplots
 
 		Args:
 			var (str): variable to plot
@@ -392,7 +430,9 @@ class Simulation:
 		plt.tight_layout()
 
 	def clear(self):
-		'''This function clears all the processes, measures, trajectories, descriptions, and the ellipses.'''
+		"""
+		This function clears all the processes, measures, trajectories, descriptions, and the ellipses.
+		"""
 		self.processes = dict()
 		self.measures = dict()
 		self.trajectories = dict()
@@ -400,12 +440,17 @@ class Simulation:
 		self.ellipses = dict()
 
 	def reset_generator(self, **kwargs):
+		"""
+		Updates the generator with the new keyword arguments (kwargs)
+
+		Args:
+			kwargs: Inputs to the data generator to change
+		"""
+
+
 		for arg in kwargs.items():
 			self.generator = self.generator.mutate(**{arg[0]: arg[1]})
 
-
-	'''The cov ellipse returns an ellipse path that can be added to a plot based on the given mean, covariance matrix
-	zoom_factor, and the p-value'''
 	def cov_ellipse(self, mean, cov, zoom_factor=1, p=0.95):
 		"""
 		The cov ellipse returns an ellipse path that can be added to a plot based on the given mean, covariance matrix
@@ -418,25 +463,28 @@ class Simulation:
 			p (float): the confidence interval
 
 		Returns:
-
 			Ellipse: return the Ellipse created.
 		"""
-		#the s-value takes into account the p-value given
+		# s takes into account the p-value given
 		s = -2 * np.log(1 - p)
 		a = s*cov
 		a = a.round(decimals=16)
-		#the w and v variables give the eigenvalues and the eigenvectors of the covariance matrix scaled by s
+		# w and v give the eigenvalues and the eigenvectors of the covariance matrix scaled by s
 		w, v = np.linalg.eig(a)
 		w = np.sqrt(w)
 		#calculate the tilt of the ellipse
-		ang = np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
-		ellipse = Ellipse(xy=mean, width=zoom_factor*w[0], height=zoom_factor*w[1], angle=ang, edgecolor='g', fc='none', lw=1)
+		ang = 90 - np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
+		# Figure out which eigenvector is associated with which direction
+		width = w[0]
+		height = w[1]
+
+		ellipse = Ellipse(xy=mean, width=zoom_factor*width, height=zoom_factor*height, angle=ang, edgecolor='g', fc='none', lw=1)
 		return ellipse
 
 	@staticmethod
 	def clean_process(processes):
 		"""
-		Converts a single process from a list of lists of state vectors to a list of numpy arrays
+		Converts a single process from a dictionary of lists of state vectors to a list of numpy arrays
 		representing the position at each time step for plotting
 		"""
 		output = list(repeat(np.empty((4, 1)), max([key for step in processes for key in step.keys()]) + 1))
@@ -450,21 +498,29 @@ class Simulation:
 		return output
 
 	@staticmethod
+	def clean_measure(measure):
+		#print("clean measure 1 " + str(measure))
+		output = [point for sublist in measure for point in sublist]
+		output = np.array(output).squeeze().T
+		#print("clean measure 2 " + str(output))
+		return output
+
+	@staticmethod
 	def clean_trajectory(trajectories):
 		"""
-		Converts a single process from a list of lists of state vectors to a list of numpy arrays
+		Converts a single trajectory from a dictionary of lists of state vectors to a list of numpy arrays
 		representing the position at each time step for plotting
 		"""
 		output = list(repeat(np.empty((2, 1)), max([key for step in trajectories for key in step.keys()]) + 1))
 		for step in trajectories:
 			for key, value in step.items():
+				#print("value: " + str(value))
 				output[key] = np.append(output[key], value, axis=1)
 		# Remove the filler values from the start of each array
 		# and only keep the values representing position
 		for i, arr in enumerate(output):
 			output[i] = arr[:, 1:]
 		return output
-
 
 
 '''The same as the cov_ellipse function, but draws multiple p-values depending on the passed on list. One can also 

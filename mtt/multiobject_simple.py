@@ -58,9 +58,13 @@ class MultiObjSimple(DataGenerator):
 	def process_step(self, xt_prevs, rng):
 		"""
 		Generate the next process state from the previous
-		:param xt_prevs: Previous process states for each object
-		:param rng: numpy rng object to generate random variable
-		:return: State vector of next step in the process
+
+		Args:
+			xt_prevs (list of ndarray): Previous process states for each object
+			rng (numpy.Generator): numpy rng object, used to generate random variables
+
+		Returns:
+			output (dict of ndarray): Each value is a state vector of next step in the process, with each key a unique identifying integer
 		"""
 		output = dict()
 		# Iterate through each state in the list of previous object states
@@ -72,40 +76,55 @@ class MultiObjSimple(DataGenerator):
 	def measure_step(self, xts, rng):
 		"""
 		Generate the next measure from the current process state vector
-		:param xts: Current list of state vectors
-		:param rng: numpy rng object to generate random variable
-		:return: State vector representing measure at the current process state
+
+		Args:
+			xts: Current list of state vectors
+			rng (numpy.Generator): numpy rng object, used to generate random variable
+
+		Returns:
+			output (list of ndarray): list of State vectors representing measures at the current process state
 		"""
 
 		# Iterate through each object state in the input
 		output = []
+		colors = []
 		for xt in xts.values():
 			# Calculate whether the measurement is missed
 			if np.random.rand() > self.miss_p:
 				output.append(self.H @ xt + self.measure_noise(rng))
+				colors.append("black")
 
 			for i in range(rng.poisson(self.lam)):
 				output.append(self.H @ xt + self.measure_noise(rng) * self.fa_scale)
+				colors.append("red")
 
-		return output
+		return output, colors
 
 	def measure_noise(self, rng):
 		"""
-		Generate measure noise
+		Generate measure noise for an individual measurement
+
+		Args:
+			rng (numpy.Generator): numpy rng object, used to generate random variable
+
+		Returns:
+			ndarray: Random changes in state vector
 		"""
 		return rng.normal(scale=self.nu, size=(self.dim, 1))
 
 	def process_noise(self, xt, rng):
 
 		"""
-		Generate process noise
-		:param xt: current state vector
-		:param rng: numpy rng object to generate random variable
-		:return: vector of noise for each parameter in the state vector
+		Generate process noise for an individual measurement
+
+		Args:
+			xt (ndarray): current state vector
+			rng (numpy.Generator): numpy rng object to generate random variable
+
+		Returns:
+			ndarray: vector of noise for each parameter in the state vector
 		"""
 
-		# NOTE: if the angle is 90 degrees then 0 is returned
-		# Also this uses radians
 		pad = np.array([0, 0])
 		rotation = self.W(xt)[2:4, 2:4]
 		noise = rng.multivariate_normal((0, 0), rotation @ self.Q[2:4, 2:4] @ rotation.T)
@@ -114,6 +133,15 @@ class MultiObjSimple(DataGenerator):
 		return output
 
 	def W(self, xt):
+		"""
+		Creates rotation matrix which rotates the input state vector to align with the x-y plane
+
+		Args:
+			xt (ndarray): current state vector
+
+		Returns:
+			ndarray: matrix that rotates the velocity portion of a generated state vector
+		"""
 		ang = np.arctan2(xt[3, 0], xt[2, 0])
 		c = np.cos(ang)
 		s = np.sin(ang)
@@ -121,18 +149,63 @@ class MultiObjSimple(DataGenerator):
 		return np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, c, -s], [0, 0, s, c]])
 
 	def process_function(self, xt, u):
+		"""
+		Function representing how the state vector changes over one time step
+
+		Args:
+			xt (ndarray): current state vector
+
+		Returns:
+			ndarray: state vector at next time step
+		"""
 		return self.A @ xt
 
 	def process_jacobian(self, xt, u):
+		"""
+		Returns Jacobian of the process function
+
+		Args:
+			xt (ndarray): current state vector
+
+		Returns:
+			ndarray: Jacobian of the process function; in this case, just the state transition matrix
+		"""
 		return self.A
 
 	def measurement_function(self, xt):
+		"""
+		Function that transforms a state transition matrix to a measurement by multiplying by H
+
+		Args:
+			xt (ndarray): current state vector
+
+		Returns:
+			ndarray: vector representing just the position component of xt
+		"""
 		return self.H @ xt
 
 	def measurement_jacobian(self, xt):
+		"""
+		Returns Jacobian of the measurement function
+
+		Args:
+			xt (ndarray): current state vector
+
+		Returns:
+			ndarray: Jacobian of the measurement function; in this case, just the H matrix
+		"""
 		return self.H
 
 	def mutate(self, **kwargs):
+		"""
+		Creates a copy of the current object, but with changed parameters specified in kwargs
+
+		Args:
+			**kwargs: May contain any argument in the constructor of this class; represents the parameters to be changed when the object is copied.
+
+		Returns:
+			MultiObjSimple: version of the current object with updated parameters specified in kwargs
+		"""
 		clone = copy(self)
 		for arg in kwargs.items():
 			setattr(clone, arg[0], arg[1])

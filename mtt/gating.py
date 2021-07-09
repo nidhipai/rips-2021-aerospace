@@ -21,10 +21,11 @@ class DistanceGating:
                 if self.distance_function(track.possible_observations[observation_key], track.get_current_guess()) < self.error_threshold:
                     track.possible_observations.pop('observation_key', None)
 
-    def euclidean(self, measurement, track):
-        return np.linalg.norm(measurement, track.get_latest_prediction())
+    def euclidean(self, measurement, track): #this won't work, see data association's version
+        return np.linalg.norm(measurement - track.get_latest_prediction())
 
     def mahalanobis(self, measurement, track):
+        # THIS MAY NOT BE RIGHT
         error = measurement - track.kfilter.h(track.kfilter.x_hat_minus)
         return np.sqrt(error.T @ np.linalg.inv(track.kfilter.R) @ error)
 

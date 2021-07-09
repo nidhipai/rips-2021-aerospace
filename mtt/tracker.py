@@ -64,6 +64,6 @@ class Tracker:
             float: the calculated mahalanobis distance.
         """
         innovation = y - self.kFilter_model.h(self.kFilter_model.x_hat_minus)
-        self.kFilter_model.error_array.append(error)
+        self.kFilter_model.error_array.append(innovation)
         K = self.kFilter_model.H@self.kFilter_model.P_minus@self.kFilter_model.H.T + self.kFilter_model.R
-        return np.sqrt(innovation.T @ np.linalg.inv(test) @ innovation)
+        return np.sqrt(innovation.T @ np.linalg.inv(K) @ innovation)
