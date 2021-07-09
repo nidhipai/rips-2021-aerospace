@@ -66,4 +66,5 @@ class Tracker:
         error = y - self.kFilter_model.h(self.kFilter_model.x_hat_minus)
         self.kFilter_model.error_array.append(error)
         # test = self.H@self.P_minus@self.H.T + self.R
-        return np.sqrt(error.T @ np.linalg.inv(self.kFilter_model.R) @ error)
+        cov = self.kFilter_model.H @ self.kFilter_model.P_minus @ self.kFilter_model.H.T + self.kFilter_model.R
+        return np.sqrt(error.T @ np.linalg.inv(cov) @ error)
