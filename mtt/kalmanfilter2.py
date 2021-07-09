@@ -30,6 +30,7 @@ class KalmanFilter:
         # calculate dimension of x
         self.n = x_hat0.shape[0]
 
+
         # set default H if it is not defined
         if H is None:
             self.H = np.eye(self.n, self.n)
@@ -43,7 +44,6 @@ class KalmanFilter:
             self.P = np.eye(self.n)
         else:
             self.P = P # posteriori estimate error covariance initialized to the identity matrix
-
         self.P_minus = np.eye(self.n) # priori estimate error coviariance matrix initialized to the identity matrix
         self.x_hat = x_hat0  # set a priori estimate to initial guess
         self.x_hat_minus = x_hat0  # set a posteriori estimate to initial guess
