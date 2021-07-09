@@ -68,6 +68,9 @@ class Simulation:
 			"Tangent Variance": str(self.generator.Q[2, 2]),
 			"Normal Variance": str(self.generator.Q[3, 3]),
 			"Measurement Noise": str(self.generator.R[1, 1]),
+			"Missed Measures": str(self.generator.miss_p),
+			"FA Rate": str(self.generator.lam),
+			"FA Scale": str(self.generator.fa_scale),
 			"Time Steps": str(time_steps)
 		}
 
@@ -95,6 +98,8 @@ class Simulation:
 			R = self.generator.R
 		if H is None:
 			H = self.generator.H
+		if P is None:
+			P = np.eye(4)
 		if index is None:
 			index = len(self.measures.keys()) - 1
 		#Extract the necessary functions and jacobians from the DataGenerator
@@ -105,7 +110,8 @@ class Simulation:
 
 		# Set up the filter with the desired parameters to test
 		# NOTE: Currently hardcoded to be single target
-		self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, P, H, u)
+		#self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, P, H, u)
+		self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, P, H=H, u=0)
 		self.tracker_model = self.tracker(self.kFilter_model)
 
 		# Set up lists to store objects for later plotting
@@ -479,6 +485,7 @@ class Simulation:
 		self.trajectories = dict()
 		self.descs = dict()
 		self.ellipses = dict()
+		self.measure_colors = dict()
 
 	def reset_generator(self, **kwargs):
 		"""
