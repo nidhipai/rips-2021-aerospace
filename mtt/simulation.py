@@ -109,12 +109,13 @@ class Simulation:
 		kalman_params['W'] = self.generator.W
 
 		# Set up the filter with the desired parameters to test
-		#distance_gating = DistanceGating(3) save gating for later
-		data_association = DataAssociation()
+		# TODO - move this to being parameters passed into predict
+		distance_gating = DistanceGating(1, method="euclidean")
+		data_association = DataAssociation(method="euclidean")
 		track_maintenance = TrackMaintenance(KalmanFilter, kalman_params, 3, 4, 5)
 		filter_predict = FilterPredict()
 
-		self.tracker_model = self.tracker([data_association, track_maintenance, filter_predict])
+		self.tracker_model = self.tracker([distance_gating, data_association, track_maintenance, filter_predict])
 
 		# Set up lists to store objects for later plotting
 		ellipses = []
