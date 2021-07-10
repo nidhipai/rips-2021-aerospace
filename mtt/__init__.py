@@ -16,3 +16,6 @@ from .tracker2 import *
 # Experimentation classes
 from .single_target_evaluation import *
 from .simulation import *
+
+# Utility classes
+from .distances import *

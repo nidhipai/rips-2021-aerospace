@@ -1,90 +1,63 @@
-'''Aerospace Team 2021 - Eduardo Sosa, Nidhi Pai, Sal V Balkus, Tony Zeng'''
+"""
+Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
+Aerospace Team
+"""
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment as linsum
-from scipy.stats import chi2
 import sys
+from mtt import Distances
+
 
 class DataAssociation:
-	def predict(self, tracks=None, measurements=None, time=0, pvalue = 0.95):
+	"""
+	Finds 1-1 matchings between observations and tracks and adds measurements to tracks, also does a bit of gating
+	"""
+	def __init__(self, method="euclidean"):
+		switcher = {
+			"euclidean": Distances.euclidean,
+			"mahalanobis": Distances.mahalanobis
+		}
+		self.distance_function = switcher.get(method)
 
-		''' Update the known tracks to the Gating object.
-
+	def predict(self, tracks=None, measurements=None, time=0):
+		"""
+		Main method of the DataAssociation that performs the matching
 		Args:
-		tracks (list) : list of track objects with the current tracks
+			tracks: dictionary of tracks from MTTTracker
+			measurements: list of column vector measurements
+			time: current timestep
+		"""
+		linsum_matrix = [] # matrix of distances that we'll use GNN on
 
-		'''
-		pvalue = .9999
-		cutoff = chi2.ppf(pvalue, 3)
-		#cutoff = 10
-		linsum_matrix = []
-
-		for track_key, track in tracks.items():
+		for track_key, track in tracks.items():  # iterate over all the tracks
+			# TODO - should we only do this for undeleted tracks??
 			linsum_matrix.append([None] * len(measurements))
-			if track.stage != 3:  # right now it makes a row for the deleted tracks too, can fix later
-
-				for i, obs in enumerate(measurements):
-					# there's a more efficent way but for now:
-					for p_obs in track.possible_observations.values(): #check if obs is in poss obs but the slow way
-						if np.array_equiv(obs, p_obs):
-							dis, inside_ellipse = self.euclidean_distance(obs, track.filter_model, 8)
-							#dis, inside_ellipse = self.calculate_mhlb_dis(obs, track.filter_model, cutoff)
-							if inside_ellipse:
-								linsum_matrix[track_key][i] = dis
-							break
+			for i, obs in enumerate(measurements):  # iterate over all the measurements for that round
+				for p_obs in track.possible_observations.values():  # check if obs is in poss obs but the slow way (redo)
+					if np.array_equiv(obs, p_obs):  # this is the only way (that I know) to check if a vector is in an array
+						linsum_matrix[track_key][i] = self.distance_function(obs, track.filter_model)
+						break
 		if len(tracks) == 0:
 			return
 
-		#linsum_matrix = np.array(linsum_matrix)
-		# go back in and fill in all the infinities
+		# go back in and fill in all the infinities for the pairs of tracks and obs that are too far apart
 		for row in range(0, len(linsum_matrix)):
 			for col in range(0, len(linsum_matrix[row])):
 				linsum_matrix[row][col] = sys.maxsize if linsum_matrix[row][col] is None else linsum_matrix[row][col]
-		#print("linsum matrix" + str(linsum_matrix))
-		#if len(linsum_matrix )
+
+		# solve the linear sum assignment/weighted bipartite matching problem
 		row_ind, col_ind = linsum(linsum_matrix)
 
+		# for the pairs that were found, add the measurement to the track
 		for index_track in row_ind:
 			for index_measurement in col_ind:
 				if linsum_matrix[index_track][index_measurement] < sys.maxsize:
 					tracks[index_track].add_measurement(time, measurements[index_measurement])
-					linsum_matrix[index_track][index_measurement] = -1
-					measurements[index_measurement] = None # so that we know which ones were attributed to tracks
+					linsum_matrix[index_track][index_measurement] = -1 # so that we know tracks and measurements have been used
+					measurements[index_measurement] = None # so that we know which obs were attributed to tracks
 
-		# get all the tracks without measurements
+		# address all the tracks without measurements - consider it as a missed measurement
 		for row in range(0, len(linsum_matrix)):
 			if -1 not in linsum_matrix[row]:
 				tracks[row].add_measurement(time, None)
-
-		# # get all measurements without tracks
-		# for i in range(linsum_matrix.shape[1]):
-		# 	if np.all(np.array(linsum_matrix[:, i]) != -1):
-		# 		tracks[len(tracks)] = Track()
-		# 		#unassigned_measurements.append(measurements[i])
-
-	def euclidean_distance(self, measurement, kfilter, cutoff):
-		dis = np.linalg.norm(measurement - kfilter.get_current_guess()[0:2])
-		inside_ellipse = True if dis < cutoff else False
-		return dis, inside_ellipse
-
-	def calculate_mhlb_dis(self, measurement, kfilter, cutoff):
-		''' Update the known tracks to the Gating object.
-
-		Args:
-		tracks (list) : list of track objects with the current tracks
-
-		'''
-		inside_ellipse = False
-		innovation = measurement - kfilter.h(kfilter.x_hat_minus)
-		K = kfilter.H @ kfilter.P_minus @ kfilter.H.T + kfilter.R
-		dis = np.sqrt(innovation.T @ np.linalg.inv(K) @ innovation)
-		dis = dis[0][0] #this is kinda hacky and the fact that I have to do this may signal that something is wrong
-		if dis < cutoff:
-			inside_ellipse = True
-		return dis, inside_ellipse
-
-
-
-
-
-
