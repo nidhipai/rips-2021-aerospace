@@ -118,7 +118,7 @@ class MultiObjFixed(DataGenerator):
 			# NOTE TODO: Should this be rng.random() instead of np.random.rand()?
 			if np.random.rand() > self.miss_p:
 				output.append(self.H @ xt + self.measure_noise(rng))
-				colors.append("red")
+				colors.append("black")
 
 			for i in range(rng.poisson(self.lam)):
 				output.append(self.H @ xt + self.measure_noise(rng) * self.fa_scale)
