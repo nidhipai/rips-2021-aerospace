@@ -166,7 +166,12 @@ class Simulation:
 		process = self.clean_process(process)[0]  # get first two position coordinates
 		traj = self.trajectories[index]
 		traj = self.clean_trajectory(traj)[0]
-		center_errors = SingleTargetEvaluation.center_error(process[:2, :], traj)
+		#print("PROCESS", process[:2, :])
+		#print("TRAJ", traj)
+		#print("PROCESS", len(process[:2, :][0]))
+		#print("TRAJ", len(traj[0]))
+		center_errors = (np.sqrt(np.power(process[:2, :][0] - traj[0], 2) + np.power(process[:2, :][1] - traj[1], 2)))
+		#center_errors = SingleTargetEvaluation.center_error(process[:2, :], traj)
 		self.RMSE = np.sqrt(np.dot(center_errors, center_errors) / len(center_errors))
 
 
@@ -348,9 +353,9 @@ class Simulation:
 			# Add the measures to the plot
 			if measure.size != 0:
 				if tail > 0:
-					line2 = ax.scatter(measure[0][-tail:], measure[1][-tail:], c="black", s=8, marker='x')
+					line2 = ax.scatter(measure[0][-tail:], measure[1][-tail:], c=colors[-tail:], s=8, marker='x')
 				else:
-					line2 = ax.scatter(measure[0], measure[1], c="black", s=8, marker='x')
+					line2 = ax.scatter(measure[0], measure[1], c=colors, s=8, marker='x')
 				lines.append(line2)
 				labs.append("Measure")
 
@@ -403,19 +408,19 @@ class Simulation:
 			if legend is True:
 				ax.legend(handles=lines, labels=labs, fontsize=legend_size)
 			# Plot labels
+			true_noises = "true ep_at = " + str(self.generator.ep_tangent) + ", true ep_ct = " + str(self.generator.ep_normal)
+			filter_noises = "filter ep_at = " + self.descs[0]["fep_at"] + ", filter ep_ct = " + self.descs[0]["fep_ct"]
+			measurement_noise = "measurement noise = " + str(self.generator.R[0][0])
+			filter_measurement_noise = "filter measurement noise = " + str(self.kFilter_model.R[0][0])
+			true_state = "true state = " + "[" + self.descs[0]["x0"] + ", " + self.descs[0]["y0"] + ", " + self.descs[0]["vx0"] + ", " + self.descs[0]["vy0"] + "]"
+			filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
+			covariance = "P = " + self.descs[0]["P"]
+
+			caption = true_noises + "\n" + filter_noises + "\n" + measurement_noise + "\n" + filter_measurement_noise + "\n" + true_state + "\n" + filter_state + "\n" + covariance + "\n" + "RMSE of plot = " + str(self.RMSE)
 			if tail == 0:
-				true_noises = "true ep_at = " + str(self.generator.ep_tangent) + ", true ep_ct = " + str(self.generator.ep_normal)
-				filter_noises = "filter ep_at = " + self.descs[0]["fep_at"] + ", filter ep_ct = " + self.descs[0]["fep_ct"]
-				measurement_noise = "measurement noise = " + str(self.generator.R[0][0])
-				filter_measurement_noise = "filter measurement noise = " + str(self.kFilter_model.R[0][0])
-				true_state = "true state = " + "[" + self.descs[0]["x0"] + ", " + self.descs[0]["y0"] + ", " + self.descs[0]["vx0"] + ", " + self.descs[0]["vy0"] + "]"
-				filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
-				covariance = "P = " + self.descs[0]["P"]
-
-				caption = true_noises + "\n" + filter_noises + "\n" + measurement_noise + "\n" + filter_measurement_noise + "\n" + true_state + "\n" + filter_state + "\n" + covariance + "\n" + "RMSE = " + str(self.RMSE)
-				#fig.text(0.5, -0.15, caption, ha='center', fontsize = 14)
-				fig.text(1.1, 0.5, caption, ha='center', fontsize = 14)
-
+				fig.text(1, 0.5, caption, ha='center', fontsize = 14)
+			#else:
+				#print(caption)
 			return lines;
 
 		#Plot in 3 dimensions
