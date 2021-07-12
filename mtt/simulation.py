@@ -70,7 +70,7 @@ class Simulation:
 		}
 
 	#We use the kalman filter and the generated data to predict the trajectory of the simulated object
-	def predict(self, index=None, x0=None, Q=None, R=None, P=None, H=None, u=None):
+	def predict(self, ellipse_mode="mpl", index=None, x0=None, Q=None, R=None, P=None, H=None, u=None):
 		"""
 		The predict function uses Tracker to create an estimated trajectory for our simulated object.
 
@@ -125,7 +125,10 @@ class Simulation:
 			# Store the ellipse for later plottingS
 			cov_ = self.tracker_model.kFilter_model.P[:2, :2]
 			mean_ = (self.tracker_model.kFilter_model.x_hat[0, 0], self.tracker_model.kFilter_model.x_hat[1, 0])
-			ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
+			if ellipse_mode == "plotly":
+				ellipses.append(self.cov_ellipse_plotly(mean=mean_, cov=cov_))
+			else:
+				ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
 
 		# Store our output as an experiment
 		self.trajectories[len(self.trajectories.keys())] = output
@@ -468,6 +471,28 @@ class Simulation:
 
 		ellipse = Ellipse(xy=mean, width=zoom_factor*width, height=zoom_factor*height, angle=ang, edgecolor='g', fc='none', lw=1)
 		return ellipse
+
+	def cov_ellipse_plotly(self, mean, cov, zoom_factor=1, p=0.95):
+
+		if type(mean) != np.ndarray:
+			mean = np.array(mean)
+		mean.shape = (2,1)
+		N = 100
+		s = -2 * np.log(1 - p)
+		a = s * cov
+		a = a.round(decimals=16)
+		# w and v give the eigenvalues and the eigenvectors of the covariance matrix scaled by s
+		w, v = np.linalg.eig(a)
+		ang = np.arctan2(v[0, 0], v[1, 0])
+		width = w[0]
+		height = w[1]
+
+		# ellipse parameterization with respect to a system of axes of directions a1, a2
+		t = np.linspace(0, 2 * np.pi, N)
+		xs = width*np.cos(t)
+		ys = height*np.sin(t)
+		R = np.array([[np.cos(ang), -np.sin(ang)], [np.sin(ang), np.cos(ang)]])
+		return np.dot(R, [xs, ys]) + mean[:,-1][:, np.newaxis]
 
 	@staticmethod
 	def clean_process(processes):
