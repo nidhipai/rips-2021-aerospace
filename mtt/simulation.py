@@ -79,11 +79,14 @@ class Simulation:
 		process = self.generator.process(time_steps, self.rng)
 		self.processes[len(self.processes.keys())] = process
 		self.measures[len(self.measures.keys())], self.measure_colors[len(self.measure_colors.keys())] = self.generator.measure(process, self.rng)
-		# NOTE: This is hardcoded to support only one single object for now
+
 		self.descs[len(self.descs.keys())] = {
 			"Tangent Variance": str(self.generator.Q[2, 2]),
 			"Normal Variance": str(self.generator.Q[3, 3]),
 			"Measurement Noise": str(self.generator.R[1, 1]),
+			"Missed Measures": str(self.generator.miss_p),
+			"FA Rate": str(self.generator.lam),
+			"FA Scale": str(self.generator.fa_scale),
 			"Time Steps": str(time_steps)
 		}
 
@@ -111,7 +114,8 @@ class Simulation:
 		ellipses = []
 
 		# Iterate through each time step for which we have measurements
-		for i in range(len(self.processes[index])-1):
+		for i in range(len(self.processes[index])):
+
 			# Obtain a set of guesses for the current location of the object given the measurements
 			self.tracker_model.predict(deepcopy(self.measures[index][i]))
 
@@ -308,21 +312,20 @@ class Simulation:
 			# Add each object's process to the plot
 			if len(self.processes) > 0:
 				for i, obj in enumerate(process):
-					line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=4, marker=',')
+					line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=5, marker=',')
 					lines.append(line1)
 					labs.append("Obj" + str(i) + " Process")
 
 			# Add the measures to the plot
 			if measure.size != 0:
-				# line2 = ax.scatter(measure[0], measure[1], c=colors, s=8, marker='x')
-				line2 = ax.scatter(measure[0], measure[1], s=8, marker='x')
+				line2 = ax.scatter(measure[0], measure[1], c=colors, s=8, marker='x')
 				lines.append(line2)
 				labs.append("Measure")
 
 			# Add the predicted trajectories to the plot
 			if len(self.trajectories) > 0:
 				for i, out in enumerate(output):
-					line3, = ax.plot(out[0], out[1], lw=0.4, markersize=10, marker=',')
+					line3, = ax.plot(out[0], out[1], lw=0.4, markersize=4, marker=',')
 					lines.append(line3)
 					labs.append("Obj" + str(i) + " Filter")
 
@@ -344,9 +347,9 @@ class Simulation:
 			ax.axis('square')
 
 			# Add the velocity vectors to the plot
-			# for i, obj in enumerate(process):
-			# 	a = 0.4
-			# 	ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
+			for i, obj in enumerate(process):
+				a = 0.4
+				ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
 
 			#Below is an old method, if we want to include the full Q and R matrix
 			#plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
@@ -423,6 +426,7 @@ class Simulation:
 		self.trajectories = dict()
 		self.descs = dict()
 		self.ellipses = dict()
+		self.measure_colors = dict()
 
 	def reset_generator(self, **kwargs):
 		"""
@@ -484,10 +488,8 @@ class Simulation:
 
 	@staticmethod
 	def clean_measure(measure):
-		#print("clean measure 1 " + str(measure))
 		output = [point for sublist in measure for point in sublist]
 		output = np.array(output).squeeze().T
-		#print("clean measure 2 " + str(output))
 		return output
 
 	@staticmethod
@@ -499,7 +501,6 @@ class Simulation:
 		output = list(repeat(np.empty((2, 1)), max([key for step in trajectories for key in step.keys()]) + 1))
 		for step in trajectories:
 			for key, value in step.items():
-				#print("value: " + str(value))
 				output[key] = np.append(output[key], value, axis=1)
 		# Remove the filler values from the start of each array
 		# and only keep the values representing position
