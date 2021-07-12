@@ -33,6 +33,7 @@ gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa
 sim = mtt.Simulation(gen, mtt.KalmanFilter, mtt.Tracker)
 
 sim.generate(ts)
+sim.predict(ellipse_mode="plotly")
 
 processes = sim.clean_process(sim.processes[0])
 colors = sim.clean_measure(sim.measure_colors[0])
@@ -54,15 +55,34 @@ for i, trajectory in enumerate(trajectories):
     fig.add_trace(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines+markers',
                              name='object {} trajectory'.format(i)))
 
+xs = []
+ys = []
 for ellipse in sim.ellipses[0]:
-    ellipse_path = ellipse.get_path()._vertices.T
-    fig.add_trace(go.Scatter(x=ellipse_path[0], y=ellipse_path[1], line=dict(width=1, dash='dot')))
+    xs += list(ellipse[0])
+    xs.append(None)
+    ys += list(ellipse[1])
+    ys.append(None)
 
-fig.add_shape(type="circle",
-    xref="x", yref="y",
-    x0=1, y0=1, x1=3, y1=3,
-    line_color="LightSeaGreen",
+fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="Covariance"))
+
+fig.update_layout(
+    autosize=False,
+    width=800,
+    height=800,
+    margin=dict(
+        l=50,
+        r=50,
+        b=100,
+        t=100,
+        pad=4
+    ),
+    paper_bgcolor="white",
 )
+
+fig.update_yaxes(
+    scaleanchor = "x",
+    scaleratio = 1,
+  )
 
 app.layout = html.Div(children=[
     html.H1(children='2D Object Trajectory Tracking'),
@@ -314,16 +334,34 @@ def update(n_clicks, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, Q
         fig.add_trace(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines+markers',
                                  name='object {} trajectory'.format(i)))
 
-    #BUG: All ellipses are the same angle...
     xs = []
     ys = []
     for ellipse in sim.ellipses[0]:
-        xs.append(ellipse[0])
+        xs += list(ellipse[0])
         xs.append(None)
-        ys.append(ellipse[1])
+        ys += list(ellipse[1])
         ys.append(None)
 
-    fig.add_trace(go.Scatter(x=xs, y=ys, fill="toself"))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="Covariance"))
+
+    fig.update_layout(
+        autosize=False,
+        width=800,
+        height=800,
+        margin=dict(
+            l=50,
+            r=50,
+            b=100,
+            t=100,
+            pad=4
+        ),
+        paper_bgcolor="white",
+    )
+
+    fig.update_yaxes(
+        scaleanchor="x",
+        scaleratio=1,
+    )
 
     return fig
 
