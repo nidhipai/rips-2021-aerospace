@@ -19,8 +19,8 @@ class SingleTargetEvaluation:
 			predicted_sim = self.simulation.clean_trajectory(self.simulation.trajectories[i])[0]
 			self.truth.append(truth_sim)
 			self.prediction.append(predicted_sim)
-		self.truth = np.array(self.truth).squeeze()
-		self.prediction = np.array(self.prediction).squeeze()
+		self.truth = np.array(self.truth)		
+		self.prediction = np.array(self.prediction)
 
 	def plot_error(self, x, y, title = None, x_label = None, y_label = None):
 		fig,ax = plt.subplots()

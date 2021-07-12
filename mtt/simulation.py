@@ -55,7 +55,7 @@ class Simulation:
 		"""
 
 		#we generate the process data and the measure data and assign it to the instances of processes and measures
-		process = self.generator.process(time_steps, self.rng)
+		process = self.generator.process(time_steps-1, self.rng)
 		self.processes[len(self.processes.keys())] = process
 		self.measures[len(self.measures.keys())], self.measure_colors[len(self.measure_colors.keys())] = self.generator.measure(process, self.rng)
 
@@ -105,11 +105,12 @@ class Simulation:
 
 		# Set up lists to store objects for later plotting
 		ellipses = []
-		first = x0[0][0:2,0]
-		first.shape = (2,1)
-		output = [{0: first}]
+		# first = x0[0][0:2,0]
+		# first.shape = (2,1)
+		output = []
+		# {0: first}
 		# Iterate through each time step for which we have measurements
-		for i in range(len(self.processes[index])-1):
+		for i in range(len(self.processes[index])):
 
 			# Obtain a set of guesses for the current location of the object given the measurements
 			# Note this will need to change later to incorporate multiple objects
