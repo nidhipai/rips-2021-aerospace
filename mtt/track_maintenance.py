@@ -9,7 +9,7 @@ class TrackMaintenance:
     """
     Updates the status for tracks and creates new tracks as necessary
     """
-    def __init__(self, kfilter, generator_params, num_init, num_init_frames, num_delete, predict_params=None):
+    def __init__(self, kfilter, filter_params, num_init, num_init_frames, num_delete):
         """
         Sets the rules for how tracks are created and deleted
         Args:
@@ -20,14 +20,12 @@ class TrackMaintenance:
             num_delete: number of consecutive missing observations need to delete track
         """
         self.kfilter = kfilter
+        self.filter_params = filter_params
 
         # ex) if num_init = 3 and num_init_frames = 4, then 3 obs in 4 timesteps will confirm the object
         self.num_init = num_init
         self.num_init_frames = num_init_frames
         self.num_delete = num_delete
-
-        # pull the filter params from filter_params first, then if they aren't specificed, ask generator_params
-        self.filter_params = generator_params.update(predict_params) if predict_params is not None else generator_params
 
     def predict(self, tracks = None, measurements=None, time=0):
         """
