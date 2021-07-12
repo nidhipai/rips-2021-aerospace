@@ -16,6 +16,7 @@ class MTTTracker:
 
         Args:
             methods: list of objects implementing predict that process the data
+            MUST have data association, track maintenance, and filter predict
         """
         self.methods = methods
         self.tracks = dict()  # dictionary of all the tracks
@@ -31,7 +32,8 @@ class MTTTracker:
 
         # first add measurements to all tracks, and then we'll narrow it down
         for key, track in self.tracks.items():
-            track.add_all_possible_observations(measurements)
+            if track.stage != 2:
+                track.add_all_possible_observations(measurements)
 
         # Apply each method to the set of tracks
         for method in self.methods:
