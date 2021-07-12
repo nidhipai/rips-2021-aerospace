@@ -5,6 +5,7 @@ from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
 import numpy as np
 import mtt
+from copy import copy
 
 global sim
 
@@ -32,7 +33,6 @@ gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa
 sim = mtt.Simulation(gen, mtt.KalmanFilter, mtt.Tracker)
 
 sim.generate(ts)
-sim.predict()
 
 processes = sim.clean_process(sim.processes[0])
 colors = sim.clean_measure(sim.measure_colors[0])
@@ -54,6 +54,15 @@ for i, trajectory in enumerate(trajectories):
     fig.add_trace(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines+markers',
                              name='object {} trajectory'.format(i)))
 
+for ellipse in sim.ellipses[0]:
+    ellipse_path = ellipse.get_path()._vertices.T
+    fig.add_trace(go.Scatter(x=ellipse_path[0], y=ellipse_path[1], line=dict(width=1, dash='dot')))
+
+fig.add_shape(type="circle",
+    xref="x", yref="y",
+    x0=1, y0=1, x1=3, y1=3,
+    line_color="LightSeaGreen",
+)
 
 app.layout = html.Div(children=[
     html.H1(children='2D Object Trajectory Tracking'),
@@ -284,7 +293,7 @@ def update(n_clicks, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, Q
     sim.clear()
     sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale)
     sim.generate(ts)
-    sim.predict(x0=x0_filter_parse, Q=Q_parse, R=R_parse, P=P_parse)
+    sim.predict(ellipse_mode="plotly",x0=x0_filter_parse, Q=Q_parse, R=R_parse, P=P_parse)
 
     processes = sim.clean_process(sim.processes[0])
     colors = sim.clean_measure(sim.measure_colors[0])
@@ -304,6 +313,17 @@ def update(n_clicks, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, Q
     for i, trajectory in enumerate(trajectories):
         fig.add_trace(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines+markers',
                                  name='object {} trajectory'.format(i)))
+
+    #BUG: All ellipses are the same angle...
+    xs = []
+    ys = []
+    for ellipse in sim.ellipses[0]:
+        xs.append(ellipse[0])
+        xs.append(None)
+        ys.append(ellipse[1])
+        ys.append(None)
+
+    fig.add_trace(go.Scatter(x=xs, y=ys, fill="toself"))
 
     return fig
 
