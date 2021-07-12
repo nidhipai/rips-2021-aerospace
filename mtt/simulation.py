@@ -28,18 +28,23 @@ plt.rc('font', **font)
 
 # The Simulation class runs the data generator and the kalman filter to simulate an object in 2D.
 class Simulation:
-	def __init__(self, generator, kFilter, tracker, seed_value=1):
+	def __init__(self, generator, kFilter, tracker, methods=None, predict_params=None, seed_value=1):
 		"""
 		Constructs a simulation environment for one-line plotting data
-
-		:param generator: Data Generator object
-		:param kFilter: function for predicting the trajectory
+		Args:
+			generator: Data Generator object
+			kFilter: function for predicting the trajectory
+			tracker: constructor for a tracker object
+			predict_params: params for the kalman filter that should override those from the generator - not necessary
+				if methods is not None
+			methods: a list of objects that the pipeline uses
+			seed_value: random seed value to get the same trajectories each time
 		"""
+
 		self.rng = np.random.default_rng(seed_value)
 		self.generator = generator
 		self.kFilter = kFilter
 		self.tracker = tracker
-		#self.kFilter_model = None
 		self.tracker_model = None
 		self.n = generator.n
 		self.processes = dict()
@@ -48,6 +53,16 @@ class Simulation:
 		self.trajectories = dict()
 		self.descs = dict()
 		self.ellipses = dict()
+		if methods is not None:
+			self.methods = methods
+		else: # for backwards compatibility
+			gen_params = self.generator.params
+
+			# distance_gating = DistanceGating(10, method="euclidean")
+			data_association = DataAssociation(method="euclidean")
+			track_maintenance = TrackMaintenance(KalmanFilter, gen_params, 3, 4, 7, predict_params=predict_params)
+			filter_predict = FilterPredict()
+			self.methods = [data_association, track_maintenance, filter_predict]
 
 	# the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
 	# data generator object to create the dictionary of processes and measures.
@@ -63,10 +78,7 @@ class Simulation:
 		#we generate the process data and the measure data and assign it to the instances of processes and measures
 		process = self.generator.process(time_steps, self.rng)
 		self.processes[len(self.processes.keys())] = process
-		#print("line 66: " + str(self.generator.measure(process, self.rng)))
 		self.measures[len(self.measures.keys())], self.measure_colors[len(self.measure_colors.keys())] = self.generator.measure(process, self.rng)
-		#print("line 68: " + str(self.measures))
-		#print("line 69: " + str(self.measures))
 		# NOTE: This is hardcoded to support only one single object for now
 		self.descs[len(self.descs.keys())] = {
 			"Tangent Variance": str(self.generator.Q[2, 2]),
@@ -89,52 +101,21 @@ class Simulation:
 			u (ndarray): the input control vector
 		"""
 
-
 		if index is None:
 			index = len(self.processes.keys()) - 1
 		output = np.empty((self.n, 1))
 
-		kalman_params = dict()
-
-		# if any necessary variables for the filter have not been defined, assume we know them exactly
-		#kalman_params['x_hat0'] = x0 if x0 is not None else self.generator.xt0
-		kalman_params['Q'] = Q if Q is not None else self.generator.Q
-		kalman_params['R'] = R if R is not None else self.generator.R
-		kalman_params['H'] = H if H is not None else self.generator.H
-
-		# Extract the necessary functions and jacobians from the DataGenerator
-		kalman_params['f'] = self.generator.process_function
-		kalman_params['A'] = self.generator.process_jacobian
-		kalman_params['h'] = self.generator.measurement_function
-		kalman_params['W'] = self.generator.W
-
-		# Set up the filter with the desired parameters to test
-		# TODO - move this to being parameters passed into predict
-		distance_gating = DistanceGating(1, method="euclidean")
-		data_association = DataAssociation(method="euclidean")
-		track_maintenance = TrackMaintenance(KalmanFilter, kalman_params, 3, 4, 5)
-		filter_predict = FilterPredict()
-
-		self.tracker_model = self.tracker([distance_gating, data_association, track_maintenance, filter_predict])
+		self.tracker_model = self.tracker(self.methods)
 
 		# Set up lists to store objects for later plotting
 		ellipses = []
-		# first = kalman_params['x_hat0'][0][0:2,0]
-		# first.shape = (2,1)
-		# output = [{0: first}]
+
 		# Iterate through each time step for which we have measurements
-		print("line 131 : " + str(self.measures[index]))
 		for i in range(len(self.processes[index])-1):
-
 			# Obtain a set of guesses for the current location of the object given the measurements
-			# Note this will need to change later to incorporate multiple objects
-
 			self.tracker_model.predict(deepcopy(self.measures[index][i]))
 
-			#output.append(self.tracker_model.get_current_guess()) - now we're just getting it in the end instead
-			#output = self.tracker_model.get_trajectories()
-
-			# Store the ellipse for later plottingS
+			# Store the ellipse for later plotting BRING THIS BACK
 			# cov_ = self.tracker_model.kFilter_model.P[:2, :2]
 			# mean_ = (self.tracker_model.kFilter_model.x_hat[0, 0], self.tracker_model.kFilter_model.x_hat[1, 0])
 			# ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
@@ -145,6 +126,12 @@ class Simulation:
 
 		self.ellipses[len(self.ellipses.keys())] = ellipses
 		#only updating the last one
+
+		for method in self.methods:
+			if isinstance(method, TrackMaintenance):
+				kalman_params = method.filter_params
+				break
+		# this code will throw an error if there's no track maintenance object in the pipeline
 
 		self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
 			"Q": str(kalman_params['Q']),
@@ -288,11 +275,8 @@ class Simulation:
 			process = self.clean_process(process)
 
 		if len(self.measures) > 0:
-			print("meausres beefore cleaning " + str(self.measures))
 			measure = self.measures[index]
-			#print("meausres beefore cleaning " + str(measure))
 			measure = self.clean_measure(measure)
-		#print("measures line 288: " + str(measure))
 
 		if len(self.trajectories) > 0:
 			output = self.trajectories[index]
@@ -324,7 +308,7 @@ class Simulation:
 			# Add each object's process to the plot
 			if len(self.processes) > 0:
 				for i, obj in enumerate(process):
-					line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=8, marker=',')
+					line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=4, marker=',')
 					lines.append(line1)
 					labs.append("Obj" + str(i) + " Process")
 
@@ -338,7 +322,7 @@ class Simulation:
 			# Add the predicted trajectories to the plot
 			if len(self.trajectories) > 0:
 				for i, out in enumerate(output):
-					line3, = ax.plot(out[0], out[1], lw=0.4, markersize=8, marker=',')
+					line3, = ax.plot(out[0], out[1], lw=0.4, markersize=10, marker=',')
 					lines.append(line3)
 					labs.append("Obj" + str(i) + " Filter")
 
@@ -360,9 +344,9 @@ class Simulation:
 			ax.axis('square')
 
 			# Add the velocity vectors to the plot
-			for i, obj in enumerate(process):
-				a = 0.4
-				ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
+			# for i, obj in enumerate(process):
+			# 	a = 0.4
+			# 	ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
 
 			#Below is an old method, if we want to include the full Q and R matrix
 			#plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
