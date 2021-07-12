@@ -55,6 +55,16 @@ class MultiObjSimple(DataGenerator):
 		self.nu = nu  # measurement noise variance
 		self.dt = dt
 
+		self.gen_params = {
+			'Q': self.Q,
+			'R': self.R,
+			'H': self.H,
+			'f': self.process_function,
+			'A': self.process_jacobian,
+			'W': self.W,
+			'h': self.measurement_function
+		}
+
 	def process_step(self, xt_prevs, rng):
 		"""
 		Generate the next process state from the previous
@@ -64,8 +74,7 @@ class MultiObjSimple(DataGenerator):
 			rng (numpy.Generator): numpy rng object, used to generate random variables
 
 		Returns:
-			output (dict of ndarray): Each value is a state vector of next step in the process, with each
-			key a unique identifying integer
+			output (dict of ndarray): Each value is a state vector of next step in the process, with each key a unique identifying integer
 		"""
 		output = dict()
 		# Iterate through each state in the list of previous object states
@@ -210,5 +219,4 @@ class MultiObjSimple(DataGenerator):
 		clone = copy(self)
 		for arg in kwargs.items():
 			setattr(clone, arg[0], arg[1])
-		return MultiObjSimple(clone.xt0, clone.dt, clone.ep_tangent, clone.ep_normal, clone.nu,
-		                      clone.miss_p, clone.lam, clone.fa_scale)
+		return MultiObjSimple(clone.xt0, clone.dt, clone.ep_tangent, clone.ep_normal, clone.nu, clone.miss_p)
