@@ -10,7 +10,7 @@ class DistanceGating:
         """
         Choose what kind of distance metric and also the error thresold
         Args:
-            error_threshold: distance if method="Euclidean", p-value if method="Mahalanobis" higher means larger gate so it's easier to be under the cutoff
+            error_threshold: distance if method="euclidean", p-value if method="mahalanobis" higher means larger gate so it's easier to be under the cutoff
             method: metric of measuring distance - see Distances class
         """
         self.error_threshold = error_threshold
