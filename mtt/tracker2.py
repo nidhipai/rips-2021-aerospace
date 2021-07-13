@@ -21,6 +21,7 @@ class MTTTracker:
         self.methods = methods
         self.tracks = dict()  # dictionary of all the tracks
         self.time = 0  # a counter for the timestep
+        self.false_alarms = dict()  # each key is a timestep, the value is an array of false alarms for that timestep
 
     def predict(self, measurements):
         """
@@ -37,7 +38,7 @@ class MTTTracker:
 
         # Apply each method to the set of tracks
         for method in self.methods:
-            method.predict(tracks=self.tracks, measurements=measurements, time=self.time)
+            method.predict(tracks=self.tracks, measurements=measurements, time=self.time, false_alarms=self.false_alarms)
 
         self.time += 1
         self.clear_possible_observations()  # reset this for the next round

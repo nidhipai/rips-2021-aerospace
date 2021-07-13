@@ -20,7 +20,7 @@ class DataAssociation:
 		}
 		self.distance_function = switcher.get(method)
 
-	def predict(self, tracks=None, measurements=None, time=0):
+	def predict(self, tracks=None, measurements=None, time=0, false_alarms=None):
 		"""
 		Main method of the DataAssociation that performs the matching
 		Args:
