@@ -43,8 +43,8 @@ class KalmanFilter:
         if P is None:
         	self.P = np.eye(self.n) # posteriori estimate error covariance initialized to the identity matrix
         else:
-        	self.P = P
-        self.P_minus = np.eye(self.n) # priori estimate error coviariance matrix initialized to the identity matrix
+            self.P = P # posteriori estimate error covariance initialized to the identity matrix
+        self.P_minus = self.P # priori estimate error coviariance matrix initialized to the identity matrix
         self.x_hat = x_hat0  # set a priori estimate to initial guess
         self.x_hat_minus = x_hat0  # set a posteriori estimate to initial guess
         self.error_array = [] # array to store our innovations

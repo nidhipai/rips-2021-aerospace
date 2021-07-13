@@ -43,13 +43,16 @@ class MultiObjSimple(DataGenerator):
 			raise Exception("Length of initial state vector does not equal 4")
 
 		# We set the process noise covariance matrix to
-		self.Q = np.diag(np.append(np.zeros(self.dim), np.append(np.array([ep_tangent]), np.array(ep_normal))))
-		self.R = np.eye(self.dim) * nu
+		self.Q = np.diag(np.append(np.zeros(self.dim), np.append(np.array(ep_tangent), np.array(ep_normal))))
+		self.R = np.eye(self.n) * nu
+		#self.R = np.diag(np.append(np.zeros(self.dim), np.append(np.array(nu), np.array(nu))))
 
 		super().__init__(xt0, dt, self.Q, self.R)
 
 		# Jacobian matrices for the h function and the f function.
-		self.H = np.append(np.eye(self.dim), np.zeros((self.dim, self.dim)), axis=1)
+
+		#self.H = np.append(np.eye(self.dim), np.zeros((self.dim, self.dim)), axis=1) # Position-only jacobian
+		self.H = np.eye(self.n)
 		self.A = np.append(np.append(np.eye(self.dim), np.eye(self.dim) * self.dt, axis=1),
 						   np.append(np.zeros((self.dim, self.dim)), np.eye(self.dim), axis=1), axis=0)
 		self.nu = nu  # measurement noise variance
@@ -92,11 +95,11 @@ class MultiObjSimple(DataGenerator):
 		for xt in xts.values():
 			# Calculate whether the measurement is missed
 			if np.random.rand() > self.miss_p:
-				output.append(self.H @ xt + self.measure_noise(rng))
+				output.append(self.H @ (xt + self.measure_noise(rng)))
 				colors.append("black")
 
 			for i in range(rng.poisson(self.lam)):
-				output.append(self.H @ xt + self.measure_noise(rng) * self.fa_scale)
+				output.append(self.H @ (xt + self.measure_noise(rng) * self.fa_scale))
 				colors.append("red")
 
 		return output, colors
@@ -111,7 +114,9 @@ class MultiObjSimple(DataGenerator):
 		Returns:
 			ndarray: Random changes in state vector
 		"""
-		return rng.normal(scale=self.nu, size=(self.dim, 1))
+		output = rng.normal(0, self.nu, self.n)
+		output.shape = (4,1)
+		return output
 
 	def process_noise(self, xt, rng):
 
@@ -147,7 +152,7 @@ class MultiObjSimple(DataGenerator):
 		c = np.cos(ang)
 		s = np.sin(ang)
 
-		return np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, c, -s], [0, 0, s, c]])
+		return np.array([[c, -s, 0, 0], [s, c, 0, 0], [0, 0, c, -s], [0, 0, s, c]])
 
 	def process_function(self, xt, u):
 		"""
