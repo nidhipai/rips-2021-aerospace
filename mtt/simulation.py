@@ -166,14 +166,12 @@ class Simulation:
 		process = self.clean_process(process)[0]  # get first two position coordinates
 		traj = self.trajectories[index]
 		traj = self.clean_trajectory(traj)[0]
-		#print("PROCESS", process[:2, :])
-		#print("TRAJ", traj)
-		#print("PROCESS", len(process[:2, :][0]))
-		#print("TRAJ", len(traj[0]))
 		center_errors = (np.sqrt(np.power(process[:2, :][0] - traj[0], 2) + np.power(process[:2, :][1] - traj[1], 2)))
+		center_errors = center_errors[20:]
 		#center_errors = SingleTargetEvaluation.center_error(process[:2, :], traj)
 		self.RMSE = np.sqrt(np.dot(center_errors, center_errors) / len(center_errors))
-
+		#print(self.RMSE)
+		self.AME = sum(center_errors) / len(center_errors)
 
 	def experiment(self, ts, test="data", **kwargs):
 		"""
@@ -416,8 +414,8 @@ class Simulation:
 			filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
 			covariance = "P = " + self.descs[0]["P"]
 
-			caption = true_noises + "\n" + filter_noises + "\n" + measurement_noise + "\n" + filter_measurement_noise + "\n" + true_state + "\n" + filter_state + "\n" + covariance + "\n" + "RMSE of plot = " + str(self.RMSE)
-			if tail == 0:
+			caption = true_noises + "\n" + filter_noises + "\n" + measurement_noise + "\n" + filter_measurement_noise + "\n" + true_state + "\n" + filter_state + "\n" + covariance + "\n" + "RMSE of plot = " + str(self.RMSE) + "\nAME of plot = " + str(self.AME)
+			if tail >= 0:
 				fig.text(1, 0.5, caption, ha='center', fontsize = 14)
 			#else:
 				#print(caption)
