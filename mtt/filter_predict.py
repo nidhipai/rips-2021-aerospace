@@ -21,3 +21,4 @@ class FilterPredict:
                 # measurement could be none but that's cool
                 track.filter_model.predict(measurement=track.measurements[time])
                 track.predictions[time] = track.get_current_guess()
+            # don't need to take care of dead objects here beause it's taken care of in get_traj in tracker2

@@ -6,7 +6,6 @@ Simulation
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy, deepcopy
-# plt.rcParams['text.usetex'] = True
 from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
 
@@ -76,7 +75,7 @@ class Simulation:
 		"""
 
 		#we generate the process data and the measure data and assign it to the instances of processes and measures
-		process = self.generator.process(time_steps, self.rng)
+		process = self.generator.process(time_steps - 1, self.rng)
 		self.processes[len(self.processes.keys())] = process
 		self.measures[len(self.measures.keys())], self.measure_colors[len(self.measure_colors.keys())] = self.generator.measure(process, self.rng)
 
@@ -279,8 +278,9 @@ class Simulation:
 			process = self.clean_process(process)
 
 		if len(self.measures) > 0:
-			measure = self.measures[index]
-			measure = self.clean_measure(measure)
+			#measure = self.measures[index]
+			sorted_measures = self.tracker_model.get_sorted_measurements() #THIS ONLY PULLS LAST ONE - CHANGE
+			measure = self.clean_measure2(sorted_measures) #THIS IS CHANGED TO 2
 
 		if len(self.trajectories) > 0:
 			output = self.trajectories[index]
@@ -312,22 +312,29 @@ class Simulation:
 			# Add each object's process to the plot
 			if len(self.processes) > 0:
 				for i, obj in enumerate(process):
-					line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=5, marker=',')
+					line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=4, marker=',')
 					lines.append(line1)
 					labs.append("Obj" + str(i) + " Process")
 
 			# Add the measures to the plot
-			if measure.size != 0:
-				line2 = ax.scatter(measure[0], measure[1], c=colors, s=8, marker='x')
-				lines.append(line2)
-				labs.append("Measure")
+			# the colors of a measurement correspond to which track the filter thinks it belongs to
+			if len(measure) != 0:
+				for key, value in measure.items():
+					linex = ax.scatter(value[0], value[1], s=8, marker='x')
+					lines.append(linex)
+					labs.append("Obj" + str(key) + " Associated Measure")
+
+				# line2 = ax.scatter(measure[0], measure[1], c=colors, s=8, marker='x')
+				# lines.append(line2)
+				# labs.append("Measure")
 
 			# Add the predicted trajectories to the plot
 			if len(self.trajectories) > 0:
 				for i, out in enumerate(output):
-					line3, = ax.plot(out[0], out[1], lw=0.4, markersize=4, marker=',')
-					lines.append(line3)
-					labs.append("Obj" + str(i) + " Filter")
+					if out is not None:
+						line3, = ax.plot(out[0], out[1], lw=0.4, markersize=7, marker=',')
+						lines.append(line3)
+						labs.append("Obj" + str(i) + " Filter")
 
 
 			# Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
@@ -348,7 +355,7 @@ class Simulation:
 
 			# Add the velocity vectors to the plot
 			for i, obj in enumerate(process):
-				a = 0.4
+				a = 0.2
 				ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
 
 			#Below is an old method, if we want to include the full Q and R matrix
@@ -499,13 +506,30 @@ class Simulation:
 		representing the position at each time step for plotting
 		"""
 		output = list(repeat(np.empty((2, 1)), max([key for step in trajectories for key in step.keys()]) + 1))
-		for step in trajectories:
-			for key, value in step.items():
-				output[key] = np.append(output[key], value, axis=1)
+		for step in trajectories: # iterate over each of the timesteps
+			for key, value in step.items(): # each timestep is a dict of object predictions
+				output[key] = np.append(output[key], value, axis=1) if value is not None else None
 		# Remove the filler values from the start of each array
 		# and only keep the values representing position
 		for i, arr in enumerate(output):
-			output[i] = arr[:, 1:]
+			output[i] = arr[:, 1:] if output[i] is not None else None
+		return output
+
+	@staticmethod
+	def clean_measure2(measures):
+		"""
+		Converts a dict of key: track, value: measures -> the measures array becomes a tuple of two arrays
+		"""
+		output = dict()
+		for key, track in measures.items():
+			track_x = []
+			track_y = []
+			for measure in track:
+				x = None if measure is None else measure[0][0]
+				y = None if measure is None else measure[1][0]
+				track_x.append(x)
+				track_y.append(y)
+			output[key] = [track_x, track_y]
 		return output
 
 
