@@ -44,6 +44,7 @@ class Simulation:
 		self.measures = dict()
 		self.measure_colors = dict()
 		self.trajectories = dict()
+		self.signed_errors = dict()
 		self.descs = dict()
 		self.ellipses = dict()
 
@@ -60,7 +61,7 @@ class Simulation:
 		"""
 
 		#we generate the process data and the measure data and assign it to the instances of processes and measures
-		process = self.generator.process(time_steps, self.rng)
+		process = self.generator.process(time_steps-1, self.rng)
 		self.processes[len(self.processes.keys())] = process
 		self.measures[len(self.measures.keys())], self.measure_colors[len(self.measure_colors.keys())] = self.generator.measure(process, self.rng)
 
@@ -75,7 +76,7 @@ class Simulation:
 		}
 
 	#We use the kalman filter and the generated data to predict the trajectory of the simulated object
-	def predict(self, index=None, x0=None, P = None, Q=None, R=None, H=None, u=None, zoom_factor = 1):
+	def predict(self, ellipse_mode="mpl", index=None, x0=None, Q=None, R=None, P=None, H=None, u=None):
 		"""
 		The predict function uses Tracker to create an estimated trajectory for our simulated object.
 
@@ -116,22 +117,34 @@ class Simulation:
 
 		# Set up lists to store objects for later plotting
 		ellipses = []
-		first = x0[0][0:2,0]
-		first.shape = (2,1)
-		output = [{0: first}]
+		# first = x0[0][0:2,0]
+		# first.shape = (2,1)
+		output = []
+		self.signed_errors[index] = []
+		# {0: first}
 		# Iterate through each time step for which we have measurements
-		for i in range(len(self.processes[index])-1):
+		for i in range(len(self.processes[index])):
 
 			# Obtain a set of guesses for the current location of the object given the measurements
 			# Note this will need to change later to incorporate multiple objects
 
 			self.tracker_model.predict(self.measures[index][i])
-			output.append(self.tracker_model.get_current_guess())
+			next_guess = self.tracker_model.get_current_guess()
+			output.append(next_guess)
+
+			# Calculate the along-track and cross track error using rotation matrix
+			for j, value in next_guess.items():
+				true_val = self.processes[index][i][j]
+				step_error = W(true_val)[2:4, 2:4] @ (true_val[0:2] - next_guess[0])
+				self.signed_errors[index].append(step_error)
 
 			# Store the ellipse for later plottingS
 			cov_ = self.tracker_model.kFilter_model.P[:2, :2]
 			mean_ = (self.tracker_model.kFilter_model.x_hat[0, 0], self.tracker_model.kFilter_model.x_hat[1, 0])
-			ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_, zoom_factor = zoom_factor))
+			if ellipse_mode == "plotly":
+				ellipses.append(self.cov_ellipse_plotly(mean=mean_, cov=cov_))
+			else:
+				ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
 
 		# Store our output as an experiment
 		self.trajectories[len(self.trajectories.keys())] = output
@@ -159,6 +172,7 @@ class Simulation:
 			"P": str(P[0][0])
 		}}
 
+		# MERGE stuff
 		index = len(self.processes.keys()) - 1
 		# THIS CURRENTLY ONLY HANDLES THE FIRST OBJECT
 		# NEED TO UPDATE
@@ -172,6 +186,8 @@ class Simulation:
 		self.RMSE = np.sqrt(np.dot(center_errors, center_errors) / len(center_errors))
 		#print(self.RMSE)
 		self.AME = sum(center_errors) / len(center_errors)
+
+		self.signed_errors[index] = np.array(self.signed_errors[index]).squeeze().T
 
 	def experiment(self, ts, test="data", **kwargs):
 		"""
@@ -532,6 +548,28 @@ class Simulation:
 		ellipse = Ellipse(xy=mean, width=zoom_factor*width, height=zoom_factor*height, angle=ang, edgecolor='g', fc='none', lw=1)
 		return ellipse
 
+	def cov_ellipse_plotly(self, mean, cov, zoom_factor=1, p=0.95):
+
+		if type(mean) != np.ndarray:
+			mean = np.array(mean)
+		mean.shape = (2,1)
+		N = 100
+		s = -2 * np.log(1 - p)
+		a = s * cov
+		a = a.round(decimals=16)
+		# w and v give the eigenvalues and the eigenvectors of the covariance matrix scaled by s
+		w, v = np.linalg.eig(a)
+		ang = np.arctan2(v[0, 0], v[1, 0])
+		width = w[0]
+		height = w[1]
+
+		# ellipse parameterization with respect to a system of axes of directions a1, a2
+		t = np.linspace(0, 2 * np.pi, N)
+		xs = width*np.cos(t)
+		ys = height*np.sin(t)
+		R = np.array([[np.cos(ang), -np.sin(ang)], [np.sin(ang), np.cos(ang)]])
+		return np.dot(R, [xs, ys]) + mean[:,-1][:, np.newaxis]
+
 	@staticmethod
 	def clean_process(processes):
 		"""
@@ -570,6 +608,14 @@ class Simulation:
 			output[i] = arr[:, 1:]
 		return output
 
+	def plot_mhlb(self):
+		x_vals = np.array(range(len(self.tracker_model.get_dists())))
+		fig,ax = plt.subplots()
+		ax.plot(x_vals, self.tracker_model.get_dists(), color = "red")
+		ax.set_title("Mahalanobis distances over time")
+		ax.set_xlabel("time steps")
+		ax.set_ylabel("Mahalanobis distance")
+		plt.show()
 
 
 '''The same as the cov_ellipse function, but draws multiple p-values depending on the passed on list. One can also 
