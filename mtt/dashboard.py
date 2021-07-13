@@ -48,6 +48,7 @@ errors = sim.signed_errors[0]
 fig = go.Figure()
 err = go.Figure()
 
+
 for i, process in enumerate(processes):
     #fig.add_trace(ff.create_quiver(process[0], process[1], process[2], process[3], name='Object {} Velocity'.format(i)))
     fig.add_trace(go.Scatter(x=process[0], y=process[1], mode='lines', name='Object {} Position'.format(i)))
@@ -62,10 +63,16 @@ for i, trajectory in enumerate(trajectories):
                              name='Object {} Trajectory'.format(i)))
 
 err.add_trace(go.Scatter(y=errors[0], x=list(range(errors[0].size)), mode='lines',
-                         name="Cross-track Error", marker=dict(color="blue")))
+                         name="Cross-track Position Error"))
 
 err.add_trace(go.Scatter(y=errors[1], x=list(range(errors[1].size)), mode='lines',
-                         name="Along-track Error", marker=dict(color="orange")))
+                         name="Along-track Position Error"))
+
+err.add_trace(go.Scatter(y=errors[2], x=list(range(errors[2].size)), mode='lines',
+                         name="Cross-track Velocity Error"))
+
+err.add_trace(go.Scatter(y=errors[3], x=list(range(errors[3].size)), mode='lines',
+                         name="Along-track Velocity Error"))
 
 xs = []
 ys = []
@@ -372,6 +379,11 @@ def update(n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_sca
 
     err.add_trace(go.Scatter(y=errors[1], x=list(range(errors[1].size)), mode='lines',
                              name="Along-track Error", marker=dict(color="orange")))
+    err.add_trace(go.Scatter(y=errors[2], x=list(range(errors[2].size)), mode='lines',
+                             name="Cross-track Velocity Error"))
+
+    err.add_trace(go.Scatter(y=errors[3], x=list(range(errors[3].size)), mode='lines',
+                             name="Along-track Velocity Error"))
 
     return fig, err
 
