@@ -14,10 +14,11 @@ class TrackMaintenance:
         Sets the rules for how tracks are created and deleted
         Args:
             kfilter: constructor for the filter
-            filter_params: dictionary of parameters for the filter
-            num_init: number of observations needed to confirm object in num_init_frames timesteps
+            generator_params: dictionary of parameters for the filter, from the generator
+            num_init: number of observations needed to confirm object in num_init_frames timesteps, <= num_init_frames
             num_init_frames: number of frames in which num_init observations will confirm an object
             num_delete: number of consecutive missing observations need to delete track
+            predict_params: dict of params that should be used for the filter, overrides generator params
         """
         self.kfilter = kfilter
 
@@ -50,9 +51,10 @@ class TrackMaintenance:
                 if appearances >= self.num_init:
                     track.stage = 1
             # check what we need to in order to delete the object
-            elif list(track.measurements.values())[-1] is None:
+
+            if (track.stage == 0 or track.stage == 1) and list(track.measurements.values())[-1] is None:
                 last_delete_obs = list(track.measurements.values())[len(track.measurements) - self.num_delete:]
-                appearances = sum(x is not None for x in last_delete_obs)
-                if appearances >= self.num_delete:
-                    track.stage = 3
+                missing_observations = sum(x is None for x in last_delete_obs)
+                if missing_observations == self.num_delete:
+                    track.stage = 2
             # we don't currently bring objects back from the dead

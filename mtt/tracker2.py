@@ -58,6 +58,12 @@ class MTTTracker:
                     result[ts][j] = [[None], [None]]
         return result
 
+    def get_sorted_measurements(self):
+        measures = dict()
+        for i, track in self.tracks.items():
+            measures[i] = list(track.measurements.values())
+        return measures
+
     def clear_possible_observations(self):
         """
         Resets the list of possible observations for the timestep (for all the tracks)
