@@ -177,9 +177,9 @@ class Simulation:
 		#print("TRAJ", traj)
 		#print(center_errors)
 		#center_errors = SingleTargetEvaluation.center_error(process[:2, :], traj)
-		#self.RMSE = np.sqrt(np.dot(center_errors, center_errors) / len(center_errors))
+		self.RMSE = np.sqrt(np.dot(center_errors, center_errors) / len(center_errors))
 		#print(self.RMSE)
-		#self.AME = sum(center_errors) / len(center_errors)
+		self.AME = sum(center_errors) / len(center_errors)
 
 		self.signed_errors[index] = np.array(self.signed_errors[index]).squeeze().T
 
