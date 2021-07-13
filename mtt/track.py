@@ -9,7 +9,7 @@ import numpy as np
 class Track:
     """ Track object encapsulating the kalman filter, associated measurements, and predictions
     """
-    def __init__(self, kfilter, filter_params, init_measure, init_time):
+    def __init__(self, kfilter, filter_params, init_measure, init_time, init_velocity=np.array([[0], [0]])):
         """
         Creates a Track object
 
@@ -20,7 +20,7 @@ class Track:
             init_time: what timestep init_measure was recorded
         """
         # initial state for filter, uses intial measure and 0 velocity
-        initial_state = np.row_stack((init_measure, np.array([[0], [0]])))
+        initial_state = np.row_stack((init_measure, init_velocity))
         self.filter_model = kfilter(**filter_params, x_hat0=initial_state)  # instantiate a filter
         self.measurements = {init_time: init_measure}  # keys are timesteps, value may be none
         self.predictions = dict() # keys are timesteps, doesn't need to start at 0
