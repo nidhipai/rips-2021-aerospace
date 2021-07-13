@@ -9,7 +9,6 @@ class Tracker:
         Args:
             kFilter_model (KalmanFilter): A kalman filter to be used throughout.
         """
-
         self.kFilter_model = kFilter_model
 
         #Store the previous measures for future use
@@ -29,14 +28,14 @@ class Tracker:
 
         if len(measure_t) > 0:
             # Process the point using the filter
+            self.measures.append(measure_t)
             measure_t_new = self.remove_fas(measure_t)
-            self.measures.append(measure_t_new)
             self.kFilter_model.predict(measure_t_new, np.array(self.measures))
-            self.current_guess = {0: self.kFilter_model.get_current_guess()}
+            self.current_guess = [self.kFilter_model.get_current_guess()[0:2]]
         else:
             # If we don't have any measurements we need to guess for each object
             self.kFilter_model.predict(None, np.array(self.measures))
-            self.current_guess = {0: self.kFilter_model.get_current_guess()}
+            self.current_guess = [self.kFilter_model.get_current_guess()[0:2]]
 
     def get_current_guess(self):
         """
@@ -46,6 +45,8 @@ class Tracker:
         return self.current_guess
 
     def remove_fas(self, measure_t):
+        """
+        """
         dists = []
         for point in measure_t:
             dists.append(self.mahalanobis_dist(point))
@@ -58,13 +59,12 @@ class Tracker:
         measurement is an outlier.
 
         Args:
-            y (ndarray): the current measurement state vector
+            y (ndarray): the current measurement.
 
         Returns:
             float: the calculated mahalanobis distance.
         """
-
-        innovation = y - self.kFilter_model.h(self.kFilter_model.x_hat_minus)
-        self.kFilter_model.error_array.append(innovation)
-        K = self.kFilter_model.H@self.kFilter_model.P_minus@self.kFilter_model.H.T + self.kFilter_model.R
-        return np.sqrt(innovation.T @ np.linalg.inv(K) @ innovation)
+        error = y - self.kFilter_model.h(self.kFilter_model.x_hat_minus)
+        self.kFilter_model.error_array.append(error)
+        # test = self.H@self.P_minus@self.H.T + self.R
+        return np.sqrt(error.T @ np.linalg.inv(self.kFilter_model.R) @ error)

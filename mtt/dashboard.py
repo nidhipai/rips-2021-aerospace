@@ -93,7 +93,6 @@ app.layout = html.Div(children=[
     '''),
 
     html.Button('Run Simulation', id='run', n_clicks=0),
-
     dcc.Checklist(id='check-options',
         options=[
             {'label': 'Process', 'value': 'process'},

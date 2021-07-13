@@ -5,10 +5,16 @@ Simulation
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from copy import copy
-# plt.rcParams['text.usetex'] = True
+from copy import copy, deepcopy
 from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
+
+from .gating import DistanceGating
+from .data_association import DataAssociation
+from .kalmanfilter2 import KalmanFilter
+from .track_maintenance import TrackMaintenance
+from .filter_predict import FilterPredict
+
 
 from mpl_toolkits import mplot3d
 from matplotlib.patches import Ellipse
@@ -21,18 +27,23 @@ plt.rc('font', **font)
 
 # The Simulation class runs the data generator and the kalman filter to simulate an object in 2D.
 class Simulation:
-	def __init__(self, generator, kFilter, tracker, seed_value=1):
+	def __init__(self, generator, kFilter, tracker, methods=None, predict_params=None, seed_value=1):
 		"""
 		Constructs a simulation environment for one-line plotting data
-
-		:param generator: Data Generator object
-		:param kFilter: function for predicting the trajectory
+		Args:
+			generator: Data Generator object
+			kFilter: function for predicting the trajectory
+			tracker: constructor for a tracker object
+			predict_params: params for the kalman filter that should override those from the generator - not necessary
+				if methods is not None
+			methods: a list of objects that the pipeline uses
+			seed_value: random seed value to get the same trajectories each time
 		"""
+
 		self.rng = np.random.default_rng(seed_value)
 		self.generator = generator
 		self.kFilter = kFilter
 		self.tracker = tracker
-		self.kFilter_model = None
 		self.tracker_model = None
 		self.n = generator.n
 		self.processes = dict()
@@ -42,7 +53,18 @@ class Simulation:
 		self.signed_errors = dict()
 		self.descs = dict()
 		self.ellipses = dict()
+		self.false_alarms = dict()
+		self.sorted_measurements = dict()
+		if methods is not None:
+			self.methods = methods
+		else: # for backwards compatibility
+			gen_params = self.generator.params
 
+			# distance_gating = DistanceGating(10, method="euclidean") Not strictly necessary
+			data_association = DataAssociation(method="euclidean")
+			track_maintenance = TrackMaintenance(KalmanFilter, gen_params, 3, 4, 7, predict_params=predict_params)
+			filter_predict = FilterPredict()
+			self.methods = [data_association, track_maintenance, filter_predict]
 
 	# the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
 	# data generator object to create the dictionary of processes and measures.
@@ -56,7 +78,7 @@ class Simulation:
 		"""
 
 		#we generate the process data and the measure data and assign it to the instances of processes and measures
-		process = self.generator.process(time_steps-1, self.rng)
+		process = self.generator.process(time_steps - 1, self.rng)
 		self.processes[len(self.processes.keys())] = process
 		self.measures[len(self.measures.keys())], self.measure_colors[len(self.measure_colors.keys())] = self.generator.measure(process, self.rng)
 
@@ -84,42 +106,18 @@ class Simulation:
 			u (ndarray): the input control vector
 		"""
 
-		output = np.empty((self.n, 1))
-		# if any necessary variables for the filter have not been defined, assume we know them exactly
-		if x0 is None:
-			x0 = self.generator.xt0
-		if Q is None:
-			Q = self.generator.Q
-		if R is None:
-			R = self.generator.R
-		if H is None:
-			H = self.generator.H
-		if P is None:
-			P = np.eye(4)
 		if index is None:
-			index = len(self.measures.keys()) - 1
-		#Extract the necessary functions and jacobians from the DataGenerator
-		f = self.generator.process_function
-		jac = self.generator.process_jacobian
-		h = self.generator.measurement_function
-		W = self.generator.W
+			index = len(self.processes.keys()) - 1
+		output = np.empty((self.n, 1))
 
-		# Set up the filter with the desired parameters to test
-		# NOTE: Currently hardcoded to be single target
-		self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, P, H=H, u=0)
-		self.tracker_model = self.tracker(self.kFilter_model)
+		self.tracker_model = self.tracker(self.methods)
 
-		# Set up lists to store objects for later plotting
-		ellipses = []
-		# first = x0[0][0:2,0]
-		# first.shape = (2,1)
-		output = []
 		self.signed_errors[index] = []
 		# {0: first}
 		# Iterate through each time step for which we have measurements
 		for i in range(len(self.processes[index])):
-
 			# Obtain a set of guesses for the current location of the object given the measurements
+			self.tracker_model.predict(deepcopy(self.measures[index][i]))
 			# Note this will need to change later to incorporate multiple objects
 
 			self.tracker_model.predict(self.measures[index][i])
@@ -132,28 +130,23 @@ class Simulation:
 				step_error = W(true_val) @ (true_val - next_guess[0])
 				self.signed_errors[index].append(step_error)
 
-			# Store the ellipse for later plottingS
-			cov_ = self.tracker_model.kFilter_model.P[2:4, 2:4]
-			mean_ = (self.tracker_model.kFilter_model.x_hat[0, 0], self.tracker_model.kFilter_model.x_hat[1, 0])
-			if ellipse_mode == "plotly":
-				ellipses.append(self.cov_ellipse_plotly(mean=mean_, cov=cov_))
-			else:
-				ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
-
 		# Store our output as an experiment
-		self.trajectories[len(self.trajectories.keys())] = output
+		self.trajectories[len(self.trajectories.keys())] = self.tracker_model.get_trajectories()
+		self.ellipses[len(self.ellipses.keys())] = self.tracker_model.get_ellipses()
+		self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.false_alarms
+		self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
 
-		# Store the error of the Kalman filter
-		err_arr = np.array(self.kFilter_model.error_array).squeeze()
-
-		self.ellipses[len(self.ellipses.keys())] = ellipses
-		#only updating the last one
+		for method in self.methods:
+			if isinstance(method, TrackMaintenance):
+				kalman_params = method.filter_params
+				break
+		# this code will throw an error if there's no track maintenance object in the pipeline
 
 		self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
-			"Q": str(self.kFilter_model.Q),
-			"R": str(self.kFilter_model.R),
-			"x0": str(self.kFilter_model.xt0[0, 0]),
-			"y0": str(self.kFilter_model.xt0[1, 0])
+			"Q": str(kalman_params['Q']),
+			"R": str(kalman_params['R']),
+			# "x0": str(self.new_kFilter_model.xt0[0, 0]),
+			# "y0": str(self.new_kFilter_model.xt0[1, 0])
 		}}
 
 		self.signed_errors[index] = np.array(self.signed_errors[index]).squeeze().T
@@ -295,8 +288,8 @@ class Simulation:
 			process = self.clean_process(process)
 
 		if len(self.measures) > 0:
-			measure = self.measures[index]
-			measure = self.clean_measure(measure)
+			sorted_measures = self.sorted_measurements
+			measure = self.clean_measure2(sorted_measures) #THIS IS CHANGED TO 2
 
 		if len(self.trajectories) > 0:
 			output = self.trajectories[index]
@@ -306,10 +299,15 @@ class Simulation:
 			colors = self.measure_colors[index]
 			colors = self.clean_measure(colors)
 
+		if len(self.false_alarms) > 0:
+			false_alarms = self.false_alarms[index]
+			false_alarms = self.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
+
 		# Select proper ellipses to plot
 		ellipses = None
 		if len(self.ellipses) > index:
 			ellipses = self.ellipses[index]
+			ellipses = self.clean_ellipses(ellipses)
 
 		# Modify the legend
 		legend_size = 14
@@ -328,23 +326,35 @@ class Simulation:
 			# Add each object's process to the plot
 			if len(self.processes) > 0:
 				for i, obj in enumerate(process):
-					line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=8, marker=',')
+					line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=4, marker=',')
 					lines.append(line1)
 					labs.append("Obj" + str(i) + " Process")
 
 			# Add the measures to the plot
-			if measure.size != 0:
-				line2 = ax.scatter(measure[0], measure[1], c=colors, s=8, marker='x')
-				lines.append(line2)
-				labs.append("Measure")
+			# the colors of a measurement correspond to which track the filter thinks it belongs to
+			if len(measure) != 0:
+				for key, value in measure.items():
+					linex = ax.scatter(value[0], value[1], s=8, marker='x')
+					lines.append(linex)
+					labs.append("Obj" + str(key) + " Associated Measure")
+
+				# line2 = ax.scatter(measure[0], measure[1], c=colors, s=8, marker='x')
+				# lines.append(line2)
+				# labs.append("Measure")
+
+			# plot what we think are false_alarms
+			if len(false_alarms) > 0:
+				line_fa = ax.scatter(false_alarms[0], false_alarms[1], s=8, marker='x')
+				lines.append(line_fa)
+				labs.append("False Alarms from Tracker")
 
 			# Add the predicted trajectories to the plot
 			if len(self.trajectories) > 0:
 				for i, out in enumerate(output):
-					line3, = ax.plot(out[0], out[1], lw=0.4, markersize=8, marker=',')
-					lines.append(line3)
-					labs.append("Obj" + str(i) + " Filter")
-
+					if out is not None:
+						line3, = ax.plot(out[0], out[1], lw=0.4, markersize=7, marker=',')
+						lines.append(line3)
+						labs.append("Obj" + str(i) + " Filter")
 
 			# Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
 			#ax.set_title(title + "\n" + self.descs[index], loc="left", y=1)
@@ -353,18 +363,19 @@ class Simulation:
 			ax.set_ylabel(y_label)
 			ax.patches = []
 			if ellipse_freq != 0 and ellipses is not None:
-				for j, ellipse in enumerate(ellipses):
-					if j % ellipse_freq == 0:
-						new_c=copy(ellipse)
-						ax.add_patch(new_c)
-				labs.append("Covariance")
+				for track_e in ellipses:
+					for j, ellipse in enumerate(track_e):
+						if j % ellipse_freq == 0:
+							new_c=copy(ellipse)
+							ax.add_patch(new_c)
+					labs.append("Covariance")
 			#ax.set_xlim(-self.generator.x_lim, self.generator.x_lim)
 			#ax.set_ylim(-self.generator.y_lim, self.generator.y_lim)
 			ax.axis('square')
 
 			# Add the velocity vectors to the plot
 			for i, obj in enumerate(process):
-				a = 0.4
+				a = 0.2
 				ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
 
 			#Below is an old method, if we want to include the full Q and R matrix
@@ -456,7 +467,8 @@ class Simulation:
 		for arg in kwargs.items():
 			self.generator = self.generator.mutate(**{arg[0]: arg[1]})
 
-	def cov_ellipse(self, mean, cov, zoom_factor=1, p=0.95):
+	@staticmethod
+	def cov_ellipse(mean, cov, zoom_factor=1, p=0.95):
 		"""
 		The cov ellipse returns an ellipse path that can be added to a plot based on the given mean, covariance matrix
 		zoom_factor, and the p-value
@@ -536,16 +548,59 @@ class Simulation:
 		Converts a single trajectory from a dictionary of lists of state vectors to a list of numpy arrays
 		representing the position at each time step for plotting
 		"""
-
-		#NOTE: THIS IS HARDCODED TO SUPPORT ONLY STATE VECTORS OF LENGTH 4
 		output = list(repeat(np.empty((4, 1)), max([key for step in trajectories for key in step.keys()]) + 1))
-		for step in trajectories:
-			for key, value in step.items():
-				output[key] = np.append(output[key], value, axis=1)
+		for step in trajectories: # iterate over each of the timesteps
+			for key, value in step.items(): # each timestep is a dict of object predictions
+				output[key] = np.append(output[key], value, axis=1) if value is not None else None
 		# Remove the filler values from the start of each array
 		# and only keep the values representing position
 		for i, arr in enumerate(output):
-			output[i] = arr[:, 1:]
+			output[i] = arr[:, 1:] if output[i] is not None else None
+		return output
+
+	@staticmethod
+	def clean_measure2(measures):
+		"""
+		Converts a dict of key: track, value: measures -> the measures array becomes a array of two arrays
+		"""
+		output = dict()
+		for key, track in measures.items():
+			track_x = []
+			track_y = []
+			for measure in track:
+				x = None if measure is None else measure[0][0]
+				y = None if measure is None else measure[1][0]
+				track_x.append(x)
+				track_y.append(y)
+			output[key] = [track_x, track_y]
+		return output
+
+	@staticmethod
+	def clean_false_alarms(false_alarms):
+		"""
+		Takes in a dict of key: timestep, value: array of false alarm vectors, returns a array of 2 arrays:
+		first array is x-cor and second is y-cor
+		"""
+		output_x = []
+		output_y = []
+		for ts, arr in false_alarms.items():
+			for fa in arr:
+				output_x.append(fa[0][0])
+				output_y.append(fa[1][0])
+		output = [output_x, output_y]
+		return output
+
+	@staticmethod
+	def clean_ellipses(ellipses):
+		"""
+		Returns: an array, each index represents a track and is an array of ellipse objects
+		"""
+		output = []
+		for key, track in ellipses.items():
+			track_output = []
+			for param_set in track:
+				track_output.append(Simulation.cov_ellipse(param_set[0], param_set[1]))
+			output.append(track_output)
 		return output
 
 	def plot_mhlb(self):
@@ -556,7 +611,6 @@ class Simulation:
 		ax.set_xlabel("time steps")
 		ax.set_ylabel("Mahalanobis distance")
 		plt.show()
-
 
 '''The same as the cov_ellipse function, but draws multiple p-values depending on the passed on list. One can also 
 plot the scattered values using this function to see which points are outliers. '''
