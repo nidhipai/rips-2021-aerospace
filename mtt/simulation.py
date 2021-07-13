@@ -126,11 +126,11 @@ class Simulation:
 			# Calculate the along-track and cross track error using rotation matrix
 			for j, value in next_guess.items():
 				true_val = self.processes[index][i][j]
-				step_error = W(true_val)[2:4, 2:4] @ (true_val[0:2] - next_guess[0])
+				step_error = W(true_val) @ (true_val - next_guess[0])
 				self.signed_errors[index].append(step_error)
 
 			# Store the ellipse for later plottingS
-			cov_ = self.tracker_model.kFilter_model.P[:2, :2]
+			cov_ = self.tracker_model.kFilter_model.P[2:4, 2:4]
 			mean_ = (self.tracker_model.kFilter_model.x_hat[0, 0], self.tracker_model.kFilter_model.x_hat[1, 0])
 			if ellipse_mode == "plotly":
 				ellipses.append(self.cov_ellipse_plotly(mean=mean_, cov=cov_))
@@ -593,7 +593,9 @@ class Simulation:
 		Converts a single trajectory from a dictionary of lists of state vectors to a list of numpy arrays
 		representing the position at each time step for plotting
 		"""
-		output = list(repeat(np.empty((2, 1)), max([key for step in trajectories for key in step.keys()]) + 1))
+
+		#NOTE: THIS IS HARDCODED TO SUPPORT ONLY STATE VECTORS OF LENGTH 4
+		output = list(repeat(np.empty((4, 1)), max([key for step in trajectories for key in step.keys()]) + 1))
 		for step in trajectories:
 			for key, value in step.items():
 				output[key] = np.append(output[key], value, axis=1)

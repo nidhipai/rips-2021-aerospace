@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.stats import chi2
 
 class Tracker:
     def __init__(self, kFilter_model):
@@ -31,14 +30,14 @@ class Tracker:
 
         if len(measure_t) > 0:
             # Process the point using the filter
-            measure_t_new = self.remove_fas(measure_t)
+            measure_t_new = measure_t[0] #self.remove_fas(measure_t)
             self.measures.append(measure_t_new)
             self.kFilter_model.predict(measure_t_new, np.array(self.measures))
-            self.current_guess = {0: self.kFilter_model.get_current_guess()[0:2]}
+            self.current_guess = {0: self.kFilter_model.get_current_guess()}
         else:
             # If we don't have any measurements we need to guess for each object
             self.kFilter_model.predict(None, np.array(self.measures))
-            self.current_guess = {0: self.kFilter_model.get_current_guess()[0:2]}
+            self.current_guess = {0: self.kFilter_model.get_current_guess()}
 
     def get_current_guess(self):
         """
@@ -53,6 +52,7 @@ class Tracker:
             self.dists.append(self.mahalanobis_dist(point))
         measure = measure_t[np.argmin(self.dists)]
         # self.mhlb_dists.append(np.min(self.dists))
+
         return measure
 
     # def get_dists(self):
@@ -74,7 +74,7 @@ class Tracker:
         error = y - self.kFilter_model.h(self.kFilter_model.x_hat_minus)
         # error = error.reshape((2,1))
         self.kFilter_model.error_array.append(error)
-        K = self.kFilter_model.H@self.kFilter_model.P_minus@self.kFilter_model.H.T + self.kFilter_model.R
+        K = self.kFilter_model.H @ self.kFilter_model.P_minus @ self.kFilter_model.H.T + self.kFilter_model.R
         mhlb_dist = np.sqrt(error.T @ np.linalg.inv(K) @ error)
         # if mhlb_dist > chi2.ppf(0.95,2):
         return mhlb_dist

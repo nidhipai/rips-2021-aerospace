@@ -43,7 +43,7 @@ colors = sim.clean_measure(sim.measure_colors[0])
 measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
 measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
 trajectories = sim.clean_trajectory(sim.trajectories[0])
-errors = sim.get_signed_errors(processes, trajectories)
+errors = sim.signed_errors[0]
 
 fig = go.Figure()
 err = go.Figure()
@@ -61,8 +61,11 @@ for i, trajectory in enumerate(trajectories):
     fig.add_trace(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines+markers',
                              name='Object {} Trajectory'.format(i)))
 
-err.add_trace(go.Scatter(y=errors[0], x=list(range(errors.size)), mode='lines',
-                         name="Errors", marker=dict(color="gray")))
+err.add_trace(go.Scatter(y=errors[0], x=list(range(errors[0].size)), mode='lines',
+                         name="Cross-track Error", marker=dict(color="blue")))
+
+err.add_trace(go.Scatter(y=errors[1], x=list(range(errors[1].size)), mode='lines',
+                         name="Along-track Error", marker=dict(color="orange")))
 
 xs = []
 ys = []
@@ -99,14 +102,14 @@ app.layout = html.Div(children=[
             id='example-graph',
             figure=fig
         )
-    ], style={"display":"inline-block", "width":"100", "height":"100"}),
+    ], style={"display":"inline-block"}),
 
     html.Div(children=[
        dcc.Graph(
            id='error-graph',
            figure=err
        )
-    ], style={"display":"inline-block", "width":"100", "height":"100"}),
+    ], style={"display":"inline-block"}),
 
 
     html.Div(children=[
@@ -336,7 +339,7 @@ def update(n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_sca
     measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
     measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
     trajectories = sim.clean_trajectory(sim.trajectories[0])
-    errors = mtt.SingleTargetEvaluation.center_error(processes[0][0:2].T, trajectories[0].T)
+    errors = sim.signed_errors[0]
 
     fig = go.Figure()
     err = go.Figure()
@@ -364,8 +367,11 @@ def update(n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_sca
 
         fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="Covariance"))
 
-    err.add_trace(go.Scatter(y=errors, x=list(range(errors.size)), mode='lines',
-                             name="Errors", marker=dict(color="gray")))
+    err.add_trace(go.Scatter(y=errors[0], x=list(range(errors[0].size)), mode='lines',
+                             name="Cross-track Error", marker=dict(color="blue")))
+
+    err.add_trace(go.Scatter(y=errors[1], x=list(range(errors[1].size)), mode='lines',
+                             name="Along-track Error", marker=dict(color="orange")))
 
     return fig, err
 
