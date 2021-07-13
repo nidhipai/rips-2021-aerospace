@@ -109,9 +109,9 @@ class Simulation:
 		output = np.empty((self.n, 1))
 
 		self.tracker_model = self.tracker(self.methods)
-
-		# Set up lists to store objects for later plotting
-		ellipses = []
+		#
+		# # Set up lists to store objects for later plotting
+		# ellipses = []
 
 		# Iterate through each time step for which we have measurements
 		for i in range(len(self.processes[index])):
@@ -119,18 +119,15 @@ class Simulation:
 			# Obtain a set of guesses for the current location of the object given the measurements
 			self.tracker_model.predict(deepcopy(self.measures[index][i]))
 
-			# Store the ellipse for later plotting BRING THIS BACK
+			# Store the ellipse for later plotting
+			# just save the ellipses in the track and pull them at the end
 			# cov_ = self.tracker_model.kFilter_model.P[:2, :2]
 			# mean_ = (self.tracker_model.kFilter_model.x_hat[0, 0], self.tracker_model.kFilter_model.x_hat[1, 0])
 			# ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
 
 		# Store our output as an experiment
-		#self.trajectories[len(self.trajectories.keys())] = 1
 		self.trajectories[len(self.trajectories.keys())] = self.tracker_model.get_trajectories()
-
-		self.ellipses[len(self.ellipses.keys())] = ellipses
-		#only updating the last one
-
+		self.ellipses[len(self.ellipses.keys())] = self.tracker_model.get_ellipses()
 		self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.false_alarms
 
 		for method in self.methods:
@@ -301,6 +298,7 @@ class Simulation:
 		ellipses = None
 		if len(self.ellipses) > index:
 			ellipses = self.ellipses[index]
+			ellipses = self.clean_ellipses(ellipses)
 
 		# Modify the legend
 		legend_size = 14
@@ -356,11 +354,12 @@ class Simulation:
 			ax.set_ylabel(y_label)
 			ax.patches = []
 			if ellipse_freq != 0 and ellipses is not None:
-				for j, ellipse in enumerate(ellipses):
-					if j % ellipse_freq == 0:
-						new_c=copy(ellipse)
-						ax.add_patch(new_c)
-				labs.append("Covariance")
+				for track_e in ellipses:
+					for j, ellipse in enumerate(track_e):
+						if j % ellipse_freq == 0:
+							new_c=copy(ellipse)
+							ax.add_patch(new_c)
+					labs.append("Covariance")
 			#ax.set_xlim(-self.generator.x_lim, self.generator.x_lim)
 			#ax.set_ylim(-self.generator.y_lim, self.generator.y_lim)
 			ax.axis('square')
@@ -459,7 +458,8 @@ class Simulation:
 		for arg in kwargs.items():
 			self.generator = self.generator.mutate(**{arg[0]: arg[1]})
 
-	def cov_ellipse(self, mean, cov, zoom_factor=1, p=0.95):
+	@staticmethod
+	def cov_ellipse(mean, cov, zoom_factor=1, p=0.95):
 		"""
 		The cov ellipse returns an ellipse path that can be added to a plot based on the given mean, covariance matrix
 		zoom_factor, and the p-value
@@ -557,6 +557,19 @@ class Simulation:
 				output_x.append(fa[0][0])
 				output_y.append(fa[1][0])
 		output = [output_x, output_y]
+		return output
+
+	@staticmethod
+	def clean_ellipses(ellipses):
+		"""
+		Returns: an array, each index represents a track and is an array of ellipse objects
+		"""
+		output = []
+		for key, track in ellipses.items():
+			track_output = []
+			for param_set in track:
+				track_output.append(Simulation.cov_ellipse(param_set[0], param_set[1]))
+			output.append(track_output)
 		return output
 
 

@@ -59,6 +59,15 @@ class MTTTracker:
                     result[ts][j] = [[None], [None]]
         return result
 
+    def get_ellipses(self):
+        """
+        Return a dict with keys: tracks and values: array of ellipse params
+        """
+        ellipses = dict()
+        for i, track in self.tracks.items():
+            ellipses[i] = list(track.ellipses.values())
+        return ellipses
+
     def get_sorted_measurements(self):
         measures = dict()
         for i, track in self.tracks.items():
