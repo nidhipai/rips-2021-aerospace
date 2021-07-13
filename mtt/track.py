@@ -1,30 +1,70 @@
+"""
+Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
+Aerospace Team
+"""
+
 import numpy as np
 
-class Track:
-    def __init__(self):
-        self.measurements = []
-        self.predictions = []
-        self.possible_observations = dict() # just for using to pass from gating to data association
-        self.stage = 0 # 0 is not confirmed yet, 1 is confirmed, 3 is deletion
-        #self.initiate_count = 1
-        self.delete_count = 0
 
-    def set_filter(self, filter_model, filter_params):
-        # THIS IS DEF NOT RIGHT WAY OF PASSING THE PARAMS AS A DICTIONARY
-        self.kfilter = filter_model.__init__(filter_params)
+class Track:
+    """ Track object encapsulating the kalman filter, associated measurements, and predictions
+    """
+    def __init__(self, kfilter, filter_params, init_measure, init_time, init_velocity=np.array([[0], [0]])):
+        """
+        Creates a Track object
+
+        Args:
+            kfilter: a constructor for a Kalman filter (not an already initalized filter)
+            filter_params: a dictionary of parameters for the filter
+            init_measure: the initial measurement that creates the track
+            init_time: what timestep init_measure was recorded
+            init_velocity: initial velocity of object, np array
+        """
+        # initial state for filter, uses intial measure and 0 velocity
+        initial_state = np.row_stack((init_measure, init_velocity))
+        self.filter_model = kfilter(**filter_params, x_hat0=initial_state)  # instantiate a filter
+        self.measurements = {init_time: init_measure}  # keys are timesteps, value may be none
+        self.predictions = dict() # keys are timesteps, doesn't need to start at 0
+        self.possible_observations = dict()  # used to pass around the possible measurements for this track for this ts
+        self.ellipses = dict() # keys are timesteps, values are x_hat tuples - arguments for cov_ellipse in sim
+        self.stage = 0  # 0 is not confirmed yet, 1 is confirmed, 2 is deleted (done in track maintenance)
+        self.missed_measurements = 0
 
     def get_current_guess(self):
-        return self.kfilter.get_current_guess()
+        """
+        Returns: the current prediction of the state from the Kalman filter
+        """
+        return self.filter_model.get_current_guess()[0:2]
 
     def get_measurement_cov(self):
-        return self.kfilter.R
+        """
+        Returns: Returns the covariance matrix from the Kalman filter
+        """
+        return self.filter_model.R
 
-    def add_measurement(self, measurement):
-        self.measurements.append(measurement)
+    def add_measurement(self, index, measurement):
+        """
+        Add a measurement that is predicted to be associated with this track
+        Args:
+            index: the timestep for the measurement
+            measurement: the observation
+        """
+        self.measurements[index] = measurement
 
     def add_all_possible_observations(self, observations):
+        """
+        Wrapper function for add_possible_observations
+        Args:
+            observations: an array of column vectors
+        """
         for i, obs in enumerate(observations):
             self.add_possible_observation(i, obs)
 
     def add_possible_observation(self, index, observation):
+        """
+        Add a measurement as being possible associated with the track, clears every timestep
+        Args:
+            index: timestep for the measurement
+            observation: the observation, a column vector
+        """
         self.possible_observations[index] = observation
