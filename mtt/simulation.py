@@ -110,9 +110,6 @@ class Simulation:
 		output = np.empty((self.n, 1))
 
 		self.tracker_model = self.tracker(self.methods)
-		#
-		# # Set up lists to store objects for later plotting
-		# ellipses = []
 
 		# Iterate through each time step for which we have measurements
 		for i in range(len(self.processes[index])):
@@ -482,6 +479,28 @@ class Simulation:
 
 		ellipse = Ellipse(xy=mean, width=zoom_factor*width, height=zoom_factor*height, angle=ang, edgecolor='g', fc='none', lw=1)
 		return ellipse
+
+	def cov_ellipse_plotly(self, mean, cov, zoom_factor=1, p=0.95):
+
+		if type(mean) != np.ndarray:
+			mean = np.array(mean)
+		mean.shape = (2,1)
+		N = 100
+		s = -2 * np.log(1 - p)
+		a = s * cov
+		a = a.round(decimals=16)
+		# w and v give the eigenvalues and the eigenvectors of the covariance matrix scaled by s
+		w, v = np.linalg.eig(a)
+		ang = np.arctan2(v[0, 0], v[1, 0])
+		width = w[0]
+		height = w[1]
+
+		# ellipse parameterization with respect to a system of axes of directions a1, a2
+		t = np.linspace(0, 2 * np.pi, N)
+		xs = width*np.cos(t)
+		ys = height*np.sin(t)
+		R = np.array([[np.cos(ang), -np.sin(ang)], [np.sin(ang), np.cos(ang)]])
+		return np.dot(R, [xs, ys]) + mean[:,-1][:, np.newaxis]
 
 	@staticmethod
 	def clean_process(processes):
