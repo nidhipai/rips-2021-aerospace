@@ -21,4 +21,8 @@ class FilterPredict:
                 # measurement could be none but that's cool
                 track.filter_model.predict(measurement=track.measurements[time])
                 track.predictions[time] = track.get_current_guess()
+
+                mean = (track.filter_model.x_hat[0, 0], track.filter_model.x_hat[1, 0])
+                cov = track.filter_model.P[:2, :2]
+                track.ellipses[time] = [mean, cov]
             # don't need to take care of dead objects here beause it's taken care of in get_traj in tracker2
