@@ -39,6 +39,7 @@ class Simulation:
 		self.measures = dict()
 		self.measure_colors = dict()
 		self.trajectories = dict()
+		self.signed_errors = dict()
 		self.descs = dict()
 		self.ellipses = dict()
 
@@ -113,6 +114,7 @@ class Simulation:
 		# first = x0[0][0:2,0]
 		# first.shape = (2,1)
 		output = []
+		self.signed_errors[index] = []
 		# {0: first}
 		# Iterate through each time step for which we have measurements
 		for i in range(len(self.processes[index])):
@@ -121,7 +123,14 @@ class Simulation:
 			# Note this will need to change later to incorporate multiple objects
 
 			self.tracker_model.predict(self.measures[index][i])
-			output.append(self.tracker_model.get_current_guess())
+			next_guess = self.tracker_model.get_current_guess()
+			output.append(next_guess)
+
+			# Calculate the along-track and cross track error using rotation matrix
+			for j, value in next_guess.items():
+				true_val = self.processes[index][i][j]
+				step_error = W(true_val)[2:4, 2:4] @ (true_val[0:2] - next_guess[0])
+				self.signed_errors[index].append(step_error)
 
 			# Store the ellipse for later plottingS
 			cov_ = self.tracker_model.kFilter_model.P[:2, :2]
@@ -146,6 +155,10 @@ class Simulation:
 			"x0": str(self.kFilter_model.xt0[0, 0]),
 			"y0": str(self.kFilter_model.xt0[1, 0])
 		}}
+
+		self.signed_errors[index] = np.array(self.signed_errors[index]).squeeze().T
+
+
 
 	def experiment(self, ts, test="data", **kwargs):
 		"""
@@ -532,7 +545,6 @@ class Simulation:
 		for i, arr in enumerate(output):
 			output[i] = arr[:, 1:]
 		return output
-
 
 
 '''The same as the cov_ellipse function, but draws multiple p-values depending on the passed on list. One can also 
