@@ -20,7 +20,7 @@ class TrackMaintenance:
             num_init_frames: number of frames in which num_init observations will confirm an object
             num_delete: number of consecutive missing observations need to delete track
             predict_params: dict of params that should be used for the filter, overrides generator params, not necessary
-            num_obj: number of objects (present at all times), if known
+            num_obj: number of objects (present at all times), if known, limits creation of new tracks
         """
         self.kfilter = kfilter
 
@@ -42,6 +42,7 @@ class TrackMaintenance:
             tracks: dictionary of tracks
             measurements: list of column vector measurements
             time: current timestep
+            false_alarms: dict of false_alarms from tracker, where unmatched measurements go
         """
         new_objects_q = self.num_obj is None or len(tracks) < self.num_obj  # true if we can make more objects
         # create new tracks for the measurements without a track - eventually we should check if they are false alarms

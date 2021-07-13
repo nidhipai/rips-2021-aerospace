@@ -53,12 +53,13 @@ class Simulation:
 		self.descs = dict()
 		self.ellipses = dict()
 		self.false_alarms = dict()
+		self.sorted_measurements = dict()
 		if methods is not None:
 			self.methods = methods
 		else: # for backwards compatibility
 			gen_params = self.generator.params
 
-			# distance_gating = DistanceGating(10, method="euclidean")
+			# distance_gating = DistanceGating(10, method="euclidean") Not strictly necessary
 			data_association = DataAssociation(method="euclidean")
 			track_maintenance = TrackMaintenance(KalmanFilter, gen_params, 3, 4, 7, predict_params=predict_params)
 			filter_predict = FilterPredict()
@@ -115,20 +116,14 @@ class Simulation:
 
 		# Iterate through each time step for which we have measurements
 		for i in range(len(self.processes[index])):
-
 			# Obtain a set of guesses for the current location of the object given the measurements
 			self.tracker_model.predict(deepcopy(self.measures[index][i]))
-
-			# Store the ellipse for later plotting
-			# just save the ellipses in the track and pull them at the end
-			# cov_ = self.tracker_model.kFilter_model.P[:2, :2]
-			# mean_ = (self.tracker_model.kFilter_model.x_hat[0, 0], self.tracker_model.kFilter_model.x_hat[1, 0])
-			# ellipses.append(self.cov_ellipse(mean=mean_, cov=cov_))
 
 		# Store our output as an experiment
 		self.trajectories[len(self.trajectories.keys())] = self.tracker_model.get_trajectories()
 		self.ellipses[len(self.ellipses.keys())] = self.tracker_model.get_ellipses()
 		self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.false_alarms
+		self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
 
 		for method in self.methods:
 			if isinstance(method, TrackMaintenance):
@@ -278,8 +273,7 @@ class Simulation:
 			process = self.clean_process(process)
 
 		if len(self.measures) > 0:
-			#measure = self.measures[index]
-			sorted_measures = self.tracker_model.get_sorted_measurements() #THIS ONLY PULLS LAST ONE - CHANGE
+			sorted_measures = self.sorted_measurements
 			measure = self.clean_measure2(sorted_measures) #THIS IS CHANGED TO 2
 
 		if len(self.trajectories) > 0:
@@ -530,7 +524,7 @@ class Simulation:
 	@staticmethod
 	def clean_measure2(measures):
 		"""
-		Converts a dict of key: track, value: measures -> the measures array becomes a tuple of two arrays
+		Converts a dict of key: track, value: measures -> the measures array becomes a array of two arrays
 		"""
 		output = dict()
 		for key, track in measures.items():

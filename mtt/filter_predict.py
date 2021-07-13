@@ -15,6 +15,7 @@ class FilterPredict:
             tracks: dictionary of tracks from MTTTracker
             measurements: not used
             time: the current timestep
+            false_alarms: not used
         """
         for key, track in tracks.items():
             if track.stage == 0 or track.stage == 1:
@@ -24,5 +25,5 @@ class FilterPredict:
 
                 mean = (track.filter_model.x_hat[0, 0], track.filter_model.x_hat[1, 0])
                 cov = track.filter_model.P[:2, :2]
-                track.ellipses[time] = [mean, cov]
+                track.ellipses[time] = [mean, cov]  # these are the params needed to make the ellipses
             # don't need to take care of dead objects here beause it's taken care of in get_traj in tracker2
