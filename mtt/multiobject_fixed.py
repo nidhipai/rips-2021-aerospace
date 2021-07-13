@@ -13,7 +13,7 @@ from .data_generator import DataGenerator
 
 
 class MultiObjFixed(DataGenerator):
-	def __init__(self, xt0, dt, ep_tangent, ep_normal, nu, miss_p=0, lam=0, fa_scale=10, x_lim = 30, y_lim = 30, new_obj_prop = 0.1):
+	def __init__(self, xt0, dt, ep_tangent, ep_normal, nu, miss_p=0, lam=0, fa_scale=10, x_lim = 30, y_lim = 30, new_obj_prop = 0):
 		"""
 		Constructor for the 2DObject Data Generator.
 
@@ -71,17 +71,16 @@ class MultiObjFixed(DataGenerator):
 		output = dict()
 		# Iterate through each state in the list of previous object states
 		for xt_key, xt_prev in xt_prevs.items():
-			if abs(xt_prev[0]) > self.x_lim or abs(xt_prev[1]) > self.y_lim:
-				continue
+			#if abs(xt_prev[0]) > self.x_lim or abs(xt_prev[1]) > self.y_lim:
+				#continue
 			# calculate the next state and add to output
 			output[xt_key] = self.A @ xt_prev + self.dt*self.process_noise(xt_prev, rng)
 
-		# NOTE TODO: probability of new object hard-coded, fix later
-		# With probability TODO, create new object on side of frame
-		if np.random.rand() > 1 - self.new_obj_prop:
+		# With probability self.new_obj_prop, create new object on side of frame
+		if rng.random() < self.new_obj_prop:
 			self.num_objs += 1
-			side = np.random.rand()
-			c = np.random.rand() - 0.5
+			side = rng.random()
+			c = rng.random() - 0.5
 			buff = 0.125
 			if side <= 0.25:
 				new_x = -self.x_lim + buff
@@ -96,7 +95,7 @@ class MultiObjFixed(DataGenerator):
 				new_x = c * 2 * self.x_lim
 				new_y = -self.y_lim + buff
 			ang = np.arctan2(new_y, new_x)
-			perturb = (np.random.rand() - 0.5) / 10
+			perturb = (rng.random() - 0.5) / 10
 			ang += perturb
 			new_state = np.array([[new_x], [new_y], [np.cos(ang + np.pi)], [np.sin(ang + np.pi)]])
 			output[self.num_objs] = new_state
@@ -116,9 +115,10 @@ class MultiObjFixed(DataGenerator):
 		colors = []
 		for xt in xts.values():
 			# Calculate whether the measurement is missed
+			# NOTE TODO: Should this be rng.random() instead of np.random.rand()?
 			if np.random.rand() > self.miss_p:
 				output.append(self.H @ xt + self.measure_noise(rng))
-				colors.append("red")
+				colors.append("black")
 
 			for i in range(rng.poisson(self.lam)):
 				output.append(self.H @ xt + self.measure_noise(rng) * self.fa_scale)
@@ -146,6 +146,7 @@ class MultiObjFixed(DataGenerator):
 		pad = np.array([0, 0])
 		rotation = self.W(xt)[2:4, 2:4]
 		noise = rng.multivariate_normal((0, 0), rotation @ self.Q[2:4, 2:4] @ rotation.T)
+		#print(noise, xt)
 		output = np.append(pad, noise)
 		output.shape = (4, 1)
 		return output
