@@ -19,26 +19,27 @@ class SingleTargetEvaluation:
 			predicted_sim = self.simulation.clean_trajectory(self.simulation.trajectories[i])[0]
 			self.truth.append(truth_sim)
 			self.prediction.append(predicted_sim)
-		self.truth = np.array(self.truth).squeeze()
-		self.prediction = np.array(self.prediction).squeeze()
+		self.truth = np.array(self.truth)		
+		self.prediction = np.array(self.prediction)
+		# self.simulation.plot_mhlb()
 
 	def plot_error(self, x, y, title = None, x_label = None, y_label = None):
 		fig,ax = plt.subplots()
-		ax.plot(x, y, color = "red")
+		ax.plot(x, y, color = "purple")
 		ax.set_title(title)
 		ax.set_xlabel(x_label)
 		ax.set_ylabel(y_label)
 		plt.show()
-
-	def center_error(self):
+	@staticmethod
+	def center_error(truth, prediction):
 		# returns a list of the norm
-		error = np.sqrt(np.square(self.truth - self.prediction).sum(axis=1))
-		error = np.mean(error, axis = 0)
+		error = np.sqrt(np.square(truth - prediction).sum(axis=1))
+		#error = np.mean(error, axis = 0)
 		return error
 
-
-	def average_error(self):
-		return np.mean(np.sqrt(np.square(self.truth - self.prediction).sum(axis=1)),axis = 1)
+	@staticmethod
+	def average_error(self, truth, prediction):
+		return np.mean(np.sqrt(np.square(truth - prediction).sum(axis=1)),axis = 1)
 
 	def max_error(self, n = 0):
 		"""

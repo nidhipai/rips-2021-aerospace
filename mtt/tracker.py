@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.stats import chi2
 
 class Tracker:
     def __init__(self, kFilter_model):
@@ -15,6 +16,7 @@ class Tracker:
         #Store the previous measures for future use
         self.measures = []
         self.current_guess = []
+        # self.mhlb_dists = []
 
     def predict(self, measure_t):
         """
@@ -46,10 +48,15 @@ class Tracker:
         return self.current_guess
 
     def remove_fas(self, measure_t):
-        dists = []
+        self.dists = []
         for point in measure_t:
-            dists.append(self.mahalanobis_dist(point))
-        return measure_t[np.argmin(dists)]
+            self.dists.append(self.mahalanobis_dist(point))
+        measure = measure_t[np.argmin(self.dists)]
+        # self.mhlb_dists.append(np.min(self.dists))
+        return measure
+
+    # def get_dists(self):
+    #     return self.mhlb_dists
 
 
     def mahalanobis_dist(self, y):
@@ -63,8 +70,11 @@ class Tracker:
         Returns:
             float: the calculated mahalanobis distance.
         """
+
         error = y - self.kFilter_model.h(self.kFilter_model.x_hat_minus)
+        # error = error.reshape((2,1))
         self.kFilter_model.error_array.append(error)
-        # test = self.H@self.P_minus@self.H.T + self.R
-        cov = self.kFilter_model.H @ self.kFilter_model.P_minus @ self.kFilter_model.H.T + self.kFilter_model.R
-        return np.sqrt(error.T @ np.linalg.inv(cov) @ error)
+        K = self.kFilter_model.H@self.kFilter_model.P_minus@self.kFilter_model.H.T + self.kFilter_model.R
+        mhlb_dist = np.sqrt(error.T @ np.linalg.inv(K) @ error)
+        # if mhlb_dist > chi2.ppf(0.95,2):
+        return mhlb_dist
