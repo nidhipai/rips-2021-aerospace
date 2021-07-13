@@ -3,6 +3,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
+import plotly.figure_factory as ff
 import numpy as np
 import mtt
 from copy import copy
@@ -42,11 +43,14 @@ colors = sim.clean_measure(sim.measure_colors[0])
 measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
 measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
 trajectories = sim.clean_trajectory(sim.trajectories[0])
+errors = sim.get_signed_errors(processes, trajectories)
 
 fig = go.Figure()
+err = go.Figure()
 
 for i, process in enumerate(processes):
-    fig.add_trace(go.Scatter(x=process[0], y=process[1], mode='lines', name='Object {} Process'.format(i)))
+    #fig.add_trace(ff.create_quiver(process[0], process[1], process[2], process[3], name='Object {} Velocity'.format(i)))
+    fig.add_trace(go.Scatter(x=process[0], y=process[1], mode='lines', name='Object {} Position'.format(i)))
 
 fig.add_trace(go.Scatter(x=measures_true[0], y=measures_true[1], mode='markers',
                          name="True Measures", marker=dict(color="black")))
@@ -57,6 +61,9 @@ for i, trajectory in enumerate(trajectories):
     fig.add_trace(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines+markers',
                              name='Object {} Trajectory'.format(i)))
 
+err.add_trace(go.Scatter(y=errors[0], x=list(range(errors.size)), mode='lines',
+                         name="Errors", marker=dict(color="gray")))
+
 xs = []
 ys = []
 for ellipse in sim.ellipses[0]:
@@ -66,25 +73,6 @@ for ellipse in sim.ellipses[0]:
     ys.append(None)
 
 fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="Covariance"))
-
-fig.update_layout(
-    autosize=False,
-    width=800,
-    height=800,
-    margin=dict(
-        l=50,
-        r=50,
-        b=100,
-        t=100,
-        pad=4
-    ),
-    paper_bgcolor="white",
-)
-
-fig.update_yaxes(
-    scaleanchor = "x",
-    scaleratio = 1,
-  )
 
 app.layout = html.Div(children=[
     html.H1(children='2D Object Trajectory Tracking'),
@@ -106,11 +94,20 @@ app.layout = html.Div(children=[
         value=['process', 'measure'],
         labelStyle={'display': 'inline-block'}
     ),
+    html.Div(children=[
+        dcc.Graph(
+            id='example-graph',
+            figure=fig
+        )
+    ], style={"display":"inline-block", "width":"100", "height":"100"}),
 
-    dcc.Graph(
-        id='example-graph',
-        figure=fig
-    ),
+    html.Div(children=[
+       dcc.Graph(
+           id='error-graph',
+           figure=err
+       )
+    ], style={"display":"inline-block", "width":"100", "height":"100"}),
+
 
     html.Div(children=[
         html.H3(children="Data Generation Parameters"),
@@ -241,6 +238,7 @@ app.layout = html.Div(children=[
 
 @app.callback(
     Output('example-graph', 'figure'),
+    Output('error-graph', 'figure'),
     Input('run', 'n_clicks'),
     Input('check-options', 'value'),
     State('time-steps', 'value'),
@@ -338,8 +336,10 @@ def update(n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_sca
     measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
     measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
     trajectories = sim.clean_trajectory(sim.trajectories[0])
+    errors = mtt.SingleTargetEvaluation.center_error(processes[0][0:2].T, trajectories[0].T)
 
     fig = go.Figure()
+    err = go.Figure()
 
     if 'process' in options:
         for i, process in enumerate(processes):
@@ -364,25 +364,9 @@ def update(n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_sca
 
         fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="Covariance"))
 
-    fig.update_layout(
-        autosize=False,
-        width=800,
-        height=800,
-        margin=dict(
-            l=50,
-            r=50,
-            b=100,
-            t=100,
-            pad=4
-        ),
-        paper_bgcolor="white",
-    )
+    err.add_trace(go.Scatter(y=errors, x=list(range(errors.size)), mode='lines',
+                             name="Errors", marker=dict(color="gray")))
 
-    fig.update_yaxes(
-        scaleanchor="x",
-        scaleratio=1,
-    )
-
-    return fig
+    return fig, err
 
 app.run_server(debug=True)

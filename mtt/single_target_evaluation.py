@@ -29,11 +29,11 @@ class SingleTargetEvaluation:
 		ax.set_xlabel(x_label)
 		ax.set_ylabel(y_label)
 		plt.show()
-
-	def center_error(self, truth, prediction):
+	@staticmethod
+	def center_error(truth, prediction):
 		# returns a list of the norm
 		error = np.sqrt(np.square(truth - prediction).sum(axis=1))
-		error = np.mean(error, axis = 0)
+		#error = np.mean(error, axis = 0)
 		return error
 
 	@staticmethod
