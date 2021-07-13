@@ -145,13 +145,41 @@ class Simulation:
 		self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
 			"Q": str(kalman_params['Q']),
 			"R": str(kalman_params['R']),
-			# "x0": str(self.new_kFilter_model.xt0[0, 0]),
-			# "y0": str(self.new_kFilter_model.xt0[1, 0])
+			"Q": str(self.kFilter_model.Q),
+			"fep_at": str(self.kFilter_model.Q[2][2]),
+			"fep_ct": str(self.kFilter_model.Q[3][3]),
+			"R": str(self.kFilter_model.R),
+			"fnu": str(self.kFilter_model.R[0][0]),
+			"x0": str(self.generator.xt0[0][0][0]),
+			"y0": str(self.generator.xt0[0][1][0]),
+			"vx0": str(self.generator.xt0[0][2][0]),
+			"vy0": str(self.generator.xt0[0][3][0]),
+			"fx0": str(self.kFilter_model.xt0[0, 0]),
+			"fy0": str(self.kFilter_model.xt0[1, 0]),
+			"fvx0": str(self.kFilter_model.xt0[2, 0]),
+			"fvy0": str(self.kFilter_model.xt0[3, 0]),
+			"P": str(P[0][0])
 		}}
 
+		# MERGE stuff
+		index = len(self.processes.keys()) - 1
+		# THIS CURRENTLY ONLY HANDLES THE FIRST OBJECT
+		# NEED TO UPDATE
+		process = self.processes[index]
+		process = self.clean_process(process)[0]  # get first two position coordinates
+		traj = self.trajectories[index]
+		traj = self.clean_trajectory(traj)[0]
+		center_errors = (np.sqrt(np.power(process[:2, :][0] - traj[0], 2) + np.power(process[:2, :][1] - traj[1], 2)))
+		center_errors = center_errors[20:]
+		#print("PROC", process[:2, :])
+		#print("TRAJ", traj)
+		#print(center_errors)
+		#center_errors = SingleTargetEvaluation.center_error(process[:2, :], traj)
+		self.RMSE = np.sqrt(np.dot(center_errors, center_errors) / len(center_errors))
+		#print(self.RMSE)
+		self.AME = sum(center_errors) / len(center_errors)
+
 		self.signed_errors[index] = np.array(self.signed_errors[index]).squeeze().T
-
-
 
 	def experiment(self, ts, test="data", **kwargs):
 		"""
@@ -262,7 +290,7 @@ class Simulation:
 
 
 	'''We plot our trajectory based on the predicted trajectories given by the kalman filter object. '''
-	def plot(self, var="Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0):
+	def plot(self, var="Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0, tail = 0):
 		"""
 		Plot our trajectory based on the predicted trajectories given by the kalman filter object.
 
@@ -327,6 +355,10 @@ class Simulation:
 			if len(self.processes) > 0:
 				for i, obj in enumerate(process):
 					line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=4, marker=',')
+					if tail > 0:
+						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=1.5, markersize=8, marker=',')
+					else:
+						line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=8, marker=',')
 					lines.append(line1)
 					labs.append("Obj" + str(i) + " Process")
 
@@ -347,6 +379,13 @@ class Simulation:
 				line_fa = ax.scatter(false_alarms[0], false_alarms[1], s=8, marker='x')
 				lines.append(line_fa)
 				labs.append("False Alarms from Tracker")
+			if measure.size != 0:
+				if tail > 0:
+					line2 = ax.scatter(measure[0][-tail:], measure[1][-tail:], c=colors[-tail:], s=8, marker='x')
+				else:
+					line2 = ax.scatter(measure[0], measure[1], c=colors, s=8, marker='x')
+				lines.append(line2)
+				labs.append("Measure")
 
 			# Add the predicted trajectories to the plot
 			if len(self.trajectories) > 0:
@@ -355,9 +394,17 @@ class Simulation:
 						line3, = ax.plot(out[0], out[1], lw=0.4, markersize=7, marker=',')
 						lines.append(line3)
 						labs.append("Obj" + str(i) + " Filter")
+					if tail > 0:
+						line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=0.4, markersize=8, marker=',')
+					else:
+						line3, = ax.plot(out[0], out[1], lw=0.4, markersize=8, marker=',')
+					lines.append(line3)
+					labs.append("Obj" + str(i) + " Filter")
 
 			# Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
 			#ax.set_title(title + "\n" + self.descs[index], loc="left", y=1)
+			if tail > 0:
+				title = "Zoom to End of " + title
 			ax.set_title(title + "\n" + var + " = " + str(self.descs[index][var]), fontsize=20)
 			ax.set_xlabel(x_label)
 			ax.set_ylabel(y_label)
@@ -369,21 +416,50 @@ class Simulation:
 							new_c=copy(ellipse)
 							ax.add_patch(new_c)
 					labs.append("Covariance")
+				for j, ellipse in enumerate(ellipses):
+					if j % ellipse_freq == 0:
+						if tail > 0:
+							if j >= len(ellipses) - tail:
+								new_c=copy(ellipse)
+								ax.add_patch(new_c)
+						else:
+							new_c=copy(ellipse)
+							ax.add_patch(new_c)
+				labs.append("Covariance")
+			ax.set_aspect(1)
+			ax.axis('square')
 			#ax.set_xlim(-self.generator.x_lim, self.generator.x_lim)
 			#ax.set_ylim(-self.generator.y_lim, self.generator.y_lim)
-			ax.axis('square')
 
 			# Add the velocity vectors to the plot
 			for i, obj in enumerate(process):
 				a = 0.2
 				ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
+				a = 0.2
+				if tail > 0:
+					ax.quiver(obj[0][-tail:], obj[1][-tail:], obj[2][-tail:], obj[3][-tail:], alpha = a)
+				else:
+					ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
 
 			#Below is an old method, if we want to include the full Q and R matrix
 			#plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
 
 			if legend is True:
 				ax.legend(handles=lines, labels=labs, fontsize=legend_size)
+			# Plot labels
+			true_noises = "true ep_at = " + str(self.generator.ep_tangent) + ", true ep_ct = " + str(self.generator.ep_normal)
+			filter_noises = "filter ep_at = " + self.descs[0]["fep_at"] + ", filter ep_ct = " + self.descs[0]["fep_ct"]
+			measurement_noise = "measurement noise = " + str(self.generator.R[0][0])
+			filter_measurement_noise = "filter measurement noise = " + str(self.kFilter_model.R[0][0])
+			true_state = "true state = " + "[" + self.descs[0]["x0"] + ", " + self.descs[0]["y0"] + ", " + self.descs[0]["vx0"] + ", " + self.descs[0]["vy0"] + "]"
+			filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
+			covariance = "P = " + self.descs[0]["P"]
 
+			caption = true_noises + "\n" + filter_noises + "\n" + measurement_noise + "\n" + filter_measurement_noise + "\n" + true_state + "\n" + filter_state + "\n" + covariance + "\n" + "RMSE of plot = " + str(self.RMSE) + "\nAME of plot = " + str(self.AME)
+			if tail >= 0:
+				fig.text(1, 0.5, caption, ha='center', fontsize = 14)
+			#else:
+				#print(caption)
 			return lines;
 
 		#Plot in 3 dimensions

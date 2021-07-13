@@ -41,7 +41,7 @@ class KalmanFilter:
 
         # set a priori and a posteriori estimate error covariances to all ones (not all zeros)
         if P is None:
-            self.P = np.eye(self.n)
+        	self.P = np.eye(self.n) # posteriori estimate error covariance initialized to the identity matrix
         else:
             self.P = P # posteriori estimate error covariance initialized to the identity matrix
         self.P_minus = self.P # priori estimate error coviariance matrix initialized to the identity matrix
