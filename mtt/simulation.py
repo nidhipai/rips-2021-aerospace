@@ -6,11 +6,6 @@ Simulation
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy, deepcopy
-#plt.rcParams['text.usetex'] = True
-#plt.rcParams.update({
-	#"text.usetex": True,
-	#"font.family": "sans-serif",
-	#"font.serif": ["Helvetica"]})
 
 from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
@@ -111,20 +106,16 @@ class Simulation:
 
 		# Set up the filter with the desired parameters to test
 		# NOTE: Currently hardcoded to be single target
-		#self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, P, H, u)
 		self.kFilter_model = self.kFilter(x0[0], f, jac, h, Q, W, R, P, H=H, u=0)
 		self.tracker_model = self.tracker(self.kFilter_model)
 
 		# Set up lists to store objects for later plotting
 		ellipses = []
-		# first = x0[0][0:2,0]
-		# first.shape = (2,1)
 		output = []
 		self.signed_errors[index] = []
 		# {0: first}
 		# Iterate through each time step for which we have measurements
 		for i in range(len(self.processes[index])):
-
 			# Obtain a set of guesses for the current location of the object given the measurements
 			# Note this will need to change later to incorporate multiple objects
 
@@ -182,12 +173,16 @@ class Simulation:
 		traj = self.clean_trajectory(traj)[0]
 		center_errors = (np.sqrt(np.power(process[:2, :][0] - traj[0], 2) + np.power(process[:2, :][1] - traj[1], 2)))
 		center_errors = center_errors[20:]
+		#print("PROC", process[:2, :])
+		#print("TRAJ", traj)
+		#print(center_errors)
 		#center_errors = SingleTargetEvaluation.center_error(process[:2, :], traj)
 		self.RMSE = np.sqrt(np.dot(center_errors, center_errors) / len(center_errors))
 		#print(self.RMSE)
 		self.AME = sum(center_errors) / len(center_errors)
 
 		self.signed_errors[index] = np.array(self.signed_errors[index]).squeeze().T
+		print(self.measures)
 
 	def experiment(self, ts, test="data", **kwargs):
 		"""
