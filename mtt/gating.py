@@ -30,6 +30,7 @@ class DistanceGating:
             tracks: dict of tracks from MTTTracker
             measurements: not used
             time: not used
+            false_alarms: not used
         """
         if tracks is None:
             print("Error tracks is none in gating")

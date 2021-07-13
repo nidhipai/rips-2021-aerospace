@@ -18,6 +18,7 @@ class Track:
             filter_params: a dictionary of parameters for the filter
             init_measure: the initial measurement that creates the track
             init_time: what timestep init_measure was recorded
+            init_velocity: initial velocity of object, np array
         """
         # initial state for filter, uses intial measure and 0 velocity
         initial_state = np.row_stack((init_measure, init_velocity))
