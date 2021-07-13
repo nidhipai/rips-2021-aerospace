@@ -146,6 +146,7 @@ class MultiObjFixed(DataGenerator):
 		pad = np.array([0, 0])
 		rotation = self.W(xt)[2:4, 2:4]
 		noise = rng.multivariate_normal((0, 0), rotation @ self.Q[2:4, 2:4] @ rotation.T)
+		#print(noise, xt)
 		output = np.append(pad, noise)
 		output.shape = (4, 1)
 		return output
