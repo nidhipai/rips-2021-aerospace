@@ -30,14 +30,14 @@ class Tracker:
 
         if len(measure_t) > 0:
             # Process the point using the filter
-            measure_t_new = self.remove_fas(measure_t)
+            measure_t_new = measure_t[0] #self.remove_fas(measure_t)
             self.measures.append(measure_t_new)
             self.kFilter_model.predict(measure_t_new, np.array(self.measures))
-            self.current_guess = {0: self.kFilter_model.get_current_guess()[0:2]}
+            self.current_guess = {0: self.kFilter_model.get_current_guess()}
         else:
             # If we don't have any measurements we need to guess for each object
             self.kFilter_model.predict(None, np.array(self.measures))
-            self.current_guess = {0: self.kFilter_model.get_current_guess()[0:2]}
+            self.current_guess = {0: self.kFilter_model.get_current_guess()}
 
     def get_current_guess(self):
         """
