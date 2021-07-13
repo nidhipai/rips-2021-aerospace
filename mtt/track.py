@@ -26,6 +26,7 @@ class Track:
         self.predictions = dict() # keys are timesteps, doesn't need to start at 0
         self.possible_observations = dict()  # used to pass around the possible measurements for this track for this ts
         self.stage = 0  # 0 is not confirmed yet, 1 is confirmed, 2 is deleted (done in track maintenance)
+        self.missed_measurements = 0
 
     def get_current_guess(self):
         """

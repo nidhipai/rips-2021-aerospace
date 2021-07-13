@@ -8,7 +8,7 @@ class FilterPredict:
     """
     Wrapper around Kalman predict
     """
-    def predict(self, tracks=None, measurements=None, time=0):
+    def predict(self, tracks=None, measurements=None, time=0, false_alarms=None):
         """
         Runs the Kalman filters in each of the tracks
         Args:

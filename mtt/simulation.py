@@ -52,6 +52,7 @@ class Simulation:
 		self.trajectories = dict()
 		self.descs = dict()
 		self.ellipses = dict()
+		self.false_alarms = dict()
 		if methods is not None:
 			self.methods = methods
 		else: # for backwards compatibility
@@ -129,6 +130,8 @@ class Simulation:
 
 		self.ellipses[len(self.ellipses.keys())] = ellipses
 		#only updating the last one
+
+		self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.false_alarms
 
 		for method in self.methods:
 			if isinstance(method, TrackMaintenance):
@@ -290,6 +293,10 @@ class Simulation:
 			colors = self.measure_colors[index]
 			colors = self.clean_measure(colors)
 
+		if len(self.false_alarms) > 0:
+			false_alarms = self.false_alarms[index]
+			false_alarms = self.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
+
 		# Select proper ellipses to plot
 		ellipses = None
 		if len(self.ellipses) > index:
@@ -328,6 +335,12 @@ class Simulation:
 				# lines.append(line2)
 				# labs.append("Measure")
 
+			# plot what we think are false_alarms
+			if len(false_alarms) > 0:
+				line_fa = ax.scatter(false_alarms[0], false_alarms[1], s=8, marker='x')
+				lines.append(line_fa)
+				labs.append("False Alarms from Tracker")
+
 			# Add the predicted trajectories to the plot
 			if len(self.trajectories) > 0:
 				for i, out in enumerate(output):
@@ -335,7 +348,6 @@ class Simulation:
 						line3, = ax.plot(out[0], out[1], lw=0.4, markersize=7, marker=',')
 						lines.append(line3)
 						labs.append("Obj" + str(i) + " Filter")
-
 
 			# Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
 			#ax.set_title(title + "\n" + self.descs[index], loc="left", y=1)
@@ -530,6 +542,21 @@ class Simulation:
 				track_x.append(x)
 				track_y.append(y)
 			output[key] = [track_x, track_y]
+		return output
+
+	@staticmethod
+	def clean_false_alarms(false_alarms):
+		"""
+		Takes in a dict of key: timestep, value: array of false alarm vectors, returns a array of 2 arrays:
+		first array is x-cor and second is y-cor
+		"""
+		output_x = []
+		output_y = []
+		for ts, arr in false_alarms.items():
+			for fa in arr:
+				output_x.append(fa[0][0])
+				output_y.append(fa[1][0])
+		output = [output_x, output_y]
 		return output
 
 
