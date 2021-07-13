@@ -4,12 +4,13 @@ Aerospace Team
 """
 
 from mtt import Track
+import numpy as np
 
 class TrackMaintenance:
     """
     Updates the status for tracks and creates new tracks as necessary
     """
-    def __init__(self, kfilter, generator_params, num_init, num_init_frames, num_delete, predict_params=None, num_obj=None):
+    def __init__(self, kfilter, generator_params, num_init, num_init_frames, num_delete, predict_params=None, num_obj=None, init_velocity=np.array([[0], [0]])):
         """
         Sets the rules for how tracks are created and deleted
         Args:
@@ -29,6 +30,7 @@ class TrackMaintenance:
         self.num_delete = num_delete
 
         self.num_obj = num_obj
+        self.init_velocity = init_velocity
 
         # pull the filter params from filter_params first, then if they aren't specificed, ask generator_params
         self.filter_params = generator_params.update(predict_params) if predict_params is not None else generator_params
@@ -47,7 +49,7 @@ class TrackMaintenance:
         for measurement in measurements:
             if measurement is not None:
                 if new_objects_q:
-                    tracks[len(tracks)] = Track(self.kfilter, self.filter_params, measurement, time)
+                    tracks[len(tracks)] = Track(self.kfilter, self.filter_params, measurement, time, self.init_velocity)
                 else:
                     false_alarms_time.append(measurement)
         false_alarms[time] = false_alarms_time
