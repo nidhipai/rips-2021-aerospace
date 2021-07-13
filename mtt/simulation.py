@@ -546,6 +546,15 @@ class Simulation:
 			output[i] = arr[:, 1:]
 		return output
 
+	def plot_mhlb(self):
+		x_vals = np.array(range(len(self.tracker_model.get_dists())))
+		fig,ax = plt.subplots()
+		ax.plot(x_vals, self.tracker_model.get_dists(), color = "red")
+		ax.set_title("Mahalanobis distances over time")
+		ax.set_xlabel("time steps")
+		ax.set_ylabel("Mahalanobis distance")
+		plt.show()
+
 
 '''The same as the cov_ellipse function, but draws multiple p-values depending on the passed on list. One can also 
 plot the scattered values using this function to see which points are outliers. '''

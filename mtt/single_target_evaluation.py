@@ -21,10 +21,11 @@ class SingleTargetEvaluation:
 			self.prediction.append(predicted_sim)
 		self.truth = np.array(self.truth)		
 		self.prediction = np.array(self.prediction)
+		# self.simulation.plot_mhlb()
 
 	def plot_error(self, x, y, title = None, x_label = None, y_label = None):
 		fig,ax = plt.subplots()
-		ax.plot(x, y, color = "red")
+		ax.plot(x, y, color = "purple")
 		ax.set_title(title)
 		ax.set_xlabel(x_label)
 		ax.set_ylabel(y_label)
