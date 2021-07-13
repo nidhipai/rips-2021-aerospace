@@ -133,7 +133,7 @@ class Simulation:
 				self.signed_errors[index].append(step_error)
 
 			# Store the ellipse for later plottingS
-			cov_ = self.tracker_model.kFilter_model.P[:2, :2]
+			cov_ = self.tracker_model.kFilter_model.P[2:4, 2:4]
 			mean_ = (self.tracker_model.kFilter_model.x_hat[0, 0], self.tracker_model.kFilter_model.x_hat[1, 0])
 			if ellipse_mode == "plotly":
 				ellipses.append(self.cov_ellipse_plotly(mean=mean_, cov=cov_))
