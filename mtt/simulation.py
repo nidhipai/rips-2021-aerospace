@@ -14,6 +14,7 @@ from .data_association import DataAssociation
 from .kalmanfilter2 import KalmanFilter
 from .track_maintenance import TrackMaintenance
 from .filter_predict import FilterPredict
+from .metrics import Metrics
 
 
 from mpl_toolkits import mplot3d
@@ -374,12 +375,10 @@ class Simulation:
 						line3, = ax.plot(out[0], out[1], lw=0.4, markersize=7, marker=',')
 						lines.append(line3)
 						labs.append("Obj" + str(i) + " Filter")
-					if tail > 0:
-						line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=0.4, markersize=8, marker=',')
-					else:
-						line3, = ax.plot(out[0], out[1], lw=0.4, markersize=8, marker=',')
-					lines.append(line3)
-					labs.append("Obj" + str(i) + " Filter")
+					#if tail > 0:
+						#line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=0.4, markersize=8, marker=',')
+					#else:
+						#line3, = ax.plot(out[0], out[1], lw=0.4, markersize=8, marker=',')
 
 			# Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
 			#ax.set_title(title + "\n" + self.descs[index], loc="left", y=1)
@@ -659,45 +658,32 @@ class Simulation:
 			output.append(track_output)
 		return output
 
-'''The same as the cov_ellipse function, but draws multiple p-values depending on the passed on list. One can also 
-plot the scattered values using this function to see which points are outliers. '''
-def cov_ellipse_fancy(X, mean, cov, p=(0.99, 0.95, 0.90)):
-	"""
-	The same as the cov_ellipse function, but draws multiple p-values depending on the passed on list. One can also
-	plot the scattered values using this function to see which points are outliers.
+	def compute_metrics(self, m = 'ame', cut = 10):
+		index = len(self.processes.keys()) - 1
+		if len(self.processes) > 0:
+			process = self.processes[index]
+			process = self.clean_process(process)
+		else:
+			print("ERROR PROCESS LENGTH 0")
+			return
+		if len(self.measures) > 0:
+			sorted_measures = self.sorted_measurements[index]
+			measure = self.clean_measure2(sorted_measures) #THIS IS CHANGED TO 2
+		else:
+			print("ERROR MEASURE LENGTH 0")
+			return
+		if len(self.trajectories) > 0:
+			output = self.trajectories[index]
+			output = self.clean_trajectory(output)
+		else:
+			print("ERROR TRAJECTORY LENGTH 0")
+			return
 
-	Args:
-		X (ndarray): list of points to be plotted on a scatterplot
-		mean (ndarray): set of coordinates representing the center of the plotted ellipse
-		cov (ndarray): the covariance matrix
-		p (list): list of confidence ellipses to be plotted
-	"""
-	plt.rcParams.update({'font.size': 22})
-	fig = plt.figure(figsize=(12, 12))
-	colors = ["black", "red", "purple", "blue"]
-	#colors = Cube1_4.mpl_colors
-	axes = plt.gca()
-	colors_array = np.array([colors[0]] * X.shape[0])
+		if m == 'ame':
+			return Metrics.AME_euclidean(process, output, cut)
+		if m == 'rmse':
+			return Metrics.RMSE_euclidean(process, output, cut)
+		if m == 'atct':
+			return Metrics.atct_signed(process, output, cut)
+		print("ERROR INVALID METRIC")
 
-	#for loop to individually draw each of the p-ellipses.
-	for i in range(len(p)):
-		s = -2 * np.log(1 - p[i])
-		w, v = np.linalg.eig(s * cov)
-		w = np.sqrt(w)
-		ang = np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
-		ellipse = Ellipse(xy=mean, width=2 * w[0], height=2 * w[1], angle=ang,edgecolor=colors[i+1], lw=2, fc="none", label=str(p[i]))
-		cos_angle = np.cos(np.radians(180. - ang))
-		sin_angle = np.sin(np.radians(180. - ang))
-
-		x_val = (X[:, 0] - mean[0]) * cos_angle - (X[:, 1] - mean[1]) * sin_angle
-		y_val = (X[:, 0] - mean[0]) * sin_angle + (X[:, 1] - mean[1]) * cos_angle
-
-		#calculating whether a point is inside an ellipse. If it is, we change the color of the point to a specific desired color.
-		rad_cc = (x_val ** 2 / (w[0]) ** 2) + (y_val ** 2 / (w[1]) ** 2)
-		colors_array[np.where(rad_cc <= 1.)[0]] = colors[i+1]
-
-		axes.add_patch(ellipse)
-	#plot the scattered points with the ellipses.
-	axes.scatter(X[:, 0], X[:, 1], linewidths=0, alpha=1, c = colors_array)
-	plt.legend(title="p-value", loc=2, prop={'size': 15}, handleheight=0.01)
-	plt.show()
