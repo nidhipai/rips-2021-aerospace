@@ -15,7 +15,7 @@ class Distances:
     """
     @staticmethod
     def euclidean(measurement, kfilter):
-        return np.linalg.norm(measurement - kfilter.get_current_guess()[0:2])
+        return np.linalg.norm(measurement - kfilter.get_current_guess())
 
     @staticmethod
     def mahalanobis(measurement, kfilter):

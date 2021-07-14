@@ -32,8 +32,15 @@ fa_scale = 10
 input_margin = 10
 input_style = {"display": "inline-block", "margin": input_margin}
 
-gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa_scale)
-sim = mtt.Simulation(gen, mtt.KalmanFilter, mtt.Tracker)
+gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu)
+gate = mtt.DistanceGating(10, expand_gating = 5, method="euclidean")
+assoc = mtt.DataAssociation()
+params = gen.get_params()
+maintain = mtt.TrackMaintenance(mtt.KalmanFilter, params, num_obj = 2, num_init = 2, num_init_frames=3, num_delete=3)
+filter_ = mtt.FilterPredict()
+methods = [gate, assoc, maintain, filter_]
+
+sim = mtt.Simulation(gen, mtt.KalmanFilter, mtt.MTTTracker, methods)
 
 sim.generate(ts)
 sim.predict(ellipse_mode="plotly")
@@ -73,7 +80,7 @@ err.add_trace(go.Scatter(y=errors[2], x=list(range(errors[2].size)), mode='lines
 
 err.add_trace(go.Scatter(y=errors[3], x=list(range(errors[3].size)), mode='lines',
                          name="Along-track Velocity Error"))
-
+"""
 xs = []
 ys = []
 for ellipse in sim.ellipses[0]:
@@ -83,7 +90,7 @@ for ellipse in sim.ellipses[0]:
     ys.append(None)
 
 fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="Covariance"))
-
+"""
 app.layout = html.Div(children=[
     html.H1(children='2D Object Trajectory Tracking'),
 
