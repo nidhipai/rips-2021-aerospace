@@ -89,6 +89,18 @@ class DataGenerator(ABC):
     def W(self, xt):
         return np.eye(self.n, self.n)
 
+    def get_params(self, P = np.eye(4)):
+        return {
+            "f": self.process_function,
+            "A": self.process_jacobian,
+            "h": self.measurement_function,
+            "Q": self.Q,
+            "W": self.W,
+            "R": self.R,
+            "H": self.H,
+            "P": P
+        }
+
     @abstractmethod
     def process_step(self, xt_prev, rng):
         pass

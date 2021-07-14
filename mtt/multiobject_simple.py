@@ -58,16 +58,6 @@ class MultiObjSimple(DataGenerator):
 		self.nu = nu  # measurement noise variance
 		self.dt = dt
 
-		self.gen_params = {
-			'Q': self.Q,
-			'R': self.R,
-			'H': self.H,
-			'f': self.process_function,
-			'A': self.process_jacobian,
-			'W': self.W,
-			'h': self.measurement_function
-		}
-
 	def process_step(self, xt_prevs, rng):
 		"""
 		Generate the next process state from the previous

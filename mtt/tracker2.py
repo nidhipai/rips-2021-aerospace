@@ -47,7 +47,7 @@ class MTTTracker:
         """
         Gets the list of trajectories from all the tracks
 
-        Returns: An array. Each index of the array represents a timestep; an index contains a dictionary. A key of the dictionary is the object keys (from MTTTracker.tracks) and a value is a column vector (2D vector)
+        Returns: A list. Each index of the list represents a timestep; an index contains a dictionary. A key of the dictionary is the object keys (from MTTTracker.tracks) and a value is a column vector (2D vector)
         """
         result = []
         for ts in range(0, len(self.tracks[0].predictions.values())): # iterate over timesteps

@@ -111,27 +111,26 @@ class Simulation:
 		output = np.empty((self.n, 1))
 
 		self.tracker_model = self.tracker(self.methods)
-
-		self.signed_errors[index] = []
 		# {0: first}
 		# Iterate through each time step for which we have measurements
 		for i in range(len(self.processes[index])):
 			# Obtain a set of guesses for the current location of the object given the measurements
 			self.tracker_model.predict(deepcopy(self.measures[index][i]))
-			# Note this will need to change later to incorporate multiple objects
 
-			self.tracker_model.predict(self.measures[index][i])
-			next_guess = self.tracker_model.get_current_guess()
-			output.append(next_guess)
+		# Store our output as an experiment
+		latest_trajectory = self.tracker_model.get_trajectories()
+		self.trajectories[len(self.trajectories.keys())] = latest_trajectory
 
+		#Now store the errors at each time step
+		self.signed_errors[index] = []
+		for i, next_guess in enumerate(latest_trajectory):
 			# Calculate the along-track and cross track error using rotation matrix
 			for j, value in next_guess.items():
 				true_val = self.processes[index][i][j]
-				step_error = W(true_val) @ (true_val - next_guess[0])
+				step_error = self.generator.W(true_val) @ (true_val - next_guess[0])
 				self.signed_errors[index].append(step_error)
 
 		# Store our output as an experiment
-		self.trajectories[len(self.trajectories.keys())] = self.tracker_model.get_trajectories()
 		self.ellipses[len(self.ellipses.keys())] = self.tracker_model.get_ellipses()
 		self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.false_alarms
 		self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
@@ -145,20 +144,10 @@ class Simulation:
 		self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
 			"Q": str(kalman_params['Q']),
 			"R": str(kalman_params['R']),
-			"Q": str(self.kFilter_model.Q),
-			"fep_at": str(self.kFilter_model.Q[2][2]),
-			"fep_ct": str(self.kFilter_model.Q[3][3]),
-			"R": str(self.kFilter_model.R),
-			"fnu": str(self.kFilter_model.R[0][0]),
-			"x0": str(self.generator.xt0[0][0][0]),
-			"y0": str(self.generator.xt0[0][1][0]),
-			"vx0": str(self.generator.xt0[0][2][0]),
-			"vy0": str(self.generator.xt0[0][3][0]),
-			"fx0": str(self.kFilter_model.xt0[0, 0]),
-			"fy0": str(self.kFilter_model.xt0[1, 0]),
-			"fvx0": str(self.kFilter_model.xt0[2, 0]),
-			"fvy0": str(self.kFilter_model.xt0[3, 0]),
-			"P": str(P[0][0])
+			"fep_at": str(kalman_params['Q'][2][2]),
+			"fep_ct": str(kalman_params['Q'][3][3]),
+			"fnu": str(kalman_params['R'][0][0]),
+			"P": str(kalman_params['P'][0][0])
 		}}
 
 		# MERGE stuff
@@ -175,9 +164,9 @@ class Simulation:
 		#print("TRAJ", traj)
 		#print(center_errors)
 		#center_errors = SingleTargetEvaluation.center_error(process[:2, :], traj)
-		self.RMSE = np.sqrt(np.dot(center_errors, center_errors) / len(center_errors))
+		#self.RMSE = np.sqrt(np.dot(center_errors, center_errors) / len(center_errors))
 		#print(self.RMSE)
-		self.AME = sum(center_errors) / len(center_errors)
+		#self.AME = sum(center_errors) / len(center_errors)
 
 		self.signed_errors[index] = np.array(self.signed_errors[index]).squeeze().T
 
@@ -316,9 +305,8 @@ class Simulation:
 			process = self.clean_process(process)
 
 		if len(self.measures) > 0:
-			sorted_measures = self.sorted_measurements
+			sorted_measures = self.sorted_measurements[index]
 			measure = self.clean_measure2(sorted_measures) #THIS IS CHANGED TO 2
-
 		if len(self.trajectories) > 0:
 			output = self.trajectories[index]
 			output = self.clean_trajectory(output)
@@ -364,7 +352,7 @@ class Simulation:
 
 			# Add the measures to the plot
 			# the colors of a measurement correspond to which track the filter thinks it belongs to
-			if len(measure) != 0:
+			if len(measure.values()) != 0:
 				for key, value in measure.items():
 					linex = ax.scatter(value[0], value[1], s=8, marker='x')
 					lines.append(linex)
@@ -379,13 +367,6 @@ class Simulation:
 				line_fa = ax.scatter(false_alarms[0], false_alarms[1], s=8, marker='x')
 				lines.append(line_fa)
 				labs.append("False Alarms from Tracker")
-			if measure.size != 0:
-				if tail > 0:
-					line2 = ax.scatter(measure[0][-tail:], measure[1][-tail:], c=colors[-tail:], s=8, marker='x')
-				else:
-					line2 = ax.scatter(measure[0], measure[1], c=colors, s=8, marker='x')
-				lines.append(line2)
-				labs.append("Measure")
 
 			# Add the predicted trajectories to the plot
 			if len(self.trajectories) > 0:
@@ -450,12 +431,12 @@ class Simulation:
 			true_noises = "true ep_at = " + str(self.generator.ep_tangent) + ", true ep_ct = " + str(self.generator.ep_normal)
 			filter_noises = "filter ep_at = " + self.descs[0]["fep_at"] + ", filter ep_ct = " + self.descs[0]["fep_ct"]
 			measurement_noise = "measurement noise = " + str(self.generator.R[0][0])
-			filter_measurement_noise = "filter measurement noise = " + str(self.kFilter_model.R[0][0])
-			true_state = "true state = " + "[" + self.descs[0]["x0"] + ", " + self.descs[0]["y0"] + ", " + self.descs[0]["vx0"] + ", " + self.descs[0]["vy0"] + "]"
-			filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
+			filter_measurement_noise = "filter measurement noise = " + str(self.generator.get_params()["R"][0][0])
+			#true_state = "true state = " + "[" + self.descs[0]["x0"] + ", " + self.descs[0]["y0"] + ", " + self.descs[0]["vx0"] + ", " + self.descs[0]["vy0"] + "]"
+			#filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
 			covariance = "P = " + self.descs[0]["P"]
 
-			caption = true_noises + "\n" + filter_noises + "\n" + measurement_noise + "\n" + filter_measurement_noise + "\n" + true_state + "\n" + filter_state + "\n" + covariance + "\n" + "RMSE of plot = " + str(self.RMSE) + "\nAME of plot = " + str(self.AME)
+			caption = true_noises + "\n" + filter_noises + "\n" + measurement_noise + "\n" + filter_measurement_noise + "\n" + covariance + "\n"# + "RMSE of plot = " + str(self.RMSE) + "\nAME of plot = " + str(self.AME)
 			if tail >= 0:
 				fig.text(1, 0.5, caption, ha='center', fontsize = 14)
 			#else:
@@ -678,15 +659,6 @@ class Simulation:
 				track_output.append(Simulation.cov_ellipse(param_set[0], param_set[1]))
 			output.append(track_output)
 		return output
-
-	def plot_mhlb(self):
-		x_vals = np.array(range(len(self.tracker_model.get_dists())))
-		fig,ax = plt.subplots()
-		ax.plot(x_vals, self.tracker_model.get_dists(), color = "red")
-		ax.set_title("Mahalanobis distances over time")
-		ax.set_xlabel("time steps")
-		ax.set_ylabel("Mahalanobis distance")
-		plt.show()
 
 '''The same as the cov_ellipse function, but draws multiple p-values depending on the passed on list. One can also 
 plot the scattered values using this function to see which points are outliers. '''
