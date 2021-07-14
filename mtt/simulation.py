@@ -122,6 +122,7 @@ class Simulation:
 		self.trajectories[len(self.trajectories.keys())] = latest_trajectory
 
 		#Now store the errors at each time step
+		"""
 		self.signed_errors[index] = []
 		for i, next_guess in enumerate(latest_trajectory):
 			# Calculate the along-track and cross track error using rotation matrix
@@ -129,6 +130,9 @@ class Simulation:
 				true_val = self.processes[index][i][j]
 				step_error = self.generator.W(true_val) @ (true_val - next_guess[0])
 				self.signed_errors[index].append(step_error)
+				
+		self.signed_errors[index] = np.array(self.signed_errors[index]).squeeze().T
+		"""
 
 		# Store our output as an experiment
 		self.ellipses[len(self.ellipses.keys())] = self.tracker_model.get_ellipses()
@@ -150,16 +154,12 @@ class Simulation:
 			"P": str(kalman_params['P'][0][0])
 		}}
 
-		# MERGE stuff
-		index = len(self.processes.keys()) - 1
-		# THIS CURRENTLY ONLY HANDLES THE FIRST OBJECT
-		# NEED TO UPDATE
-		process = self.processes[index]
-		process = self.clean_process(process)[0]  # get first two position coordinates
-		traj = self.trajectories[index]
-		traj = self.clean_trajectory(traj)[0]
-		center_errors = (np.sqrt(np.power(process[:2, :][0] - traj[0], 2) + np.power(process[:2, :][1] - traj[1], 2)))
-		center_errors = center_errors[20:]
+		#process = self.processes[index]
+		#process = self.clean_process(process)[0]  # get first two position coordinates
+		#traj = self.trajectories[index]
+		#traj = self.clean_trajectory(traj)[0]
+		#center_errors = (np.sqrt(np.power(process[:2, :][0] - traj[0], 2) + np.power(process[:2, :][1] - traj[1], 2)))
+		#center_errors = center_errors[20:]
 		#print("PROC", process[:2, :])
 		#print("TRAJ", traj)
 		#print(center_errors)
@@ -168,7 +168,6 @@ class Simulation:
 		#print(self.RMSE)
 		#self.AME = sum(center_errors) / len(center_errors)
 
-		self.signed_errors[index] = np.array(self.signed_errors[index]).squeeze().T
 
 	def experiment(self, ts, test="data", **kwargs):
 		"""
@@ -394,18 +393,16 @@ class Simulation:
 				for track_e in ellipses:
 					for j, ellipse in enumerate(track_e):
 						if j % ellipse_freq == 0:
-							new_c=copy(ellipse)
-							ax.add_patch(new_c)
-					labs.append("Covariance")
-				for j, ellipse in enumerate(ellipses):
-					if j % ellipse_freq == 0:
-						if tail > 0:
-							if j >= len(ellipses) - tail:
-								new_c=copy(ellipse)
+							if tail > 0:
+								if j >= len(ellipses) - tail:
+									new_c = copy(ellipse)
+									ax.add_patch(new_c)
+								else:
+									new_c = copy(ellipse)
+									ax.add_patch(new_c)
+							else:
+								new_c = copy(ellipse)
 								ax.add_patch(new_c)
-						else:
-							new_c=copy(ellipse)
-							ax.add_patch(new_c)
 				labs.append("Covariance")
 			ax.set_aspect(1)
 			ax.axis('square')
@@ -507,6 +504,8 @@ class Simulation:
 		"""
 		self.processes = dict()
 		self.measures = dict()
+		self.sorted_measurements = dict()
+		self.signed_errors = dict()
 		self.trajectories = dict()
 		self.descs = dict()
 		self.ellipses = dict()

@@ -10,7 +10,9 @@ from copy import copy
 
 global sim
 global prev_clicks
+global num_objects
 prev_clicks = 0
+num_objects = 1
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -27,70 +29,26 @@ ts = 10
 miss_p = 0.1
 lam = 1
 fa_scale = 10
+gate_size = 10
+gate_expand_size = 90
 
 # Style Parameters
 input_margin = 10
 input_style = {"display": "inline-block", "margin": input_margin}
 
 gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu)
-gate = mtt.DistanceGating(10, expand_gating = 5, method="euclidean")
+gate = mtt.DistanceGating(gate_size, expand_gating=gate_expand_size, method="euclidean")
 assoc = mtt.DataAssociation()
 params = gen.get_params()
-maintain = mtt.TrackMaintenance(mtt.KalmanFilter, params, num_obj = 2, num_init = 2, num_init_frames=3, num_delete=3)
+maintain = mtt.TrackMaintenance(mtt.KalmanFilter, params, num_obj = num_objects, num_init = 2, num_init_frames=3, num_delete=3)
 filter_ = mtt.FilterPredict()
 methods = [gate, assoc, maintain, filter_]
 
 sim = mtt.Simulation(gen, mtt.KalmanFilter, mtt.MTTTracker, methods)
 
-sim.generate(ts)
-sim.predict(ellipse_mode="plotly")
-
-processes = sim.clean_process(sim.processes[0])
-colors = sim.clean_measure(sim.measure_colors[0])
-measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
-measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
-trajectories = sim.clean_trajectory(sim.trajectories[0])
-errors = sim.signed_errors[0]
-
 fig = go.Figure()
 err = go.Figure()
 
-
-for i, process in enumerate(processes):
-    #fig.add_trace(ff.create_quiver(process[0], process[1], process[2], process[3], name='Object {} Velocity'.format(i)))
-    fig.add_trace(go.Scatter(x=process[0], y=process[1], mode='lines', name='Object {} Position'.format(i)))
-
-fig.add_trace(go.Scatter(x=measures_true[0], y=measures_true[1], mode='markers',
-                         name="True Measures", marker=dict(color="black")))
-fig.add_trace(go.Scatter(x=measures_false[0], y=measures_false[1], mode='markers',
-                         name="False Alarms", marker=dict(color="gray")))
-
-for i, trajectory in enumerate(trajectories):
-    fig.add_trace(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines+markers',
-                             name='Object {} Trajectory'.format(i)))
-
-err.add_trace(go.Scatter(y=errors[0], x=list(range(errors[0].size)), mode='lines',
-                         name="Cross-track Position Error"))
-
-err.add_trace(go.Scatter(y=errors[1], x=list(range(errors[1].size)), mode='lines',
-                         name="Along-track Position Error"))
-
-err.add_trace(go.Scatter(y=errors[2], x=list(range(errors[2].size)), mode='lines',
-                         name="Cross-track Velocity Error"))
-
-err.add_trace(go.Scatter(y=errors[3], x=list(range(errors[3].size)), mode='lines',
-                         name="Along-track Velocity Error"))
-"""
-xs = []
-ys = []
-for ellipse in sim.ellipses[0]:
-    xs += list(ellipse[0])
-    xs.append(None)
-    ys += list(ellipse[1])
-    ys.append(None)
-
-fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="Covariance"))
-"""
 app.layout = html.Div(children=[
     html.H1(children='2D Object Trajectory Tracking'),
 
@@ -274,7 +232,7 @@ app.layout = html.Div(children=[
 def update(n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, Q, R, P, x0_filter):
     global prev_clicks
     global sim
-    if prev_clicks < n_clicks:
+    if prev_clicks < n_clicks or prev_clicks == 0:
         prev_clicks = n_clicks
         # Set default parameters
         if ts is None:
@@ -297,6 +255,7 @@ def update(n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_sca
         # Parse the Object Starting Positions
         x0_split = x0.split("|")
         x0_parse = dict()
+
         for i, item in enumerate(x0_split):
             x0_parse[i] = np.array(item.strip().split(" ")).astype(float)
             x0_parse[i].shape = (4,1)
@@ -345,14 +304,14 @@ def update(n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_sca
         sim.clear()
         sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale)
         sim.generate(ts)
-        sim.predict(ellipse_mode="plotly",x0=x0_filter_parse, Q=Q_parse, R=R_parse, P=P_parse)
+        sim.predict(ellipse_mode="plotly", x0=x0_filter_parse, Q=Q_parse, R=R_parse, P=P_parse)
 
     processes = sim.clean_process(sim.processes[0])
     colors = sim.clean_measure(sim.measure_colors[0])
     measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
     measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
     trajectories = sim.clean_trajectory(sim.trajectories[0])
-    errors = sim.signed_errors[0]
+    #errors = sim.signed_errors[0]
 
     fig = go.Figure()
     err = go.Figure()
@@ -380,16 +339,16 @@ def update(n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_sca
 
         fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="Covariance"))
 
-    err.add_trace(go.Scatter(y=errors[0], x=list(range(errors[0].size)), mode='lines',
-                             name="Cross-track Error", marker=dict(color="blue")))
+    #err.add_trace(go.Scatter(y=errors[0], x=list(range(errors[0].size)), mode='lines',
+    #                         name="Cross-track Error", marker=dict(color="blue")))
 
-    err.add_trace(go.Scatter(y=errors[1], x=list(range(errors[1].size)), mode='lines',
-                             name="Along-track Error", marker=dict(color="orange")))
-    err.add_trace(go.Scatter(y=errors[2], x=list(range(errors[2].size)), mode='lines',
-                             name="Cross-track Velocity Error"))
+    #err.add_trace(go.Scatter(y=errors[1], x=list(range(errors[1].size)), mode='lines',
+    #                         name="Along-track Error", marker=dict(color="orange")))
+    #err.add_trace(go.Scatter(y=errors[2], x=list(range(errors[2].size)), mode='lines',
+    #                         name="Cross-track Velocity Error"))
 
-    err.add_trace(go.Scatter(y=errors[3], x=list(range(errors[3].size)), mode='lines',
-                             name="Along-track Velocity Error"))
+    #err.add_trace(go.Scatter(y=errors[3], x=list(range(errors[3].size)), mode='lines',
+    #                         name="Along-track Velocity Error"))
 
     return fig, err
 
