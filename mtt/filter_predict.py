@@ -24,6 +24,12 @@ class FilterPredict:
                 track.predictions[time] = track.get_current_guess()
 
                 mean = (track.filter_model.x_hat[0, 0], track.filter_model.x_hat[1, 0])
-                cov = track.filter_model.P[:2, :2]
-                track.ellipses[time] = [mean, cov]  # these are the params needed to make the ellipses
+                # NOTE: This stores only the position covariance ellipse
+                # Here we store the a prior error covariance, which is projected from the previous
+                # a posteriori error covariance
+                # A smaller a priori error covariance means the actual measurement is trusted less
+                # Thus P_minus represents a general area where the filter thinks the next process point will be
+                track.apriori_ellipses[time] = [mean, track.filter_model.P_minus]
+                track.aposteriori_ellipses[time] = [mean, track.filter_model.P]
+                #track.aposteriori_ellipses[time] = [mean, cov] # these are the params needed to make the ellipses
             # don't need to take care of dead objects here beause it's taken care of in get_traj in tracker2

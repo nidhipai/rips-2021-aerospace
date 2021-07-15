@@ -60,13 +60,16 @@ class MTTTracker:
                     result[ts][j] = list(repeat([None], 4))
         return result
 
-    def get_ellipses(self):
+    def get_ellipses(self, mode="apriori"):
         """
         Returns: a dict with keys: tracks and values: array of ellipse params
         """
         ellipses = dict()
         for i, track in self.tracks.items():
-            ellipses[i] = list(track.ellipses.values())
+            if mode == "apriori":
+                ellipses[i] = list(track.apriori_ellipses.values())
+            else:
+                ellipses[i] = list(track.aposteriori_ellipses.values())
         return ellipses
 
     def get_sorted_measurements(self):

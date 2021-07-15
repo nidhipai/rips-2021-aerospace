@@ -22,13 +22,13 @@ rng = np.random.default_rng()
 obj1 = np.array([[0], [0], [1], [1]])
 initial = {0: obj1}
 dt = 1
-ep_normal = 1
-ep_tangent = 0.1
-nu = 1
+ep_normal = 0
+ep_tangent = 1
+nu = 0.01
 ts = 10
-miss_p = 0.1
-lam = 1
-fa_scale = 10
+miss_p = 0
+lam = 0
+fa_scale = 1
 gate_size = 10
 gate_expand_size = 90
 
@@ -36,7 +36,7 @@ gate_expand_size = 90
 input_margin = 10
 input_style = {"display": "inline-block", "margin": input_margin}
 
-gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu)
+gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa_scale)
 gate = mtt.DistanceGating(gate_size, expand_gating=gate_expand_size, method="euclidean")
 assoc = mtt.DataAssociation()
 params = gen.get_params()
@@ -63,7 +63,8 @@ app.layout = html.Div(children=[
             {'label': 'Process', 'value': 'process'},
             {'label': 'Measure', 'value': 'measure'},
             {'label': 'Trajectory', 'value': 'trajectory'},
-            {'label': 'Covariance', 'value': 'covariance'}
+            {'label': 'A Priori Error Covariance', 'value': 'apriori-covariance'},
+            {'label': 'A Posteriori Error Covariance', 'value': 'aposteriori-covariance'}
         ],
         value=['process', 'measure'],
         labelStyle={'display': 'inline-block'}
@@ -76,10 +77,10 @@ app.layout = html.Div(children=[
     ], style={"display":"inline-block"}),
 
     html.Div(children=[
-       dcc.Graph(
-           id='error-graph',
-           figure=err
-       )
+        dcc.Graph(
+            id='error-graph',
+            figure=err
+        )
     ], style={"display":"inline-block"}),
 
 
@@ -213,6 +214,8 @@ app.layout = html.Div(children=[
 @app.callback(
     Output('example-graph', 'figure'),
     Output('error-graph', 'figure'),
+    Input('example-graph', 'figure'),
+    Input('error-graph', 'figure'),
     Input('run', 'n_clicks'),
     Input('check-options', 'value'),
     State('time-steps', 'value'),
@@ -229,24 +232,26 @@ app.layout = html.Div(children=[
     State('x0_filter', 'value')
 
 )
-def update(n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, Q, R, P, x0_filter):
+def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, Q, R, P, x0_filter):
     global prev_clicks
     global sim
-    if prev_clicks < n_clicks or prev_clicks == 0:
+    fig = prev_fig
+    err = prev_err
+    if prev_clicks < n_clicks:
         prev_clicks = n_clicks
         # Set default parameters
         if ts is None:
             ts = 10
         if nu is None:
-            nu = 1
+            nu = 0.01
         if ep_tangent is None:
             ep_tangent = 1
         if ep_normal is None:
-            ep_normal = 1
+            ep_normal = 0
         if miss_p is None:
-            miss_p = 0.1
+            miss_p = 0
         if lam is None:
-            lam = 1
+            lam = 0
         if fa_scale is None:
             fa_scale = 10
         if x0 is None:
@@ -306,38 +311,54 @@ def update(n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_sca
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly", x0=x0_filter_parse, Q=Q_parse, R=R_parse, P=P_parse)
 
-    processes = sim.clean_process(sim.processes[0])
-    colors = sim.clean_measure(sim.measure_colors[0])
-    measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
-    measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
-    trajectories = sim.clean_trajectory(sim.trajectories[0])
-    #errors = sim.signed_errors[0]
+    if n_clicks != 0:
+        processes = sim.clean_process(sim.processes[0])
+        colors = sim.clean_measure(sim.measure_colors[0])
+        measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
+        measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
+        trajectories = sim.clean_trajectory(sim.trajectories[0])
 
-    fig = go.Figure()
-    err = go.Figure()
+        #errors = sim.signed_errors[0]
 
-    if 'process' in options:
-        for i, process in enumerate(processes):
-            fig.add_trace(go.Scatter(x=process[0], y=process[1], mode='lines', name='Object {} Process'.format(i)))
-    if 'measure' in options:
-        fig.add_trace(go.Scatter(x=measures_true[0], y=measures_true[1], mode='markers', name="True Measures",
-                                 marker=dict(color="black")))
-        fig.add_trace(go.Scatter(x=measures_false[0], y=measures_false[1], mode='markers', name="False Alarms",
-                                 marker=dict(color="gray")))
-    if 'trajectory' in options:
-        for i, trajectory in enumerate(trajectories):
-            fig.add_trace(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines+markers',
-                                     name='Object {} Trajectory'.format(i)))
-    if 'covariance' in options:
-        xs = []
-        ys = []
-        for ellipse in sim.ellipses[0]:
-            xs += list(ellipse[0])
-            xs.append(None)
-            ys += list(ellipse[1])
-            ys.append(None)
+        fig = go.Figure()
+        err = go.Figure()
+        if 'process' in options:
+            for i, process in enumerate(processes):
+                fig.add_trace(go.Scatter(x=process[0], y=process[1], mode='lines', name='Object {} Process'.format(i)))
+        if 'measure' in options:
+            fig.add_trace(go.Scatter(x=measures_true[0], y=measures_true[1], mode='markers', name="True Measures",
+                                     marker=dict(color="black")))
+            fig.add_trace(go.Scatter(x=measures_false[0], y=measures_false[1], mode='markers', name="False Alarms",
+                                     marker=dict(color="gray")))
+        if 'trajectory' in options:
+            for i, trajectory in enumerate(trajectories):
+                fig.add_trace(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines+markers',
+                                         name='Object {} Trajectory'.format(i)))
+        if 'apriori-covariance' in options:
+            apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
+            xs = []
+            ys = []
+            for ellipse_list in apriori_ellipses:
+                for ellipse in ellipse_list:
+                    xs += list(ellipse[0])
+                    xs.append(None)
+                    ys += list(ellipse[1])
+                    ys.append(None)
 
-        fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="Covariance"))
+            fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="A Priori Error Covariance"))
+
+        if 'aposteriori-covariance' in options:
+            aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
+            xs = []
+            ys = []
+            for ellipse_list in aposteriori_ellipses:
+                for ellipse in ellipse_list:
+                    xs += list(ellipse[0])
+                    xs.append(None)
+                    ys += list(ellipse[1])
+                    ys.append(None)
+
+            fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="A Posteriori Error Covariance"))
 
     #err.add_trace(go.Scatter(y=errors[0], x=list(range(errors[0].size)), mode='lines',
     #                         name="Cross-track Error", marker=dict(color="blue")))
