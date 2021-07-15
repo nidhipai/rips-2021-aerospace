@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from copy import copy, deepcopy
 from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
+import matplotlib.colors as mcolors
 
 from .gating import DistanceGating
 from .data_association import DataAssociation
@@ -311,9 +312,12 @@ class Simulation:
 			output = self.trajectories[index]
 			output = self.clean_trajectory(output)
 
-		if len(self.measure_colors) > 0:
-			colors = self.measure_colors[index]
-			colors = self.clean_measure(colors)
+		colors_process = ['skyblue', 'seagreen', 'darkkhaki'] # DOESN"T WORK FOR MORE THAN 3 OBJECTS
+		colors_filter = ['orange', 'violet', 'hotpink']
+		false_alarm_color = 'red'
+		proc_size = 3
+		traj_size = 1.5
+		measure_dot_size = 20
 
 		if len(self.false_alarms) > 0:
 			false_alarms = self.false_alarms[index]
@@ -342,48 +346,41 @@ class Simulation:
 			# Add each object's process to the plot
 			if len(self.processes) > 0:
 				for i, obj in enumerate(process):
-					line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=4, marker=',')
 					if tail > 0:
-						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=1.5, markersize=8, marker=',')
+						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=proc_size, markersize=8, marker=',', color=colors_process[i])
 					else:
-						line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=8, marker=',')
+						line1, = ax.plot(obj[0], obj[1], lw=proc_size, markersize=8, marker=',', color=colors_process[i])
 					lines.append(line1)
 					labs.append("Obj" + str(i) + " Process")
-
-			# Add the measures to the plot
-			# the colors of a measurement correspond to which track the filter thinks it belongs to
-			if len(measure.values()) != 0:
-				for key, value in measure.items():
-					linex = ax.scatter(value[0], value[1], s=8, marker='x')
-					lines.append(linex)
-					labs.append("Obj" + str(key) + " Associated Measure")
-
-				# line2 = ax.scatter(measure[0], measure[1], c=colors, s=8, marker='x')
-				# lines.append(line2)
-				# labs.append("Measure")
-
-			# plot what we think are false_alarms
-			if len(false_alarms) > 0:
-				line_fa = ax.scatter(false_alarms[0], false_alarms[1], s=8, marker='x')
-				lines.append(line_fa)
-				labs.append("False Alarms from Tracker")
 
 			# Add the predicted trajectories to the plot
 			if len(self.trajectories) > 0:
 				for i, out in enumerate(output):
 					if out is not None:
-						line3, = ax.plot(out[0], out[1], lw=0.4, markersize=7, marker=',')
+						if tail > 0:
+							line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=traj_size, markersize=8, marker=',',
+											 color=colors_filter[i])
+						else:
+							line3, = ax.plot(out[0], out[1], lw=traj_size, markersize=8, marker=',',
+											 color=colors_filter[i])
 						lines.append(line3)
 						labs.append("Obj" + str(i) + " Filter")
-					if tail > 0:
-						line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=0.4, markersize=8, marker=',')
-					else:
-						line3, = ax.plot(out[0], out[1], lw=0.4, markersize=8, marker=',')
-					lines.append(line3)
-					labs.append("Obj" + str(i) + " Filter")
+
+			# Add the measures to the plot - the colors of a measurement correspond to which track the filter thinks it belongs to
+			if len(measure.values()) != 0:
+				for key, value in measure.items():
+					linex = ax.scatter(value[0], value[1], s=measure_dot_size, marker='x', color=colors_filter[key])
+					lines.append(linex)
+					labs.append("Obj" + str(key) + " Associated Measure")
+
+			# plot what we think are false_alarms
+			if len(false_alarms) > 0:
+				line_fa = ax.scatter(false_alarms[0], false_alarms[1], s=measure_dot_size, marker='x', color=false_alarm_color)
+				lines.append(line_fa)
+				labs.append("False Alarms from Tracker")
+
 
 			# Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
-			#ax.set_title(title + "\n" + self.descs[index], loc="left", y=1)
 			if tail > 0:
 				title = "Zoom to End of " + title
 			ax.set_title(title + "\n" + var + " = " + str(self.descs[index][var]), fontsize=20)
@@ -397,7 +394,7 @@ class Simulation:
 							new_c=copy(ellipse)
 							ax.add_patch(new_c)
 					labs.append("Covariance")
-				for j, ellipse in enumerate(ellipses):
+				for j, ellipse in enumerate(ellipses[0]): #MAKE THIS 0
 					if j % ellipse_freq == 0:
 						if tail > 0:
 							if j >= len(ellipses) - tail:
@@ -414,16 +411,11 @@ class Simulation:
 
 			# Add the velocity vectors to the plot
 			for i, obj in enumerate(process):
-				a = 0.2
-				ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
-				a = 0.2
+				a = .05
 				if tail > 0:
 					ax.quiver(obj[0][-tail:], obj[1][-tail:], obj[2][-tail:], obj[3][-tail:], alpha = a)
 				else:
 					ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
-
-			#Below is an old method, if we want to include the full Q and R matrix
-			#plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
 
 			if legend is True:
 				ax.legend(handles=lines, labels=labs, fontsize=legend_size)
@@ -439,8 +431,6 @@ class Simulation:
 			caption = true_noises + "\n" + filter_noises + "\n" + measurement_noise + "\n" + filter_measurement_noise + "\n" + covariance + "\n"# + "RMSE of plot = " + str(self.RMSE) + "\nAME of plot = " + str(self.AME)
 			if tail >= 0:
 				fig.text(1, 0.5, caption, ha='center', fontsize = 14)
-			#else:
-				#print(caption)
 			return lines;
 
 		#Plot in 3 dimensions
