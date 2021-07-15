@@ -307,6 +307,7 @@ class Simulation:
 		if len(self.measures) > 0:
 			sorted_measures = self.sorted_measurements[index]
 			measure = self.clean_measure2(sorted_measures) #THIS IS CHANGED TO 2
+
 		if len(self.trajectories) > 0:
 			output = self.trajectories[index]
 			output = self.clean_trajectory(output)
@@ -658,6 +659,20 @@ class Simulation:
 			output.append(track_output)
 		return output
 
+	def get_true_fa_and_num_measures(self, measures, colors):
+		true_false_alarms = []
+		i = 0
+		count = 0
+		for color_block in colors:
+			k = 0
+			for color in color_block:
+				count += 1
+				if color == 'red':
+					true_false_alarms.append([measures[i][k][0][0] + measures[i][k][1][0] * 1j])
+				k += 1
+			i += 1
+		return [true_false_alarms, count]
+
 	def compute_metrics(self, m = 'ame', cut = 10):
 		index = len(self.processes.keys()) - 1
 		if len(self.processes) > 0:
@@ -678,6 +693,17 @@ class Simulation:
 		else:
 			print("ERROR TRAJECTORY LENGTH 0")
 			return
+		if len(self.measure_colors) > 0:
+			true_false_alarms = self.get_true_fa_and_num_measures(self.measures[index], self.measure_colors[index])
+		else:
+			print("ERROR COLLORS LENGTH 0")
+			return
+		if len(self.false_alarms) > 0:
+			false_alarms = self.false_alarms[index]
+			false_alarms = self.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
+		else:
+			print("ERROR FA LENGTH 0")
+			return
 
 		if m == 'ame':
 			return Metrics.AME_euclidean(process, output, cut)
@@ -685,5 +711,7 @@ class Simulation:
 			return Metrics.RMSE_euclidean(process, output, cut)
 		if m == 'atct':
 			return Metrics.atct_signed(process, output, cut)
+		if m == 'fa':
+			return Metrics.false_id_rate(true_false_alarms, false_alarms)
 		print("ERROR INVALID METRIC")
 
