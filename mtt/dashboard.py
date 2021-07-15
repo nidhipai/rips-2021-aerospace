@@ -317,6 +317,8 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
         measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
         trajectories = sim.clean_trajectory(sim.trajectories[0])
+        apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
+        aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
 
         #errors = sim.signed_errors[0]
 
@@ -335,7 +337,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 fig.add_trace(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines+markers',
                                          name='Object {} Trajectory'.format(i)))
         if 'apriori-covariance' in options:
-            apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
             xs = []
             ys = []
             for ellipse_list in apriori_ellipses:
@@ -348,7 +349,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="A Priori Error Covariance"))
 
         if 'aposteriori-covariance' in options:
-            aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
             xs = []
             ys = []
             for ellipse_list in aposteriori_ellipses:

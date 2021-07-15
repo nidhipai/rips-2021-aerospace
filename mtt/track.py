@@ -29,7 +29,7 @@ class Track:
         self.apriori_ellipses = dict() # keys are timesteps, values are x_hat tuples - arguments for cov_ellipse in sim
         self.aposteriori_ellipses = dict() # keys are timesteps, values are x_hat tuples - arguments for cov_ellipse in sim
         self.stage = 0  # 0 is not confirmed yet, 1 is confirmed, 2 is deleted (done in track maintenance)
-        self.missed_measurements = 0
+        self.missed_measurements = 0  # used to expand the gate and delete object if too many measurements are missed
 
     def get_current_guess(self):
         """
