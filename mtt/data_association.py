@@ -6,7 +6,7 @@ Aerospace Team
 import numpy as np
 from scipy.optimize import linear_sum_assignment as linsum
 import sys
-from mtt import Distances
+from gnn import Distances
 
 
 class DataAssociation:

@@ -24,7 +24,7 @@ class DistanceGating:
 
     def predict(self, tracks=None, measurements=None, time=None, false_alarms=None):
         """
-        Removes possible observations from tracks based on distance
+        Removes possib le observations from tracks based on distance
 
         Args:
             tracks: dict of tracks from MTTTracker
