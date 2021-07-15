@@ -8,13 +8,18 @@ import matplotlib.pyplot as plt
 from copy import copy, deepcopy
 from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
+from scipy.stats import chi2
 
-from .gating import DistanceGating
-from .data_association import DataAssociation
-from .kalmanfilter2 import KalmanFilter
-from .track_maintenance import TrackMaintenance
-from .filter_predict import FilterPredict
-from .metrics import Metrics
+#<<<<<<< HEAD
+#from .gating import DistanceGating
+#from .data_association import DataAssociation
+#from .kalmanfilter2 import KalmanFilter
+#from .track_maintenance import TrackMaintenance
+#from .filter_predict import FilterPredict
+#from .metrics import Metrics
+#=======
+from .pipeline.track_maintenance import TrackMaintenance
+#>>>>>>> 3416214c623903bcc3a938e6a259a4409755e50f
 
 
 from mpl_toolkits import mplot3d
@@ -28,24 +33,18 @@ plt.rc('font', **font)
 
 # The Simulation class runs the data generator and the kalman filter to simulate an object in 2D.
 class Simulation:
-	def __init__(self, generator, kFilter, tracker, methods=None, predict_params=None, seed_value=1):
+	def __init__(self, generator, tracker, seed_value=1):
 		"""
 		Constructs a simulation environment for one-line plotting data
 		Args:
 			generator: Data Generator object
-			kFilter: function for predicting the trajectory
-			tracker: constructor for a tracker object
-			predict_params: params for the kalman filter that should override those from the generator - not necessary
-				if methods is not None
-			methods: a list of objects that the pipeline uses
+			tracker: Tracker object
 			seed_value: random seed value to get the same trajectories each time
 		"""
 
 		self.rng = np.random.default_rng(seed_value)
 		self.generator = generator
-		self.kFilter = kFilter
-		self.tracker = tracker
-		self.tracker_model = None
+		self.tracker_model = tracker
 		self.n = generator.n
 		self.processes = dict()
 		self.measures = dict()
@@ -53,19 +52,10 @@ class Simulation:
 		self.trajectories = dict()
 		self.signed_errors = dict()
 		self.descs = dict()
-		self.ellipses = dict()
+		self.apriori_ellipses = dict()
+		self.aposteriori_ellipses = dict()
 		self.false_alarms = dict()
 		self.sorted_measurements = dict()
-		if methods is not None:
-			self.methods = methods
-		else: # for backwards compatibility
-			gen_params = self.generator.params
-
-			# distance_gating = DistanceGating(10, method="euclidean") Not strictly necessary
-			data_association = DataAssociation(method="euclidean")
-			track_maintenance = TrackMaintenance(KalmanFilter, gen_params, 3, 4, 7, predict_params=predict_params)
-			filter_predict = FilterPredict()
-			self.methods = [data_association, track_maintenance, filter_predict]
 
 	# the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
 	# data generator object to create the dictionary of processes and measures.
@@ -111,7 +101,6 @@ class Simulation:
 			index = len(self.processes.keys()) - 1
 		output = np.empty((self.n, 1))
 
-		self.tracker_model = self.tracker(self.methods)
 		# {0: first}
 		# Iterate through each time step for which we have measurements
 		for i in range(len(self.processes[index])):
@@ -136,14 +125,17 @@ class Simulation:
 		"""
 
 		# Store our output as an experiment
-		self.ellipses[len(self.ellipses.keys())] = self.tracker_model.get_ellipses()
+		self.apriori_ellipses[len(self.apriori_ellipses.keys())] = self.tracker_model.get_ellipses("apriori")
+		self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())] = self.tracker_model.get_ellipses("aposteriori")
+
 		self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.false_alarms
 		self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
 
-		for method in self.methods:
+		for method in self.tracker_model.methods:
 			if isinstance(method, TrackMaintenance):
 				kalman_params = method.filter_params
 				break
+
 		# this code will throw an error if there's no track maintenance object in the pipeline
 
 		self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
@@ -312,9 +304,12 @@ class Simulation:
 			output = self.trajectories[index]
 			output = self.clean_trajectory(output)
 
-		if len(self.measure_colors) > 0:
-			colors = self.measure_colors[index]
-			colors = self.clean_measure(colors)
+		colors_process = ['skyblue', 'seagreen', 'darkkhaki'] # DOESN"T WORK FOR MORE THAN 3 OBJECTS
+		colors_filter = ['orange', 'violet', 'hotpink']
+		false_alarm_color = 'red'
+		proc_size = 3
+		traj_size = 1.5
+		measure_dot_size = 20
 
 		if len(self.false_alarms) > 0:
 			false_alarms = self.false_alarms[index]
@@ -322,8 +317,8 @@ class Simulation:
 
 		# Select proper ellipses to plot
 		ellipses = None
-		if len(self.ellipses) > index:
-			ellipses = self.ellipses[index]
+		if len(self.apriori_ellipses) > index:
+			ellipses = self.apriori_ellipses[index]
 			ellipses = self.clean_ellipses(ellipses)
 
 		# Modify the legend
@@ -343,46 +338,54 @@ class Simulation:
 			# Add each object's process to the plot
 			if len(self.processes) > 0:
 				for i, obj in enumerate(process):
-					line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=4, marker=',')
 					if tail > 0:
-						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=1.5, markersize=8, marker=',')
+						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=proc_size, markersize=8, marker=',', color=colors_process[i])
 					else:
-						line1, = ax.plot(obj[0], obj[1], lw=1.5, markersize=8, marker=',')
+						line1, = ax.plot(obj[0], obj[1], lw=proc_size, markersize=8, marker=',', color=colors_process[i])
 					lines.append(line1)
 					labs.append("Obj" + str(i) + " Process")
-
-			# Add the measures to the plot
-			# the colors of a measurement correspond to which track the filter thinks it belongs to
-			if len(measure.values()) != 0:
-				for key, value in measure.items():
-					linex = ax.scatter(value[0], value[1], s=8, marker='x')
-					lines.append(linex)
-					labs.append("Obj" + str(key) + " Associated Measure")
-
-				# line2 = ax.scatter(measure[0], measure[1], c=colors, s=8, marker='x')
-				# lines.append(line2)
-				# labs.append("Measure")
-
-			# plot what we think are false_alarms
-			if len(false_alarms) > 0:
-				line_fa = ax.scatter(false_alarms[0], false_alarms[1], s=8, marker='x')
-				lines.append(line_fa)
-				labs.append("False Alarms from Tracker")
 
 			# Add the predicted trajectories to the plot
 			if len(self.trajectories) > 0:
 				for i, out in enumerate(output):
 					if out is not None:
-						line3, = ax.plot(out[0], out[1], lw=0.4, markersize=7, marker=',')
+						if tail > 0:
+							line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=traj_size, markersize=8, marker=',',
+											 color=colors_filter[i])
+						else:
+							line3, = ax.plot(out[0], out[1], lw=traj_size, markersize=8, marker=',',
+											 color=colors_filter[i])
 						lines.append(line3)
 						labs.append("Obj" + str(i) + " Filter")
-					#if tail > 0:
-						#line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=0.4, markersize=8, marker=',')
-					#else:
-						#line3, = ax.plot(out[0], out[1], lw=0.4, markersize=8, marker=',')
+
+			# Add the measures to the plot - the colors of a measurement correspond to which track the filter thinks it belongs to
+			if len(measure.values()) != 0:
+				for key, value in measure.items():
+					linex = ax.scatter(value[0], value[1], s=measure_dot_size, marker='x', color=colors_filter[key])
+					lines.append(linex)
+					labs.append("Obj" + str(key) + " Associated Measure")
+
+			# plot what we think are false_alarms
+			if len(false_alarms) > 0:
+				line_fa = ax.scatter(false_alarms[0], false_alarms[1], s=measure_dot_size, marker='x', color=false_alarm_color)
+				lines.append(line_fa)
+				labs.append("False Alarms from Tracker")
+
+#<<<<<<< HEAD
+			## Add the predicted trajectories to the plot
+			#if len(self.trajectories) > 0:
+				#for i, out in enumerate(output):
+					#if out is not None:
+						#line3, = ax.plot(out[0], out[1], lw=0.4, markersize=7, marker=',')
+						#lines.append(line3)
+						#labs.append("Obj" + str(i) + " Filter")
+					##if tail > 0:
+						##line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=0.4, markersize=8, marker=',')
+					##else:
+						##line3, = ax.plot(out[0], out[1], lw=0.4, markersize=8, marker=',')
+#=======
 
 			# Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
-			#ax.set_title(title + "\n" + self.descs[index], loc="left", y=1)
 			if tail > 0:
 				title = "Zoom to End of " + title
 			ax.set_title(title + "\n" + var + " = " + str(self.descs[index][var]), fontsize=20)
@@ -411,16 +414,11 @@ class Simulation:
 
 			# Add the velocity vectors to the plot
 			for i, obj in enumerate(process):
-				a = 0.2
-				ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
-				a = 0.2
+				a = .05
 				if tail > 0:
 					ax.quiver(obj[0][-tail:], obj[1][-tail:], obj[2][-tail:], obj[3][-tail:], alpha = a)
 				else:
 					ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
-
-			#Below is an old method, if we want to include the full Q and R matrix
-			#plt.figtext(.93, .5, "  Parameters \nx0 = ({},{})\nQ={}\nR={}\nts={}".format(str(self.generator.xt0[0,0]), str(self.generator.xt0[1,0]), str(self.generator.Q), str(self.generator.R), str(self.measures[index][0].size)))
 
 			if legend is True:
 				ax.legend(handles=lines, labels=labs, fontsize=legend_size)
@@ -508,7 +506,8 @@ class Simulation:
 		self.signed_errors = dict()
 		self.trajectories = dict()
 		self.descs = dict()
-		self.ellipses = dict()
+		self.apriori_ellipses = dict()
+		self.aposteriori_ellipses = dict()
 		self.measure_colors = dict()
 
 	def reset_generator(self, **kwargs):
@@ -519,12 +518,18 @@ class Simulation:
 			kwargs: Inputs to the data generator to change
 		"""
 
-
+		# Reset the generator parameters to the new parameters
 		for arg in kwargs.items():
 			self.generator = self.generator.mutate(**{arg[0]: arg[1]})
 
+	def reset_tracker(self, tracker):
+		"""
+		Update the tracker model to a new tracker object
+		"""
+		self.tracker_model = tracker
+
 	@staticmethod
-	def cov_ellipse(mean, cov, zoom_factor=1, p=0.95):
+	def cov_ellipse(mean, cov, zoom_factor=1, p=0.67, mode="mpl"):
 		"""
 		The cov ellipse returns an ellipse path that can be added to a plot based on the given mean, covariance matrix
 		zoom_factor, and the p-value
@@ -533,48 +538,40 @@ class Simulation:
 			mean (ndarray): set of coordinates representing the center of the ellipse to be plotted
 			cov (ndarray): covariance matrix associated with the ellipse
 			zoom_factor (int) : can be tweaked to make ellipses larger
-			p (float): the confidence interval
+			p (float): the confidence interval. Default: 0.67, which is 1 sigma
 
 		Returns:
 			Ellipse: return the Ellipse created.
 		"""
 		# s takes into account the p-value given
-		s = -2 * np.log(1 - p)
-		a = s*cov
-		a = a.round(decimals=16)
-		# w and v give the eigenvalues and the eigenvectors of the covariance matrix scaled by s
-		w, v = np.linalg.eig(a)
-		w = np.sqrt(w)
-		#calculate the tilt of the ellipse
-		ang = 90 - np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
-		# Figure out which eigenvector is associated with which direction
-		width = w[0]
-		height = w[1]
-
-		ellipse = Ellipse(xy=mean, width=zoom_factor*width, height=zoom_factor*height, angle=ang, edgecolor='g', fc='none', lw=1)
-		return ellipse
-
-	def cov_ellipse_plotly(self, mean, cov, zoom_factor=1, p=0.95):
-
 		if type(mean) != np.ndarray:
 			mean = np.array(mean)
 		mean.shape = (2,1)
-		N = 100
-		s = -2 * np.log(1 - p)
-		a = s * cov
-		a = a.round(decimals=16)
-		# w and v give the eigenvalues and the eigenvectors of the covariance matrix scaled by s
-		w, v = np.linalg.eig(a)
-		ang = np.arctan2(v[0, 0], v[1, 0])
-		width = w[0]
-		height = w[1]
 
-		# ellipse parameterization with respect to a system of axes of directions a1, a2
-		t = np.linspace(0, 2 * np.pi, N)
-		xs = width*np.cos(t)
-		ys = height*np.sin(t)
-		R = np.array([[np.cos(ang), -np.sin(ang)], [np.sin(ang), np.cos(ang)]])
-		return np.dot(R, [xs, ys]) + mean[:,-1][:, np.newaxis]
+		# Eigendecompose the covariance matrix
+		cov = cov.round(decimals=16)
+		w, v = np.linalg.eig(cov)
+
+		# Calculate the rotation of the ellipse and size of axes
+		ang = (np.pi / 2) - np.arctan2(v[0, 0], v[1, 0])
+		width = 2 * np.sqrt(chi2.ppf(p, 2) * w[0])
+		height = 2 * np.sqrt(chi2.ppf(p, 2) * w[1])
+
+		#Decide whether we are drawing an ellipse for Plotly or Matplotlib (default matplotlib)
+		if mode == "plotly":
+			# Set number of points to draw in the ellipse
+			N = 100
+			# ellipse parameterization with respect to a system of axes of directions a1, a2
+			t = np.linspace(0, 2 * np.pi, N)
+			xs = width * np.cos(t)
+			ys = height * np.sin(t)
+			R = np.array([[np.cos(ang), -np.sin(ang)], [np.sin(ang), np.cos(ang)]])
+			#Return an array of points that will be plotted to form an ellipse
+			return np.dot(R, np.array([xs, ys])) + mean[:, -1][:, np.newaxis]
+		else:
+			#Create ellipse object for use in Matplotlib
+			ellipse = Ellipse(xy=mean, width=zoom_factor*width, height=zoom_factor*height, angle=ang, edgecolor='g', fc='none', lw=1)
+			return ellipse
 
 	@staticmethod
 	def clean_process(processes):
@@ -647,7 +644,7 @@ class Simulation:
 		return output
 
 	@staticmethod
-	def clean_ellipses(ellipses):
+	def clean_ellipses(ellipses, mode="mpl"):
 		"""
 		Returns: an array, each index represents a track and is an array of ellipse objects
 		"""
@@ -655,7 +652,7 @@ class Simulation:
 		for key, track in ellipses.items():
 			track_output = []
 			for param_set in track:
-				track_output.append(Simulation.cov_ellipse(param_set[0], param_set[1]))
+				track_output.append(Simulation.cov_ellipse(param_set[0], param_set[1][:2,:2], mode=mode))
 			output.append(track_output)
 		return output
 
@@ -714,4 +711,3 @@ class Simulation:
 		if m == 'fa':
 			return Metrics.false_id_rate(true_false_alarms, false_alarms)
 		print("ERROR INVALID METRIC")
-
