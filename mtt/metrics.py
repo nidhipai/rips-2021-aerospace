@@ -58,3 +58,29 @@ class Metrics:
 			errors.append([diff_at, diff_ct])
 			i += 1
 		return errors
+
+	# Returns 4 ratios based on TP, FP, TN, FN
+	# Access recall with errors[0]
+	# Access specificity with errors[1]
+	# Access precision with errors[2]
+	# Access last with errors[3]
+	@staticmethod
+	def false_id_rate(tfa_and_count, fa, cut = 0):
+		errors = []
+		pfa = []
+		for index in range(len(fa[0])):
+			curr = [fa[0][index] + fa[1][index]* 1j]
+			pfa.append(curr)
+		tfa = np.array(tfa_and_count[0])
+		pfa = np.array(pfa)
+		num_measures = tfa_and_count[1]
+		TP = sum(sum(tfa.T == pfa))
+		FP = len(pfa) - TP
+		TN = num_measures - len(pfa) - (len(tfa) - TP)
+		FN = len(tfa) - TP
+		errors.append(TP / (TP + FN))
+		errors.append(TN / (TN + FP))
+		errors.append(TP / (TP + FP))
+		errors.append(TN / (TN + FN))
+		return errors
+
