@@ -66,8 +66,6 @@ class TrackMaintenance:
             # check what we need to in order to delete the object
             if (track.stage == 0 or track.stage == 1):
                 if list(track.measurements.values())[-1] is None:
-                    #last_delete_obs = list(track.measurements.values())[len(track.measurements) - self.num_delete:]
-                    #missing_observations = sum(x is None for x in last_delete_obs)
                     track.missed_measurements += 1
                     if track.missed_measurements == self.num_delete and self.num_obj is None:
                         # we don't actually kill the object/consider deaths if we know there are a fixed number of objects
