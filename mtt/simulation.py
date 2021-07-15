@@ -10,11 +10,7 @@ from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
 from scipy.stats import chi2
 
-from .gating import DistanceGating
-from .data_association import DataAssociation
-from .kalmanfilter2 import KalmanFilter
-from .track_maintenance import TrackMaintenance
-from .filter_predict import FilterPredict
+from .pipeline.track_maintenance import TrackMaintenance
 
 
 from mpl_toolkits import mplot3d
@@ -28,24 +24,18 @@ plt.rc('font', **font)
 
 # The Simulation class runs the data generator and the kalman filter to simulate an object in 2D.
 class Simulation:
-	def __init__(self, generator, kFilter, tracker, methods=None, predict_params=None, seed_value=1):
+	def __init__(self, generator, tracker, seed_value=1):
 		"""
 		Constructs a simulation environment for one-line plotting data
 		Args:
 			generator: Data Generator object
-			kFilter: function for predicting the trajectory
-			tracker: constructor for a tracker object
-			predict_params: params for the kalman filter that should override those from the generator - not necessary
-				if methods is not None
-			methods: a list of objects that the pipeline uses
+			tracker: Tracker object
 			seed_value: random seed value to get the same trajectories each time
 		"""
 
 		self.rng = np.random.default_rng(seed_value)
 		self.generator = generator
-		self.kFilter = kFilter
-		self.tracker = tracker
-		self.tracker_model = None
+		self.tracker_model = tracker
 		self.n = generator.n
 		self.processes = dict()
 		self.measures = dict()
@@ -57,16 +47,6 @@ class Simulation:
 		self.aposteriori_ellipses = dict()
 		self.false_alarms = dict()
 		self.sorted_measurements = dict()
-		if methods is not None:
-			self.methods = methods
-		else: # for backwards compatibility
-			gen_params = self.generator.params
-
-			# distance_gating = DistanceGating(10, method="euclidean") Not strictly necessary
-			data_association = DataAssociation(method="euclidean")
-			track_maintenance = TrackMaintenance(KalmanFilter, gen_params, 3, 4, 7, predict_params=predict_params)
-			filter_predict = FilterPredict()
-			self.methods = [data_association, track_maintenance, filter_predict]
 
 	# the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
 	# data generator object to create the dictionary of processes and measures.
@@ -112,7 +92,6 @@ class Simulation:
 			index = len(self.processes.keys()) - 1
 		output = np.empty((self.n, 1))
 
-		self.tracker_model = self.tracker(self.methods)
 		# {0: first}
 		# Iterate through each time step for which we have measurements
 		for i in range(len(self.processes[index])):
@@ -143,10 +122,11 @@ class Simulation:
 		self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.false_alarms
 		self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
 
-		for method in self.methods:
+		for method in self.tracker_model.methods:
 			if isinstance(method, TrackMaintenance):
 				kalman_params = method.filter_params
 				break
+
 		# this code will throw an error if there's no track maintenance object in the pipeline
 
 		self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
@@ -515,9 +495,15 @@ class Simulation:
 			kwargs: Inputs to the data generator to change
 		"""
 
-
+		# Reset the generator parameters to the new parameters
 		for arg in kwargs.items():
 			self.generator = self.generator.mutate(**{arg[0]: arg[1]})
+
+	def reset_tracker(self, tracker):
+		"""
+		Update the tracker model to a new tracker object
+		"""
+		self.tracker_model = tracker
 
 	@staticmethod
 	def cov_ellipse(mean, cov, zoom_factor=1, p=0.67, mode="mpl"):
@@ -529,7 +515,7 @@ class Simulation:
 			mean (ndarray): set of coordinates representing the center of the ellipse to be plotted
 			cov (ndarray): covariance matrix associated with the ellipse
 			zoom_factor (int) : can be tweaked to make ellipses larger
-			p (float): the confidence interval
+			p (float): the confidence interval. Default: 0.67, which is 1 sigma
 
 		Returns:
 			Ellipse: return the Ellipse created.
@@ -538,33 +524,28 @@ class Simulation:
 		if type(mean) != np.ndarray:
 			mean = np.array(mean)
 		mean.shape = (2,1)
-		# p-value assumes 2D space
-		#s = -2 * np.log(1 - p)
-		#a = s*cov
-		#a = a.round(decimals=16)
-		# w and v give the eigenvalues and the eigenvectors of the covariance matrix scaled by s
+
+		# Eigendecompose the covariance matrix
+		cov = cov.round(decimals=16)
 		w, v = np.linalg.eig(cov)
+
+		# Calculate the rotation of the ellipse and size of axes
+		ang = (np.pi / 2) - np.arctan2(v[0, 0], v[1, 0])
+		width = 2 * np.sqrt(chi2.ppf(p, 2) * w[0])
+		height = 2 * np.sqrt(chi2.ppf(p, 2) * w[1])
+
 		#Decide whether we are drawing an ellipse for Plotly or Matplotlib (default matplotlib)
 		if mode == "plotly":
-			#Set number of points to draw in the ellipse
+			# Set number of points to draw in the ellipse
 			N = 100
-			ang = (np.pi / 2) - np.arctan2(v[0, 0], v[1, 0])
-			width = 2 * np.sqrt(chi2.ppf(p, 2) * w[0])
-			height = 2 * np.sqrt(chi2.ppf(p, 2) * w[1])
-
 			# ellipse parameterization with respect to a system of axes of directions a1, a2
 			t = np.linspace(0, 2 * np.pi, N)
 			xs = width * np.cos(t)
 			ys = height * np.sin(t)
 			R = np.array([[np.cos(ang), -np.sin(ang)], [np.sin(ang), np.cos(ang)]])
+			#Return an array of points that will be plotted to form an ellipse
 			return np.dot(R, np.array([xs, ys])) + mean[:, -1][:, np.newaxis]
 		else:
-			#calculate the tilt of the ellipse
-			ang = 90 - np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
-			# Figure out which eigenvector is associated with which direction
-			width = w[0]
-			height = w[1]
-
 			#Create ellipse object for use in Matplotlib
 			ellipse = Ellipse(xy=mean, width=zoom_factor*width, height=zoom_factor*height, angle=ang, edgecolor='g', fc='none', lw=1)
 			return ellipse

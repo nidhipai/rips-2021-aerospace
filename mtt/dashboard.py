@@ -22,9 +22,9 @@ rng = np.random.default_rng()
 obj1 = np.array([[0], [0], [1], [1]])
 initial = {0: obj1}
 dt = 1
-ep_normal = 0
+ep_normal = 1
 ep_tangent = 1
-nu = 0.01
+nu = 1
 ts = 10
 miss_p = 0
 lam = 0
@@ -36,15 +36,17 @@ gate_expand_size = 90
 input_margin = 10
 input_style = {"display": "inline-block", "margin": input_margin}
 
+# Set up the necessary infrastructure to run a simulation
 gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa_scale)
+"""
 gate = mtt.DistanceGating(gate_size, expand_gating=gate_expand_size, method="euclidean")
 assoc = mtt.DataAssociation()
 params = gen.get_params()
-maintain = mtt.TrackMaintenance(mtt.KalmanFilter, params, num_obj = num_objects, num_init = 2, num_init_frames=3, num_delete=3)
+maintain = mtt.TrackMaintenance(mtt.KalmanFilter, params, num_obj=num_objects, num_init = 2, num_init_frames=3, num_delete=3)
 filter_ = mtt.FilterPredict()
-methods = [gate, assoc, maintain, filter_]
-
-sim = mtt.Simulation(gen, mtt.KalmanFilter, mtt.MTTTracker, methods)
+"""
+tracker = mtt.MTTTracker(mtt.Presets.standardSHT(num_objects, gen.get_params()))
+sim = mtt.Simulation(gen, tracker)
 
 fig = go.Figure()
 err = go.Figure()
@@ -138,7 +140,7 @@ app.layout = html.Div(children=[
                 type="number",
                 min=0,
                 max=1,
-                placeholder=0.1
+                placeholder=0
             )
         ], style=input_style),
 
@@ -149,7 +151,7 @@ app.layout = html.Div(children=[
                 type="number",
                 min=0,
                 max=100,
-                placeholder=1
+                placeholder=0
             )
         ], style=input_style),
 
@@ -243,11 +245,11 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         if ts is None:
             ts = 10
         if nu is None:
-            nu = 0.01
+            nu = 1
         if ep_tangent is None:
             ep_tangent = 1
         if ep_normal is None:
-            ep_normal = 0
+            ep_normal = 1
         if miss_p is None:
             miss_p = 0
         if lam is None:
@@ -306,8 +308,11 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         else:
             P_parse = None
 
+        #Set up the simulation with the newly specified parameters
         sim.clear()
         sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale)
+        sim.reset_tracker(mtt.MTTTracker(mtt.Presets.standardSHT(num_objects, sim.generator.get_params()))
+)
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly", x0=x0_filter_parse, Q=Q_parse, R=R_parse, P=P_parse)
 

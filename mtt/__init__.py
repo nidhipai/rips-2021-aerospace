@@ -6,11 +6,13 @@ from .multiobject_fixed import *
 
 # Multi-target tracking tools
 from .kalmanfilter2 import *
+from .track import *
 
 # MTT pipeline
-from .gating import *
-from .track import *
-from .data_association import *
+from .pipeline.gating import *
+from .pipeline.data_association import *
+from .pipeline.filter_predict import *
+from .pipeline.track_maintenance import *
 from .tracker2 import *
 
 # Experimentation classes
@@ -19,3 +21,4 @@ from .simulation import *
 
 # Utility classes
 from .distances import *
+from .presets import *

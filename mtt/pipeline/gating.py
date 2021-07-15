@@ -3,7 +3,7 @@ Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
 Aerospace Team
 """
 
-from .distances import Distances
+from mtt.distances import Distances
 
 class DistanceGating:
     def __init__(self, error_threshold, method="euclidean", expand_gating=0):

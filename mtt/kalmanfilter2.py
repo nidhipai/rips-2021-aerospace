@@ -67,6 +67,7 @@ class KalmanFilter:
             self.x_hat = self.x_hat_minus
         else:
             self.x_hat_minus = self.f(self.x_hat, self.u)
+            #print((self.W(self.x_hat_minus) @ self.Q @ self.W(self.x_hat_minus).T))
             self.P_minus = self.A(self.x_hat_minus, self.u) @ self.P @ self.A(self.x_hat_minus, self.u).T + (self.W(self.x_hat_minus) @ self.Q @ self.W(self.x_hat_minus).T)
             self.K = self.P_minus @ self.H.T @ linalg.inv(self.H @ self.P_minus @ self.H.T + self.R)
             self.x_hat = self.x_hat_minus + self.K @ (measurement - self.h(self.x_hat_minus))

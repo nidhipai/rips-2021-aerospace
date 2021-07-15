@@ -174,4 +174,4 @@ class MultiObjFixed(DataGenerator):
 		clone = copy(self)
 		for arg in kwargs.items():
 			setattr(clone, arg[0], arg[1])
-		return MultiObjSimple(clone.xt0, clone.dt, clone.ep_tangent, clone.ep_normal, clone.nu, clone.miss_p)
+		return MultiObjFixed(clone.xt0, clone.dt, clone.ep_tangent, clone.ep_normal, clone.nu, clone.miss_p)
