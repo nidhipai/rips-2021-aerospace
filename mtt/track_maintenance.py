@@ -43,10 +43,10 @@ class TrackMaintenance:
             time: current timestep
             false_alarms: dict of false_alarms from tracker, where unmatched measurements go
         """
-        new_objects_q = self.num_obj is None or len(tracks) < self.num_obj  # true if we can make more objects
         # create new tracks for the measurements without a track - eventually we should check if they are false alarms
         false_alarms_time = []
         for measurement in measurements:
+            new_objects_q = self.num_obj is None or len(tracks) < self.num_obj  # true if we can make more objects
             if measurement is not None:
                 if new_objects_q:
                     tracks[len(tracks)] = Track(self.kfilter, self.filter_params, measurement, time)
@@ -54,6 +54,7 @@ class TrackMaintenance:
                     false_alarms_time.append(measurement)
         false_alarms[time] = false_alarms_time
 
+        # Confirm the track
         for track_key, track in tracks.items():
             # check what we need to confirm the target
             if track.stage == 0:

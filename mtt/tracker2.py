@@ -5,7 +5,7 @@ Aerospace Team
 Todo:
     Eventually add an evaluation metric/class to the pipeline
 """
-
+from itertools import repeat
 
 class MTTTracker:
     """Pipeline of processes for multi-target tracking
@@ -56,7 +56,8 @@ class MTTTracker:
                 if ts in track.predictions.keys():
                     result[ts][j] = track.predictions[ts]
                 else:
-                    result[ts][j] = [[None], [None]]
+                    # Note that this assumes the state vector is of length 4
+                    result[ts][j] = list(repeat([None], 4))
         return result
 
     def get_ellipses(self):
