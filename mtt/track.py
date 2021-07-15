@@ -26,7 +26,8 @@ class Track:
         self.measurements = {init_time: init_measure}  # keys are timesteps, value may be none
         self.predictions = dict() # keys are timesteps, doesn't need to start at 0
         self.possible_observations = dict()  # used to pass around the possible measurements for this track for this ts
-        self.ellipses = dict() # keys are timesteps, values are x_hat tuples - arguments for cov_ellipse in sim
+        self.apriori_ellipses = dict() # keys are timesteps, values are x_hat tuples - arguments for cov_ellipse in sim
+        self.aposteriori_ellipses = dict() # keys are timesteps, values are x_hat tuples - arguments for cov_ellipse in sim
         self.stage = 0  # 0 is not confirmed yet, 1 is confirmed, 2 is deleted (done in track maintenance)
         self.missed_measurements = 0
 

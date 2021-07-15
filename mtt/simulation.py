@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from copy import copy, deepcopy
 from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
+from scipy.stats import chi2
 
 from .gating import DistanceGating
 from .data_association import DataAssociation
@@ -52,7 +53,8 @@ class Simulation:
 		self.trajectories = dict()
 		self.signed_errors = dict()
 		self.descs = dict()
-		self.ellipses = dict()
+		self.apriori_ellipses = dict()
+		self.aposteriori_ellipses = dict()
 		self.false_alarms = dict()
 		self.sorted_measurements = dict()
 		if methods is not None:
@@ -135,7 +137,9 @@ class Simulation:
 		"""
 
 		# Store our output as an experiment
-		self.ellipses[len(self.ellipses.keys())] = self.tracker_model.get_ellipses()
+		self.apriori_ellipses[len(self.apriori_ellipses.keys())] = self.tracker_model.get_ellipses("apriori")
+		self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())] = self.tracker_model.get_ellipses("aposteriori")
+
 		self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.false_alarms
 		self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
 
@@ -320,8 +324,8 @@ class Simulation:
 
 		# Select proper ellipses to plot
 		ellipses = None
-		if len(self.ellipses) > index:
-			ellipses = self.ellipses[index]
+		if len(self.apriori_ellipses) > index:
+			ellipses = self.apriori_ellipses[index]
 			ellipses = self.clean_ellipses(ellipses)
 
 		# Modify the legend
@@ -524,7 +528,7 @@ class Simulation:
 			self.generator = self.generator.mutate(**{arg[0]: arg[1]})
 
 	@staticmethod
-	def cov_ellipse(mean, cov, zoom_factor=1, p=0.95):
+	def cov_ellipse(mean, cov, zoom_factor=1, p=0.67, mode="mpl"):
 		"""
 		The cov ellipse returns an ellipse path that can be added to a plot based on the given mean, covariance matrix
 		zoom_factor, and the p-value
@@ -539,42 +543,39 @@ class Simulation:
 			Ellipse: return the Ellipse created.
 		"""
 		# s takes into account the p-value given
-		s = -2 * np.log(1 - p)
-		a = s*cov
-		a = a.round(decimals=16)
-		# w and v give the eigenvalues and the eigenvectors of the covariance matrix scaled by s
-		w, v = np.linalg.eig(a)
-		w = np.sqrt(w)
-		#calculate the tilt of the ellipse
-		ang = 90 - np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
-		# Figure out which eigenvector is associated with which direction
-		width = w[0]
-		height = w[1]
-
-		ellipse = Ellipse(xy=mean, width=zoom_factor*width, height=zoom_factor*height, angle=ang, edgecolor='g', fc='none', lw=1)
-		return ellipse
-
-	def cov_ellipse_plotly(self, mean, cov, zoom_factor=1, p=0.95):
-
 		if type(mean) != np.ndarray:
 			mean = np.array(mean)
 		mean.shape = (2,1)
-		N = 100
-		s = -2 * np.log(1 - p)
-		a = s * cov
-		a = a.round(decimals=16)
+		# p-value assumes 2D space
+		#s = -2 * np.log(1 - p)
+		#a = s*cov
+		#a = a.round(decimals=16)
 		# w and v give the eigenvalues and the eigenvectors of the covariance matrix scaled by s
-		w, v = np.linalg.eig(a)
-		ang = np.arctan2(v[0, 0], v[1, 0])
-		width = w[0]
-		height = w[1]
+		w, v = np.linalg.eig(cov)
+		#Decide whether we are drawing an ellipse for Plotly or Matplotlib (default matplotlib)
+		if mode == "plotly":
+			#Set number of points to draw in the ellipse
+			N = 100
+			ang = (np.pi / 2) - np.arctan2(v[0, 0], v[1, 0])
+			width = 2 * np.sqrt(chi2.ppf(p, 2) * w[0])
+			height = 2 * np.sqrt(chi2.ppf(p, 2) * w[1])
 
-		# ellipse parameterization with respect to a system of axes of directions a1, a2
-		t = np.linspace(0, 2 * np.pi, N)
-		xs = width*np.cos(t)
-		ys = height*np.sin(t)
-		R = np.array([[np.cos(ang), -np.sin(ang)], [np.sin(ang), np.cos(ang)]])
-		return np.dot(R, [xs, ys]) + mean[:,-1][:, np.newaxis]
+			# ellipse parameterization with respect to a system of axes of directions a1, a2
+			t = np.linspace(0, 2 * np.pi, N)
+			xs = width * np.cos(t)
+			ys = height * np.sin(t)
+			R = np.array([[np.cos(ang), -np.sin(ang)], [np.sin(ang), np.cos(ang)]])
+			return np.dot(R, np.array([xs, ys])) + mean[:, -1][:, np.newaxis]
+		else:
+			#calculate the tilt of the ellipse
+			ang = 90 - np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
+			# Figure out which eigenvector is associated with which direction
+			width = w[0]
+			height = w[1]
+
+			#Create ellipse object for use in Matplotlib
+			ellipse = Ellipse(xy=mean, width=zoom_factor*width, height=zoom_factor*height, angle=ang, edgecolor='g', fc='none', lw=1)
+			return ellipse
 
 	@staticmethod
 	def clean_process(processes):
@@ -647,7 +648,7 @@ class Simulation:
 		return output
 
 	@staticmethod
-	def clean_ellipses(ellipses):
+	def clean_ellipses(ellipses, mode="mpl"):
 		"""
 		Returns: an array, each index represents a track and is an array of ellipse objects
 		"""
@@ -655,49 +656,6 @@ class Simulation:
 		for key, track in ellipses.items():
 			track_output = []
 			for param_set in track:
-				track_output.append(Simulation.cov_ellipse(param_set[0], param_set[1]))
+				track_output.append(Simulation.cov_ellipse(param_set[0], param_set[1][:2,:2], mode=mode))
 			output.append(track_output)
 		return output
-
-'''The same as the cov_ellipse function, but draws multiple p-values depending on the passed on list. One can also 
-plot the scattered values using this function to see which points are outliers. '''
-def cov_ellipse_fancy(X, mean, cov, p=(0.99, 0.95, 0.90)):
-	"""
-	The same as the cov_ellipse function, but draws multiple p-values depending on the passed on list. One can also
-	plot the scattered values using this function to see which points are outliers.
-
-	Args:
-		X (ndarray): list of points to be plotted on a scatterplot
-		mean (ndarray): set of coordinates representing the center of the plotted ellipse
-		cov (ndarray): the covariance matrix
-		p (list): list of confidence ellipses to be plotted
-	"""
-	plt.rcParams.update({'font.size': 22})
-	fig = plt.figure(figsize=(12, 12))
-	colors = ["black", "red", "purple", "blue"]
-	#colors = Cube1_4.mpl_colors
-	axes = plt.gca()
-	colors_array = np.array([colors[0]] * X.shape[0])
-
-	#for loop to individually draw each of the p-ellipses.
-	for i in range(len(p)):
-		s = -2 * np.log(1 - p[i])
-		w, v = np.linalg.eig(s * cov)
-		w = np.sqrt(w)
-		ang = np.arctan2(v[0, 0], v[1, 0]) / np.pi * 180
-		ellipse = Ellipse(xy=mean, width=2 * w[0], height=2 * w[1], angle=ang,edgecolor=colors[i+1], lw=2, fc="none", label=str(p[i]))
-		cos_angle = np.cos(np.radians(180. - ang))
-		sin_angle = np.sin(np.radians(180. - ang))
-
-		x_val = (X[:, 0] - mean[0]) * cos_angle - (X[:, 1] - mean[1]) * sin_angle
-		y_val = (X[:, 0] - mean[0]) * sin_angle + (X[:, 1] - mean[1]) * cos_angle
-
-		#calculating whether a point is inside an ellipse. If it is, we change the color of the point to a specific desired color.
-		rad_cc = (x_val ** 2 / (w[0]) ** 2) + (y_val ** 2 / (w[1]) ** 2)
-		colors_array[np.where(rad_cc <= 1.)[0]] = colors[i+1]
-
-		axes.add_patch(ellipse)
-	#plot the scattered points with the ellipses.
-	axes.scatter(X[:, 0], X[:, 1], linewidths=0, alpha=1, c = colors_array)
-	plt.legend(title="p-value", loc=2, prop={'size': 15}, handleheight=0.01)
-	plt.show()
