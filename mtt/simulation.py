@@ -10,7 +10,16 @@ from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
 from scipy.stats import chi2
 
+#<<<<<<< HEAD
+#from .gating import DistanceGating
+#from .data_association import DataAssociation
+#from .kalmanfilter2 import KalmanFilter
+#from .track_maintenance import TrackMaintenance
+#from .filter_predict import FilterPredict
+#from .metrics import Metrics
+#=======
 from .pipeline.track_maintenance import TrackMaintenance
+#>>>>>>> 3416214c623903bcc3a938e6a259a4409755e50f
 
 
 from mpl_toolkits import mplot3d
@@ -290,6 +299,7 @@ class Simulation:
 		if len(self.measures) > 0:
 			sorted_measures = self.sorted_measurements[index]
 			measure = self.clean_measure2(sorted_measures) #THIS IS CHANGED TO 2
+
 		if len(self.trajectories) > 0:
 			output = self.trajectories[index]
 			output = self.clean_trajectory(output)
@@ -361,6 +371,19 @@ class Simulation:
 				lines.append(line_fa)
 				labs.append("False Alarms from Tracker")
 
+#<<<<<<< HEAD
+			## Add the predicted trajectories to the plot
+			#if len(self.trajectories) > 0:
+				#for i, out in enumerate(output):
+					#if out is not None:
+						#line3, = ax.plot(out[0], out[1], lw=0.4, markersize=7, marker=',')
+						#lines.append(line3)
+						#labs.append("Obj" + str(i) + " Filter")
+					##if tail > 0:
+						##line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=0.4, markersize=8, marker=',')
+					##else:
+						##line3, = ax.plot(out[0], out[1], lw=0.4, markersize=8, marker=',')
+#=======
 
 			# Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
 			if tail > 0:
@@ -632,3 +655,59 @@ class Simulation:
 				track_output.append(Simulation.cov_ellipse(param_set[0], param_set[1][:2,:2], mode=mode))
 			output.append(track_output)
 		return output
+
+	def get_true_fa_and_num_measures(self, measures, colors):
+		true_false_alarms = []
+		i = 0
+		count = 0
+		for color_block in colors:
+			k = 0
+			for color in color_block:
+				count += 1
+				if color == 'red':
+					true_false_alarms.append([measures[i][k][0][0] + measures[i][k][1][0] * 1j])
+				k += 1
+			i += 1
+		return [true_false_alarms, count]
+
+	def compute_metrics(self, m = 'ame', cut = 10):
+		index = len(self.processes.keys()) - 1
+		if len(self.processes) > 0:
+			process = self.processes[index]
+			process = self.clean_process(process)
+		else:
+			print("ERROR PROCESS LENGTH 0")
+			return
+		if len(self.measures) > 0:
+			sorted_measures = self.sorted_measurements[index]
+			measure = self.clean_measure2(sorted_measures) #THIS IS CHANGED TO 2
+		else:
+			print("ERROR MEASURE LENGTH 0")
+			return
+		if len(self.trajectories) > 0:
+			output = self.trajectories[index]
+			output = self.clean_trajectory(output)
+		else:
+			print("ERROR TRAJECTORY LENGTH 0")
+			return
+		if len(self.measure_colors) > 0:
+			true_false_alarms = self.get_true_fa_and_num_measures(self.measures[index], self.measure_colors[index])
+		else:
+			print("ERROR COLLORS LENGTH 0")
+			return
+		if len(self.false_alarms) > 0:
+			false_alarms = self.false_alarms[index]
+			false_alarms = self.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
+		else:
+			print("ERROR FA LENGTH 0")
+			return
+
+		if m == 'ame':
+			return Metrics.AME_euclidean(process, output, cut)
+		if m == 'rmse':
+			return Metrics.RMSE_euclidean(process, output, cut)
+		if m == 'atct':
+			return Metrics.atct_signed(process, output, cut)
+		if m == 'fa':
+			return Metrics.false_id_rate(true_false_alarms, false_alarms)
+		print("ERROR INVALID METRIC")
