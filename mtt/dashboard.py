@@ -239,11 +239,11 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
     global sim
     fig = prev_fig
     err = prev_err
+    if ts is None:
+        ts = 10
     if prev_clicks < n_clicks:
         prev_clicks = n_clicks
         # Set default parameters
-        if ts is None:
-            ts = 10
         if nu is None:
             nu = 1
         if ep_tangent is None:
@@ -266,6 +266,8 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         for i, item in enumerate(x0_split):
             x0_parse[i] = np.array(item.strip().split(" ")).astype(float)
             x0_parse[i].shape = (4,1)
+
+        num_objects = len(x0_parse.items())
 
         if x0_filter is not None:
             x0_filter_split = x0_filter.split("|")
@@ -317,6 +319,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         sim.predict(ellipse_mode="plotly", x0=x0_filter_parse, Q=Q_parse, R=R_parse, P=P_parse)
 
     if n_clicks != 0:
+        # Generate all variables to plot
         processes = sim.clean_process(sim.processes[0])
         colors = sim.clean_measure(sim.measure_colors[0])
         measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
@@ -324,23 +327,65 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         trajectories = sim.clean_trajectory(sim.trajectories[0])
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
+        time = ["time = {}".format(t) for t in range(processes[0][0].size)]
+
+        # Set the range manually to prevent the animation from dynamically changing the range
+        measure_max = []
+        measure_min = []
+        if measures_true.size > 0:
+            measure_max.append(measures_true[0].max())
+            measure_max.append(measures_true[1].max())
+            measure_min.append(measures_true[0].min())
+            measure_min.append(measures_true[1].min())
+
+        if measures_false.size > 0:
+            measure_max.append(measures_false[0].max())
+            measure_max.append(measures_false[1].max())
+            measure_min.append(measures_false[0].min())
+            measure_min.append(measures_false[1].min())
+
+        xmax = max([max([process[0].max() for process in processes]), max([trajectory[0].max() for trajectory in trajectories] + measure_max)])
+        xmin = min([min([process[0].min() for process in processes]), min([trajectory[0].min() for trajectory in trajectories] + measure_min)])
+        ymax = max([max([process[1].max() for process in processes]), max([trajectory[1].max() for trajectory in trajectories] + measure_max)])
+        ymin = min([min([process[1].min() for process in processes]), min([trajectory[1].min() for trajectory in trajectories] + measure_min)])
+        xrange = [xmin*1.1, xmax*1.1]
+        yrange = [ymin*1.1, ymax*1.1]
+        layout = go.Layout(xaxis_range=xrange, yaxis_range=yrange, autosize = False, updatemenus=[{
+        "buttons": [
+            {
+                "args": [None, {"frame": {"duration": 500, "redraw": False},
+                                "fromcurrent": False, "transition": {"duration": 0,
+                                                                    "easing": "linear"}}],
+                "label": "Play",
+                "method": "animate"
+            },
+            {
+                "args": [[None], {"frame": {"duration": 0, "redraw": False},
+                                  "mode": "immediate",
+                                  "transition": {"duration": 0}}],
+                "label": "Pause",
+                "method": "animate"
+            }
+        ]}])
 
         #errors = sim.signed_errors[0]
 
-        fig = go.Figure()
-        err = go.Figure()
+        data = []
         if 'process' in options:
             for i, process in enumerate(processes):
-                fig.add_trace(go.Scatter(x=process[0], y=process[1], mode='lines', name='Object {} Process'.format(i)))
+                # NOTE: the "time" text here assumes all objects are on-screen for an equal number of time steps;
+                # Otherwise "time" will be incorrect
+                data.append(go.Scatter(x=process[0], y=process[1], mode='lines', name='Object {} Process'.format(i), text=time))
         if 'measure' in options:
-            fig.add_trace(go.Scatter(x=measures_true[0], y=measures_true[1], mode='markers', name="True Measures",
-                                     marker=dict(color="black")))
-            fig.add_trace(go.Scatter(x=measures_false[0], y=measures_false[1], mode='markers', name="False Alarms",
-                                     marker=dict(color="gray")))
+            data.append(go.Scatter(x=measures_true[0], y=measures_true[1], mode='markers', name="True Measures",
+                                     marker=dict(color="black"), text=time))
+            data.append(go.Scatter(x=measures_false[0], y=measures_false[1], mode='markers', name="False Alarms",
+                                     marker=dict(color="gray"), text=time))
+        
         if 'trajectory' in options:
             for i, trajectory in enumerate(trajectories):
-                fig.add_trace(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines+markers',
-                                         name='Object {} Trajectory'.format(i)))
+                data.append(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines+markers',
+                                         name='Object {} Trajectory'.format(i), text=time))
         if 'apriori-covariance' in options:
             xs = []
             ys = []
@@ -351,7 +396,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                     ys += list(ellipse[1])
                     ys.append(None)
 
-            fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="A Priori Error Covariance"))
+            data.append(go.Scatter(x=xs, y=ys, mode="lines", name="A Priori Error Covariance"))
 
         if 'aposteriori-covariance' in options:
             xs = []
@@ -363,7 +408,37 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                     ys += list(ellipse[1])
                     ys.append(None)
 
-            fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="A Posteriori Error Covariance"))
+            data.append(go.Scatter(x=xs, y=ys, mode="lines", name="A Posteriori Error Covariance"))
+
+        frames = []
+        for t in range(ts):
+            scatters = []
+            if 'process' in options:
+                for i, process in enumerate(processes):
+                    # NOTE: the "time" text here assumes all objects are on-screen for an equal number of time steps;
+                    # Otherwise "time" will be incorrect
+                    scatters.append(
+                        go.Scatter(x=process[0, :(t+1)], y=process[1, :(t+1)], mode='lines', name='Object {} Process'.format(i),
+                                   text=time))
+            if 'measure' in options:
+                m = np.array(sim.measures[0][:(t+1)]).squeeze().T
+                mc = np.array(sim.measure_colors[0][:(t+1)]).squeeze().T
+                m_t = m[:, mc == "black"]
+                m_f = m[:, mc != "black"]
+                scatters.append(go.Scatter(x=m_t[0], y=m_t[1], mode='markers', name="True Measures",
+                                         marker=dict(color="black"), text=time))
+                scatters.append(go.Scatter(x=m_f[0], y=m_f[1], mode='markers', name="False Alarms",
+                                         marker=dict(color="gray"), text=time))
+
+            if 'trajectory' in options:
+                for i, trajectory in enumerate(trajectories):
+                    scatters.append(go.Scatter(x=trajectory[0, :(t+1)], y=trajectory[1, :(t+1)], mode='lines+markers',
+                                             name='Object {} Trajectory'.format(i), text=time))
+
+            frames.append(go.Frame(data=scatters))
+
+        fig = go.Figure(data=data, layout=layout, frames=frames)
+        err = go.Figure()
 
     #err.add_trace(go.Scatter(y=errors[0], x=list(range(errors[0].size)), mode='lines',
     #                         name="Cross-track Error", marker=dict(color="blue")))
