@@ -352,9 +352,10 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         xrange = [xmin*1.1, xmax*1.1]
         yrange = [ymin*1.1, ymax*1.1]
         layout = go.Layout(xaxis_range=xrange, yaxis_range=yrange, autosize=False,
-       margin=dict(
-           l=30, r=30, t=30, b=30
-       ),
+        plot_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
+        yaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
+        margin=dict(l=30, r=30, t=30, b=30),
         updatemenus=[{
         "buttons": [
             {
@@ -371,7 +372,8 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 "label": "Pause",
                 "method": "animate"
             }
-        ]}])
+        ]}]
+        )
 
 
         data = []
@@ -389,7 +391,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         if 'trajectory' in options:
             for i, trajectory in enumerate(trajectories):
                 data.append(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines+markers',
-                                         name='Object {} Trajectory'.format(i), text=time))
+                                         name='Object {} Trajectory'.format(i), text=time, line=dict(width=3, dash='dash')))
         if 'apriori-covariance' in options:
             xs = []
             ys = []
@@ -415,7 +417,14 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             data.append(go.Scatter(x=xs, y=ys, mode="lines", name="A Posteriori Error Covariance"))
 
         #Create error figure
-        err = go.Figure()
+        errlayout = go.Layout(
+        plot_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
+        yaxis=dict(linecolor="lightgray", gridcolor="lightgray")
+        )
+
+        err = go.Figure(layout=errlayout)
+
         for obj_error in atct_errors:
             err.add_trace(go.Scatter(y=obj_error[0], x=list(range(len(obj_error[0]))), mode='lines', name="Along-track Position Error", marker=dict(color="orange")))
             err.add_trace(go.Scatter(y=obj_error[1], x=list(range(len(obj_error[1]))), mode='lines', name="Cross-track Position Error", marker=dict(color="blue")))
@@ -461,7 +470,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
     #err.add_trace(go.Scatter(y=errors[3], x=list(range(errors[3].size)), mode='lines',
     #                         name="Along-track Velocity Error"))
-
     return fig, err
 
 app.run_server(debug=True)
