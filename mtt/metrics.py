@@ -1,10 +1,11 @@
 import numpy as np
 
+
 class Metrics:
 	# Returns AME of Euclidean distances between trajectory and actual process for each object
 	# Access AME of ith object with errors[i]
 	@staticmethod
-	def AME_euclidean(processes, trajectos, cut = 0):
+	def AME_euclidean(processes, trajectos, cut=0):
 		index = 0
 		errors = []
 		for process in processes:

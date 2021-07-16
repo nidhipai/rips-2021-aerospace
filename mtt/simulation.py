@@ -10,17 +10,8 @@ from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
 from scipy.stats import chi2
 
-#<<<<<<< HEAD
-#from .gating import DistanceGating
-#from .data_association import DataAssociation
-#from .kalmanfilter2 import KalmanFilter
-#from .track_maintenance import TrackMaintenance
-#from .filter_predict import FilterPredict
-#from .metrics import Metrics
-#=======
 from .pipeline.track_maintenance import TrackMaintenance
-#>>>>>>> 3416214c623903bcc3a938e6a259a4409755e50f
-
+from .metrics import *
 
 from mpl_toolkits import mplot3d
 from matplotlib.patches import Ellipse

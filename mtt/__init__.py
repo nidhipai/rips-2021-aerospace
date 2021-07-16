@@ -22,3 +22,4 @@ from .simulation import *
 # Utility classes
 from .distances import *
 from .presets import *
+from .metrics import *
