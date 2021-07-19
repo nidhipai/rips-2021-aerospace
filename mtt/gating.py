@@ -22,7 +22,7 @@ class DistanceGating:
         self.distance_function = switcher.get(method)
         self.expand_gating = expand_gating
 
-    def predict(self, tracks=None, measurements=None, time=None, false_alarms=None):
+    def predict(self, tracks=None, measurements=None, time=None, false_alarms=None, hypotheses = None):
         """
         Removes possib le observations from tracks based on distance
 
