@@ -21,7 +21,7 @@ class Track:
             init_velocity: initial velocity of object, np array
         """
         # initial state for filter, uses intial measure and 0 velocity
-        self.filter_model = kfilter(**filter_params, x_hat0=init_measure)  # instantiate a filter,
+        self.filter_model = kfilter(**filter_params, xt0=init_measure)  # instantiate a filter,
         # assuming first measure is the correct starting location
         self.measurements = {init_time: init_measure}  # keys are timesteps, value may be none
         self.predictions = dict() # keys are timesteps, doesn't need to start at 0

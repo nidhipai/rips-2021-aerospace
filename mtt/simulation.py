@@ -75,7 +75,7 @@ class Simulation:
 		}
 
 	#We use the kalman filter and the generated data to predict the trajectory of the simulated object
-	def predict(self, ellipse_mode="mpl", index=None, x0=None, Q=None, R=None, P=None, H=None, u=None):
+	def predict(self, ellipse_mode="mpl", index=None):
 		"""
 		The predict function uses Tracker to create an estimated trajectory for our simulated object.
 
@@ -99,7 +99,7 @@ class Simulation:
 			self.tracker_model.predict(deepcopy(self.measures[index][i]))
 
 		# Store our output as an experiment
-		latest_trajectory = self.tracker_model.get_trajectories()
+		latest_trajectory = [] + self.tracker_model.get_trajectories()
 		self.trajectories[len(self.trajectories.keys())] = latest_trajectory
 
 		#Now store the errors at each time step

@@ -8,7 +8,7 @@ import numpy as np
 import numpy.linalg as linalg
 
 class KalmanFilter:
-    def __init__(self, x_hat0, f, A, h, Q, W, R, P=None, H=None, u=0, dt=1):
+    def __init__(self, xt0, f, A, h, Q, W, R, P=None, H=None, u=0, dt=1):
         """
         Initialize the Extended Kalman Filter object
         :param x_hat0: initial state vector
@@ -28,7 +28,7 @@ class KalmanFilter:
         self.A = A  # jacobian of the process function
 
         # calculate dimension of x
-        self.n = x_hat0.shape[0]
+        self.n = xt0.shape[0]
 
 
         # set default H if it is not defined
@@ -45,10 +45,10 @@ class KalmanFilter:
         else:
             self.P = P # posteriori estimate error covariance initialized to the identity matrix
         self.P_minus = self.P # priori estimate error coviariance matrix initialized to the identity matrix
-        self.x_hat = x_hat0  # set a priori estimate to initial guess
-        self.x_hat_minus = x_hat0  # set a posteriori estimate to initial guess
+        self.x_hat = xt0  # set a priori estimate to initial guess
+        self.x_hat_minus = xt0  # set a posteriori estimate to initial guess
         self.error_array = [] # array to store our innovations
-        self.xt0 = x_hat0 # for plotting
+        self.xt0 = xt0 # for plotting
 
     # Update a posteriori estimate based on a priori estimate and measurement
     def predict(self, measurement=None, measurement_array=None):
