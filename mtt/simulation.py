@@ -24,7 +24,7 @@ plt.rc('font', **font)
 
 # The Simulation class runs the data generator and the kalman filter to simulate an object in 2D.
 class Simulation:
-	def __init__(self, generator, tracker, seed_value=1):
+	def __init__(self, generator, tracker, seed_value=0):
 		"""
 		Constructs a simulation environment for one-line plotting data
 		Args:
@@ -32,8 +32,13 @@ class Simulation:
 			tracker: Tracker object
 			seed_value: random seed value to get the same trajectories each time
 		"""
+		self.seed_value = seed_value
+		if self.seed_value == 0:
+			self.cur_seed = np.random.randint(10**7)
+		else:
+			self.cur_seed = seed_value
+		self.rng = np.random.default_rng(self.cur_seed)
 
-		self.rng = np.random.default_rng(seed_value)
 		self.generator = generator
 		self.tracker_model = tracker
 		self.n = generator.n
@@ -491,6 +496,11 @@ class Simulation:
 		"""
 		This function clears all the processes, measures, trajectories, descriptions, and the ellipses.
 		"""
+		if self.seed_value == 0:
+			self.cur_seed = np.random.randint(10**7)
+			self.rng = np.random.default_rng(self.cur_seed)
+		else:
+			self.rng = np.random.default_rng(self.cur_seed)
 		self.processes = dict()
 		self.measures = dict()
 		self.sorted_measurements = dict()
