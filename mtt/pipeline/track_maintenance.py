@@ -31,7 +31,7 @@ class TrackMaintenance:
 
         self.num_obj = num_obj
 
-        # pull the filter params from filter_params first, then if they aren't specificed, ask generator_params
+        # pull the filter params from filter_params first, then if they aren't specified, ask generator_params
         self.filter_params = generator_params.update(predict_params) if predict_params is not None else generator_params
 
     def predict(self, tracks=None, measurements=None, time=0, false_alarms=None):

@@ -21,12 +21,13 @@ class Track:
             init_velocity: initial velocity of object, np array
         """
         # initial state for filter, uses intial measure and 0 velocity
-        self.filter_model = kfilter(**filter_params, x_hat0=init_measure)  # instantiate a filter,
+        self.filter_model = kfilter(**filter_params, xt0=init_measure)  # instantiate a filter,
         # assuming first measure is the correct starting location
         self.measurements = {init_time: init_measure}  # keys are timesteps, value may be none
         self.predictions = dict() # keys are timesteps, doesn't need to start at 0
         self.possible_observations = dict()  # used to pass around the possible measurements for this track for this ts
-        self.ellipses = dict() # keys are timesteps, values are x_hat arrs - arguments for cov_ellipse in sim, set in filter_predict
+        self.apriori_ellipses = dict() # keys are timesteps, values are x_hat tuples - arguments for cov_ellipse in sim
+        self.aposteriori_ellipses = dict() # keys are timesteps, values are x_hat tuples - arguments for cov_ellipse in sim
         self.stage = 0  # 0 is not confirmed yet, 1 is confirmed, 2 is deleted (done in track maintenance)
         self.missed_measurements = 0  # used to expand the gate and delete object if too many measurements are missed
 
