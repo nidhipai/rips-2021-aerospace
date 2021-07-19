@@ -32,6 +32,7 @@ class MTTMetrics:
 			index += 1
 		return errors
 
+
 	# Returns lists of AT and CT errors for each object
 	# Access AT errors of ith object with errors[i][0]
 	# Access CT errors of ith object with errors[i][1]

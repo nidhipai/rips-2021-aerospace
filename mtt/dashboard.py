@@ -8,6 +8,7 @@ import numpy as np
 import mtt
 from copy import copy
 
+#Declare these as global variables to be used by all callbacks
 global sim
 global prev_clicks
 global num_objects
@@ -17,8 +18,7 @@ num_objects = 1
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-rng = np.random.default_rng()
-# Default simulation values
+# Default simulation values, just to start with
 obj1 = np.array([[0], [0], [1], [1]])
 initial = {0: obj1}
 dt = 1
@@ -39,18 +39,22 @@ input_style = {"display": "inline-block", "margin": input_margin}
 # Set up the necessary infrastructure to run a simulation
 gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa_scale)
 """
-gate = mtt.DistanceGating(gate_size, expand_gating=gate_expand_size, method="euclidean")
+gate = mtt.DistanceGating(gate_size, expand_gating=gate_expand_size, method="mahalanobis")
 assoc = mtt.DataAssociation()
 params = gen.get_params()
 maintain = mtt.TrackMaintenance(mtt.KalmanFilter, params, num_obj=num_objects, num_init = 2, num_init_frames=3, num_delete=3)
 filter_ = mtt.FilterPredict()
 """
-tracker = mtt.MTTTracker(mtt.Presets.standardSHT(num_objects, gen.get_params()))
-sim = mtt.Simulation(gen, tracker)
 
+#Set up a default tracker and simulation
+tracker = mtt.MTTTracker(mtt.Presets.standardSHT(num_objects, gen.get_params()))
+sim = mtt.Simulation(gen, tracker, seed_value = 0)
+
+#Create blank figures to display at start
 fig = go.Figure()
 err = go.Figure()
 
+#Create app layout
 app.layout = html.Div(children=[
     html.H1(children='2D Object Trajectory Tracking'),
 
@@ -83,7 +87,17 @@ app.layout = html.Div(children=[
             id='error-graph',
             figure=err
         )
-    ], style={"display":"inline-block"}),
+    ], style={"display": "inline-block"}),
+
+    html.Div(children=[
+        html.H6(children='Seed'),
+        html.Div(id='seed-output', style={'whiteSpace': 'pre-line'})
+    ], style=input_style),
+
+    html.Div(children=[
+        html.H6(children='Root Mean Squared Error'),
+        html.Div(id='rmse-output', style={'whiteSpace': 'pre-line'})
+    ], style=input_style),
 
 
     html.Div(children=[
@@ -173,7 +187,17 @@ app.layout = html.Div(children=[
                 type="text",
                 placeholder="0 0 1 1 | 0 0 1 0"
             )
+        ], style=input_style),
+
+        html.Div(children=[
+            html.H6(children='Random Seed'),
+            dcc.Input(
+                id="seed",
+                type="text",
+                placeholder="0"
+            )
         ], style=input_style)
+
     ]),
 
     html.Div(children=[
@@ -226,14 +250,17 @@ app.layout = html.Div(children=[
     ])
 ])
 
+#Callback to update the graphs, both when check is clicked and when button is pressed
 @app.callback(
-    Output('example-graph', 'figure'),
+    Output('example-graph', 'figure'), # Outputs are the graphs
     Output('error-graph', 'figure'),
-    Input('example-graph', 'figure'),
+    Output('seed-output', 'children'),
+    Output('rmse-output', 'children'),
+    Input('example-graph', 'figure'), # Inputs are the graphs, the button being clicked, and the check box
     Input('error-graph', 'figure'),
     Input('run', 'n_clicks'),
     Input('check-options', 'value'),
-    State('time-steps', 'value'),
+    State('time-steps', 'value'), # Outputs are drawn from text box states
     State('nu', 'value'),
     State('ep_tangent', 'value'),
     State('ep_normal', 'value'),
@@ -241,17 +268,19 @@ app.layout = html.Div(children=[
     State('lam', 'value'),
     State('fa_scale', 'value'),
     State('x0', 'value'),
+    State('seed', 'value'),
     State('Q', 'value'),
     State('R', 'value'),
     State('P', 'value'),
     State('gate_size', 'value'),
     State('gate_expand_size', 'value')
 )
-def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, Q, R, P, gate_size, gate_expand_size):
+def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size):
     global prev_clicks
     global sim
     fig = prev_fig
     err = prev_err
+    rmse = 0
     if ts is None:
         ts = 10
     if prev_clicks < n_clicks:
@@ -271,10 +300,12 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             fa_scale = 10
         if x0 is None:
             x0 = "0 0 1 1"
+        if seed is None:
+            seed = "0"
         if gate_size is None:
-            gate_size = 10
+            gate_size = 0.95
         if gate_expand_size is None:
-            gate_expand_size = 100
+            gate_expand_size = 0
 
         # Parse the Object Starting Positions
         x0_split = x0.split("|")
@@ -329,6 +360,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             P_parse = np.eye(4)
 
         #Set up the simulation with the newly specified parameters
+        sim.seed_value = int(seed)
         sim.clear()
         sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale)
 
@@ -419,7 +451,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         
         if 'trajectory' in options:
             for i, trajectory in enumerate(trajectories):
-                data.append(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines+markers',
+                data.append(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines',
                                          name='Object {} Trajectory'.format(i), text=time, line=dict(width=3, dash='dash')))
         if 'apriori-covariance' in options:
             xs = []
@@ -485,10 +517,11 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             if 'trajectory' in options:
                 for i, trajectory in enumerate(trajectories):
                     scatters.append(go.Scatter(x=trajectory[0, :(t+1)], y=trajectory[1, :(t+1)], mode='lines+markers',
-                                             name='Object {} Trajectory'.format(i), text=time))
+                                             name='Object {} Trajectory'.format(i), text=time, line=dict(width=3, dash='dash')))
 
             frames.append(go.Frame(data=scatters))
 
+        rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
         fig = go.Figure(data=data, layout=layout, frames=frames)
 
     #err.add_trace(go.Scatter(y=errors[0], x=list(range(errors[0].size)), mode='lines',
@@ -501,6 +534,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
     #err.add_trace(go.Scatter(y=errors[3], x=list(range(errors[3].size)), mode='lines',
     #                         name="Along-track Velocity Error"))
-    return fig, err
+    return fig, err, sim.cur_seed, rmse
 
 app.run_server(debug=True)
