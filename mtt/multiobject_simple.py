@@ -94,7 +94,7 @@ class MultiObjSimple(DataGenerator):
 		colors = []
 		for xt in xts.values():
 			# Calculate whether the measurement is missed
-			if np.random.rand() > self.miss_p:
+			if rng.random() > self.miss_p:
 				output.append(self.H @ (xt + self.measure_noise(rng)))
 				colors.append("black")
 
