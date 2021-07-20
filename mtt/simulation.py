@@ -367,7 +367,6 @@ class Simulation:
 				lines.append(line_fa)
 				labs.append("False Alarms from Tracker")
 
-#<<<<<<< HEAD
 			## Add the predicted trajectories to the plot
 			#if len(self.trajectories) > 0:
 				#for i, out in enumerate(output):
@@ -379,7 +378,6 @@ class Simulation:
 						##line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=0.4, markersize=8, marker=',')
 					##else:
 						##line3, = ax.plot(out[0], out[1], lw=0.4, markersize=8, marker=',')
-#=======
 
 			# Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
 			if tail > 0:
@@ -512,6 +510,7 @@ class Simulation:
 		self.apriori_ellipses = dict()
 		self.aposteriori_ellipses = dict()
 		self.measure_colors = dict()
+		self.false_alarms = dict()
 
 		# Clear stored tracks from the tracker
 		self.tracker_model.clear_tracks()

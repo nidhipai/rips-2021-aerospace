@@ -15,6 +15,14 @@ global num_objects
 prev_clicks = 0
 num_objects = 1
 
+# Define colors to use in plots.
+# Note this is the maximum number of objects we can plot
+DEFAULT_COLORS=['rgb(31, 119, 180)', 'rgb(255, 127, 14)',
+                       'rgb(44, 160, 44)', 'rgb(214, 39, 40)',
+                       'rgb(148, 103, 189)', 'rgb(140, 86, 75)',
+                       'rgb(227, 119, 194)', 'rgb(127, 127, 127)',
+                       'rgb(188, 189, 34)', 'rgb(23, 190, 207)']
+
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -383,10 +391,13 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
     if n_clicks != 0:
         # Generate all variables to plot
         processes = sim.clean_process(sim.processes[0])
+
         colors = sim.clean_measure(sim.measure_colors[0])
-        
         measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
         measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
+        measures = sim.clean_measure2(sim.sorted_measurements[0])
+        false_alarms = sim.false_alarms[0]
+        false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
 
         trajectories = sim.clean_trajectory(sim.trajectories[0])
 
@@ -420,7 +431,9 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         plot_bgcolor='rgba(0,0,0,0)',
         xaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
         yaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
-        margin=dict(l=30, r=30, t=30, b=30),
+        margin=dict(l=30, r=30, t=30, b=30)
+        )
+        """
         updatemenus=[{
         "buttons": [
             {
@@ -438,25 +451,25 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 "method": "animate"
             }
         ]}]
-        )
-
+        """
 
         data = []
         if 'process' in options:
             for i, process in enumerate(processes):
                 # NOTE: the "time" text here assumes all objects are on-screen for an equal number of time steps;
                 # Otherwise "time" will be incorrect
-                data.append(go.Scatter(x=process[0], y=process[1], mode='lines', name='Object {} Process'.format(i), text=time))
+                data.append(go.Scatter(x=process[0], y=process[1], mode='lines', name='Obj {} Process'.format(i), text=time, line=dict(color=DEFAULT_COLORS[i])))
         if 'measure' in options:
-            data.append(go.Scatter(x=measures_true[0], y=measures_true[1], mode='markers', name="True Measures",
-                                     marker=dict(color="black"), text=time))
-            data.append(go.Scatter(x=measures_false[0], y=measures_false[1], mode='markers', name="False Alarms",
-                                     marker=dict(color="gray"), text=time))
-        
+            for key, value in measures.items():
+                # NOTE: no time step added
+                data.append(go.Scatter(x=value[0], y=value[1], mode='markers', name="Measures Assigned Obj {}".format(key),
+                                     marker=dict(color=DEFAULT_COLORS[key])))
+            data.append(go.Scatter(x=false_alarms[0], y=false_alarms[1], mode='markers', name="False Alarms",
+                                marker=dict(color="gray")))
         if 'trajectory' in options:
             for i, trajectory in enumerate(trajectories):
                 data.append(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines',
-                                         name='Object {} Prediction'.format(i), text=time, line=dict(width=3, dash='dash')))
+                                         name='Obj {} Prediction'.format(i), text=time, line=dict(width=3, dash='dot', color=DEFAULT_COLORS[i])))
         if 'apriori-covariance' in options:
             xs = []
             ys = []
@@ -510,7 +523,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             if 'measure' in options:
                 m = np.array(sim.measures[0][:(t+1)]).squeeze().T
                 mc = np.array(sim.measure_colors[0][:(t+1)]).squeeze().T
-                print(m)
                 m_t = m[:, mc == "black"]
                 m_f = m[:, mc != "black"]
                 scatters.append(go.Scatter(x=m_t[0], y=m_t[1], mode='markers', name="True Measures",
@@ -528,16 +540,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
         fig = go.Figure(data=data, layout=layout, frames=frames)
 
-    #err.add_trace(go.Scatter(y=errors[0], x=list(range(errors[0].size)), mode='lines',
-    #                         name="Cross-track Error", marker=dict(color="blue")))
-
-    #err.add_trace(go.Scatter(y=errors[1], x=list(range(errors[1].size)), mode='lines',
-    #                         name="Along-track Error", marker=dict(color="orange")))
-    #err.add_trace(go.Scatter(y=errors[2], x=list(range(errors[2].size)), mode='lines',
-    #                         name="Cross-track Velocity Error"))
-
-    #err.add_trace(go.Scatter(y=errors[3], x=list(range(errors[3].size)), mode='lines',
-    #                         name="Along-track Velocity Error"))
     return fig, err, sim.cur_seed, rmse
 
 app.run_server(debug=True)
