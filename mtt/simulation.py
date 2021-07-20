@@ -70,8 +70,8 @@ class Simulation:
 		self.measures[len(self.measures.keys())], self.measure_colors[len(self.measure_colors.keys())] = self.generator.measure(process, self.rng)
 
 		self.descs[len(self.descs.keys())] = {
-			"Tangent Variance": str(self.generator.Q[2, 2]),
-			"Normal Variance": str(self.generator.Q[3, 3]),
+			"Along-track Variance": str(self.generator.Q[2, 2]),
+			"Cross-track Variance": str(self.generator.Q[3, 3]),
 			"Measurement Noise": str(self.generator.R[1, 1]),
 			"Missed Measures": str(self.generator.miss_p),
 			"FA Rate": str(self.generator.lam),
