@@ -104,7 +104,7 @@ class Simulation:
 			self.tracker_model.predict(deepcopy(self.measures[index][i]))
 
 		# Store our output as an experiment
-		latest_trajectory = [] + self.tracker_model.get_trajectories()
+		latest_trajectory = self.tracker_model.get_trajectories()
 		self.trajectories[len(self.trajectories.keys())] = latest_trajectory
 
 		#Now store the errors at each time step
@@ -502,6 +502,7 @@ class Simulation:
 		else:
 			self.cur_seed = self.seed_value
 			self.rng = np.random.default_rng(self.cur_seed)
+
 		self.processes = dict()
 		self.measures = dict()
 		self.sorted_measurements = dict()
@@ -511,6 +512,9 @@ class Simulation:
 		self.apriori_ellipses = dict()
 		self.aposteriori_ellipses = dict()
 		self.measure_colors = dict()
+
+		# Clear stored tracks from the tracker
+		self.tracker_model.clear_tracks()
 
 	def reset_generator(self, **kwargs):
 		"""

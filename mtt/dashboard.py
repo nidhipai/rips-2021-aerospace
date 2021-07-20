@@ -29,8 +29,8 @@ ts = 10
 miss_p = 0
 lam = 0
 fa_scale = 1
-gate_size = 10
-gate_expand_size = 90
+gate_size = 0.95
+gate_expand_size = 0.5
 
 # Style Parameters
 input_margin = 10
@@ -90,15 +90,16 @@ app.layout = html.Div(children=[
     ], style={"display": "inline-block"}),
 
     html.Div(children=[
-        html.H6(children='Seed'),
-        html.Div(id='seed-output', style={'whiteSpace': 'pre-line'})
-    ], style=input_style),
+        html.Div(children=[
+            html.H6(children='Seed'),
+            html.Div(id='seed-output', style={'whiteSpace': 'pre-line'})
+        ], style=input_style),
 
-    html.Div(children=[
-        html.H6(children='Root Mean Squared Error'),
-        html.Div(id='rmse-output', style={'whiteSpace': 'pre-line'})
-    ], style=input_style),
-
+        html.Div(children=[
+            html.H6(children='Root Mean Squared Error'),
+            html.Div(id='rmse-output', style={'whiteSpace': 'pre-line'})
+        ], style=input_style),
+    ]),
 
     html.Div(children=[
         html.H3(children="Data Generation Parameters"),
@@ -232,8 +233,8 @@ app.layout = html.Div(children=[
                 id="gate_size",
                 type="number",
                 min=0.001,
-                max=1000,
-                placeholder=10
+                max=1,
+                placeholder=0.95
             )
         ], style=input_style),
 
@@ -242,9 +243,9 @@ app.layout = html.Div(children=[
             dcc.Input(
                 id="gate_expand_size",
                 type="number",
-                min=0.001,
-                max=10000,
-                placeholder=100
+                min=0,
+                max=1,
+                placeholder=0.5
             )
         ], style=input_style),
     ])
@@ -305,7 +306,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         if gate_size is None:
             gate_size = 0.95
         if gate_expand_size is None:
-            gate_expand_size = 0
+            gate_expand_size = 0.5
 
         # Parse the Object Starting Positions
         x0_split = x0.split("|")
@@ -329,7 +330,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         """
         # Parse input matrices to Kalman filter
 
-        if Q is not None:
+        if Q is not None and Q != '':
             Q_split = Q.split("\n")
             Q_parse = []
             for i, item in enumerate(Q_split):
@@ -339,7 +340,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         else:
             Q_parse = sim.generator.Q
 
-        if R is not None:
+        if R is not None and R != '':
             R_split = R.split("\n")
             R_parse = []
             for i, item in enumerate(R_split):
@@ -349,7 +350,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         else:
             R_parse = sim.generator.R
 
-        if P is not None:
+        if P is not None and P != '':
             P_split = P.split("\n")
             P_parse = []
             for i, item in enumerate(P_split):
@@ -383,9 +384,12 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         # Generate all variables to plot
         processes = sim.clean_process(sim.processes[0])
         colors = sim.clean_measure(sim.measure_colors[0])
+        
         measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
         measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
+
         trajectories = sim.clean_trajectory(sim.trajectories[0])
+
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
         atct_errors = mtt.MTTMetrics.atct_signed(processes, trajectories)
