@@ -452,7 +452,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         if 'trajectory' in options:
             for i, trajectory in enumerate(trajectories):
                 data.append(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines',
-                                         name='Object {} Trajectory'.format(i), text=time, line=dict(width=3, dash='dash')))
+                                         name='Object {} Prediction'.format(i), text=time, line=dict(width=3, dash='dash')))
         if 'apriori-covariance' in options:
             xs = []
             ys = []
@@ -517,7 +517,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             if 'trajectory' in options:
                 for i, trajectory in enumerate(trajectories):
                     scatters.append(go.Scatter(x=trajectory[0, :(t+1)], y=trajectory[1, :(t+1)], mode='lines+markers',
-                                             name='Object {} Trajectory'.format(i), text=time, line=dict(width=3, dash='dash')))
+                                             name='Object {} Prediction'.format(i), text=time, line=dict(width=3, dash='dash')))
 
             frames.append(go.Frame(data=scatters))
 
