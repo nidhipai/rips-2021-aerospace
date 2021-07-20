@@ -87,3 +87,9 @@ class MTTTracker:
         """
         for key, track in self.tracks.items():
             track.possible_observations = dict()
+
+    def clear_tracks(self):
+        """
+        Clears tracks from model so it can be rerun again without using previous observations
+        """
+        self.tracks = dict()
