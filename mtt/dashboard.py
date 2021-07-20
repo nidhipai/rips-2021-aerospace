@@ -427,12 +427,14 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         ymin = min([min([process[1].min() for process in processes]), min([trajectory[1].min() for trajectory in trajectories] + measure_min)])
         xrange = [xmin*1.1, xmax*1.1]
         yrange = [ymin*1.1, ymax*1.1]
-        layout = go.Layout(xaxis_range=xrange, yaxis_range=yrange, autosize=False,
-        plot_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
-        yaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
-        margin=dict(l=30, r=30, t=30, b=30)
-        )
+
+        desc = ''
+        for key, value in sim.descs[0].items():
+            if key not in ["fep_at", "fep_ct", "fnu", "P"]:
+                desc += key + " = " + value.replace("\n", "<br>").replace("[[", "<br> [").replace("]]","]") + "<br>"
+
+        print(desc)
+
         """
         updatemenus=[{
         "buttons": [
@@ -536,6 +538,23 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                                              name='Object {} Prediction'.format(i), text=time, line=dict(width=3, dash='dash')))
 
             frames.append(go.Frame(data=scatters))
+
+        layout = go.Layout(xaxis_range=xrange, yaxis_range=yrange, autosize=False,
+                           plot_bgcolor='rgba(0,0,0,0)',
+                           xaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
+                           yaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
+                           margin=dict(l=30, r=30, t=30, b=30),
+                           annotations=[
+                               go.layout.Annotation(
+                                   text=desc,
+                                   align='left',
+                                   showarrow=False,
+                                   xref='paper',
+                                   yref='paper',
+                                   x=1.4,
+                                   y=0,
+                               )]
+                           )
 
         rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
         fig = go.Figure(data=data, layout=layout, frames=frames)
