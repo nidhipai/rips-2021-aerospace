@@ -429,11 +429,12 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         yrange = [ymin*1.1, ymax*1.1]
 
         desc = ''
+        # Print out the parameters on the plot
+        """
         for key, value in sim.descs[0].items():
             if key not in ["fep_at", "fep_ct", "fnu", "P", "Time Steps", "Gate Size", "Gate Expansion %"]:
                 desc += key + " = " + value.replace("\n", "<br>").replace("[[", "<br> [").replace("]]","]") + "<br>"
-
-        print(desc)
+        """
 
         """
         updatemenus=[{
