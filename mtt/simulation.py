@@ -500,6 +500,7 @@ class Simulation:
 			self.cur_seed = np.random.randint(10**7)
 			self.rng = np.random.default_rng(self.cur_seed)
 		else:
+			self.cur_seed = self.seed_value
 			self.rng = np.random.default_rng(self.cur_seed)
 		self.processes = dict()
 		self.measures = dict()
