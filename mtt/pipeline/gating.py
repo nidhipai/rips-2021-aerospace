@@ -6,7 +6,7 @@ Aerospace Team
 from mtt.distances import Distances
 
 class DistanceGating:
-    def __init__(self, error_threshold, method="euclidean", expand_gating=0):
+    def __init__(self, error_threshold, method="mahalanobis", expand_gating=0):
         """
         Choose what kind of distance metric and also the error thresold
         Args:
@@ -20,7 +20,10 @@ class DistanceGating:
             "mahalanobis": Distances.mahalanobis_threshold
         }
         self.distance_function = switcher.get(method)
-        self.expand_gating = expand_gating
+        if method == "mahalanobis" and (expand_gating > 1 or expand_gating < 0):
+            raise Exception("Gate Expansion greater than 1 or less than 0. Must be within [0,1]")
+        else:
+            self.expand_gating = expand_gating
 
     def predict(self, tracks=None, measurements=None, time=None, false_alarms=None):
         """
@@ -33,9 +36,14 @@ class DistanceGating:
             false_alarms: not used
         """
         if tracks is None:
-            print("Error tracks is none in gating")
+            raise Exception("Error tracks is none in gating")
         for key, track in tracks.items():
-            expanded_gate_threshold = self.error_threshold + track.missed_measurements * self.expand_gating
+            # If we missed a measurement, expand the gate size
+            if track.missed_measurements > 0:
+                expanded_gate_threshold = self.error_threshold + ((1 - self.error_threshold) * self.expand_gating)
+            else:
+                expanded_gate_threshold = self.error_threshold
+
             remove_keys = []
             for obs_key, obs in track.possible_observations.items():
                 # if not self.distance_function(obs, track.filter_model, self.error_threshold):

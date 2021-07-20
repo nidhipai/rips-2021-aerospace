@@ -15,6 +15,14 @@ global num_objects
 prev_clicks = 0
 num_objects = 1
 
+# Define colors to use in plots.
+# Note this is the maximum number of objects we can plot
+DEFAULT_COLORS=['rgb(31, 119, 180)', 'rgb(255, 127, 14)',
+                       'rgb(44, 160, 44)', 'rgb(214, 39, 40)',
+                       'rgb(148, 103, 189)', 'rgb(140, 86, 75)',
+                       'rgb(227, 119, 194)', 'rgb(127, 127, 127)',
+                       'rgb(188, 189, 34)', 'rgb(23, 190, 207)']
+
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -29,8 +37,8 @@ ts = 10
 miss_p = 0
 lam = 0
 fa_scale = 1
-gate_size = 10
-gate_expand_size = 90
+gate_size = 0.95
+gate_expand_size = 0.5
 
 # Style Parameters
 input_margin = 10
@@ -90,15 +98,16 @@ app.layout = html.Div(children=[
     ], style={"display": "inline-block"}),
 
     html.Div(children=[
-        html.H6(children='Seed'),
-        html.Div(id='seed-output', style={'whiteSpace': 'pre-line'})
-    ], style=input_style),
+        html.Div(children=[
+            html.H6(children='Seed'),
+            html.Div(id='seed-output', style={'whiteSpace': 'pre-line'})
+        ], style=input_style),
 
-    html.Div(children=[
-        html.H6(children='Root Mean Squared Error'),
-        html.Div(id='rmse-output', style={'whiteSpace': 'pre-line'})
-    ], style=input_style),
-
+        html.Div(children=[
+            html.H6(children='Root Mean Squared Error'),
+            html.Div(id='rmse-output', style={'whiteSpace': 'pre-line'})
+        ], style=input_style),
+    ]),
 
     html.Div(children=[
         html.H3(children="Data Generation Parameters"),
@@ -232,8 +241,8 @@ app.layout = html.Div(children=[
                 id="gate_size",
                 type="number",
                 min=0.001,
-                max=1000,
-                placeholder=10
+                max=1,
+                placeholder=0.95
             )
         ], style=input_style),
 
@@ -242,9 +251,9 @@ app.layout = html.Div(children=[
             dcc.Input(
                 id="gate_expand_size",
                 type="number",
-                min=0.001,
-                max=10000,
-                placeholder=100
+                min=0,
+                max=1,
+                placeholder=0.5
             )
         ], style=input_style),
     ])
@@ -305,7 +314,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         if gate_size is None:
             gate_size = 0.95
         if gate_expand_size is None:
-            gate_expand_size = 0
+            gate_expand_size = 0.5
 
         # Parse the Object Starting Positions
         x0_split = x0.split("|")
@@ -329,7 +338,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         """
         # Parse input matrices to Kalman filter
 
-        if Q is not None:
+        if Q is not None and Q != '':
             Q_split = Q.split("\n")
             Q_parse = []
             for i, item in enumerate(Q_split):
@@ -339,7 +348,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         else:
             Q_parse = sim.generator.Q
 
-        if R is not None:
+        if R is not None and R != '':
             R_split = R.split("\n")
             R_parse = []
             for i, item in enumerate(R_split):
@@ -349,7 +358,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         else:
             R_parse = sim.generator.R
 
-        if P is not None:
+        if P is not None and P != '':
             P_split = P.split("\n")
             P_parse = []
             for i, item in enumerate(P_split):
@@ -382,10 +391,16 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
     if n_clicks != 0:
         # Generate all variables to plot
         processes = sim.clean_process(sim.processes[0])
+
         colors = sim.clean_measure(sim.measure_colors[0])
         measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
         measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
+        measures = sim.clean_measure2(sim.sorted_measurements[0])
+        false_alarms = sim.false_alarms[0]
+        false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
+
         trajectories = sim.clean_trajectory(sim.trajectories[0])
+
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
         atct_errors = mtt.MTTMetrics.atct_signed(processes, trajectories)
@@ -412,11 +427,15 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         ymin = min([min([process[1].min() for process in processes]), min([trajectory[1].min() for trajectory in trajectories] + measure_min)])
         xrange = [xmin*1.1, xmax*1.1]
         yrange = [ymin*1.1, ymax*1.1]
-        layout = go.Layout(xaxis_range=xrange, yaxis_range=yrange, autosize=False,
-        plot_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
-        yaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
-        margin=dict(l=30, r=30, t=30, b=30),
+
+        desc = ''
+        for key, value in sim.descs[0].items():
+            if key not in ["fep_at", "fep_ct", "fnu", "P", "Time Steps", "Gate Size", "Gate Expansion %"]:
+                desc += key + " = " + value.replace("\n", "<br>").replace("[[", "<br> [").replace("]]","]") + "<br>"
+
+        print(desc)
+
+        """
         updatemenus=[{
         "buttons": [
             {
@@ -434,25 +453,25 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 "method": "animate"
             }
         ]}]
-        )
-
+        """
 
         data = []
         if 'process' in options:
             for i, process in enumerate(processes):
                 # NOTE: the "time" text here assumes all objects are on-screen for an equal number of time steps;
                 # Otherwise "time" will be incorrect
-                data.append(go.Scatter(x=process[0], y=process[1], mode='lines', name='Object {} Process'.format(i), text=time))
+                data.append(go.Scatter(x=process[0], y=process[1], mode='lines', name='Obj {} Process'.format(i), text=time, line=dict(color=DEFAULT_COLORS[i])))
         if 'measure' in options:
-            data.append(go.Scatter(x=measures_true[0], y=measures_true[1], mode='markers', name="True Measures",
-                                     marker=dict(color="black"), text=time))
-            data.append(go.Scatter(x=measures_false[0], y=measures_false[1], mode='markers', name="False Alarms",
-                                     marker=dict(color="gray"), text=time))
-        
+            for key, value in measures.items():
+                # NOTE: no time step added
+                data.append(go.Scatter(x=value[0], y=value[1], mode='markers', name="Measures Assigned Obj {}".format(key),
+                                     marker=dict(color=DEFAULT_COLORS[key])))
+            data.append(go.Scatter(x=false_alarms[0], y=false_alarms[1], mode='markers', name="False Alarms",
+                                marker=dict(color="gray")))
         if 'trajectory' in options:
             for i, trajectory in enumerate(trajectories):
                 data.append(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines',
-                                         name='Object {} Trajectory'.format(i), text=time, line=dict(width=3, dash='dash')))
+                                         name='Obj {} Prediction'.format(i), text=time, line=dict(width=3, dash='dot', color=DEFAULT_COLORS[i])))
         if 'apriori-covariance' in options:
             xs = []
             ys = []
@@ -506,7 +525,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             if 'measure' in options:
                 m = np.array(sim.measures[0][:(t+1)]).squeeze().T
                 mc = np.array(sim.measure_colors[0][:(t+1)]).squeeze().T
-                print(m)
                 m_t = m[:, mc == "black"]
                 m_f = m[:, mc != "black"]
                 scatters.append(go.Scatter(x=m_t[0], y=m_t[1], mode='markers', name="True Measures",
@@ -517,23 +535,30 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             if 'trajectory' in options:
                 for i, trajectory in enumerate(trajectories):
                     scatters.append(go.Scatter(x=trajectory[0, :(t+1)], y=trajectory[1, :(t+1)], mode='lines+markers',
-                                             name='Object {} Trajectory'.format(i), text=time, line=dict(width=3, dash='dash')))
+                                             name='Object {} Prediction'.format(i), text=time, line=dict(width=3, dash='dash')))
 
             frames.append(go.Frame(data=scatters))
+
+        layout = go.Layout(xaxis_range=xrange, yaxis_range=yrange, autosize=False,
+                           plot_bgcolor='rgba(0,0,0,0)',
+                           xaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
+                           yaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
+                           margin=dict(l=30, r=30, t=30, b=30),
+                           annotations=[
+                               go.layout.Annotation(
+                                   text=desc,
+                                   align='left',
+                                   showarrow=False,
+                                   xref='paper',
+                                   yref='paper',
+                                   x=1.4,
+                                   y=0,
+                               )]
+                           )
 
         rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
         fig = go.Figure(data=data, layout=layout, frames=frames)
 
-    #err.add_trace(go.Scatter(y=errors[0], x=list(range(errors[0].size)), mode='lines',
-    #                         name="Cross-track Error", marker=dict(color="blue")))
-
-    #err.add_trace(go.Scatter(y=errors[1], x=list(range(errors[1].size)), mode='lines',
-    #                         name="Along-track Error", marker=dict(color="orange")))
-    #err.add_trace(go.Scatter(y=errors[2], x=list(range(errors[2].size)), mode='lines',
-    #                         name="Cross-track Velocity Error"))
-
-    #err.add_trace(go.Scatter(y=errors[3], x=list(range(errors[3].size)), mode='lines',
-    #                         name="Along-track Velocity Error"))
     return fig, err, sim.cur_seed, rmse
 
 app.run_server(debug=True)
