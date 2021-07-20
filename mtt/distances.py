@@ -33,7 +33,7 @@ class Distances:
     @staticmethod
     def mahalanobis_threshold(measurement, kfilter, error_threshold):
         dis = Distances.mahalanobis(measurement, kfilter)
-        cutoff = chi2.ppf(error_threshold, 3)
+        cutoff = chi2.ppf(error_threshold, 2)
         return dis < cutoff
 
     # consider adding a switcher to this class
