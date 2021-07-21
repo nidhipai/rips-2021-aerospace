@@ -457,6 +457,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         """
 
         data = []
+
         if 'process' in options:
             for i, process in enumerate(processes):
                 # NOTE: the "time" text here assumes all objects are on-screen for an equal number of time steps;
@@ -505,6 +506,16 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         )
 
         err = go.Figure(layout=errlayout)
+
+        err.update_xaxes(tickfont_size=20)
+        err.update_yaxes(tickfont_size=20)
+        err.update_layout(
+        legend=dict(
+            font=dict(
+                size=18,
+                color="black"
+            )
+        ))
 
         for obj_error in atct_errors:
             err.add_trace(go.Scatter(y=obj_error[0], x=list(range(len(obj_error[0]))), mode='lines', name="Along-track Position Error", marker=dict(color="orange")))
@@ -559,6 +570,16 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
         fig = go.Figure(data=data, layout=layout, frames=frames)
+        fig.update_xaxes(tickfont_size=20)
+        fig.update_yaxes(tickfont_size=20)
+        fig.update_layout(
+        legend=dict(
+            font=dict(
+                size=18,
+                color="black"
+            )
+        ))
+
 
     return fig, err, sim.cur_seed, rmse
 
