@@ -43,12 +43,13 @@ gate_expand_size = 0.5
 # Style Parameters
 input_margin = 10
 input_style = {"display": "inline-block", "margin": input_margin}
+output_style = {"display": "inline-block", "margin-right": 20, "margin-left": 20, "margin-top": 10, "margin-bottom": 10}
 
 # Set up the necessary infrastructure to run a simulation
 gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa_scale)
 """
 gate = mtt.DistanceGating(gate_size, expand_gating=gate_expand_size, method="mahalanobis")
-assoc = mtt.DataAssociation()
+assoc = mtt.DataAsskalmanfilter2.pyociation()
 params = gen.get_params()
 maintain = mtt.TrackMaintenance(mtt.KalmanFilter, params, num_obj=num_objects, num_init = 2, num_init_frames=3, num_delete=3)
 filter_ = mtt.FilterPredict()
@@ -64,14 +65,14 @@ err = go.Figure()
 
 #Create app layout
 app.layout = html.Div(children=[
-    html.H1(children='2D Object Trajectory Tracking'),
+    html.H1(children='2D Object Trajectory Tracking', style={"text-align":"center"}),
 
     html.Div(children='''
         This dashboard generates sample object movement in two directions and 
         uses the RIPS Aerospace Tracker to plot the predicted object trajectories.
-    '''),
+    ''', style={"margin":10}),
 
-    html.Button('Run Simulation', id='run', n_clicks=0),
+    html.Button('Run Simulation', id='run', n_clicks=0, style={"margin-top": 10,"margin-left":20}),
     dcc.Checklist(id='check-options',
         options=[
             {'label': 'Process', 'value': 'process'},
@@ -81,14 +82,15 @@ app.layout = html.Div(children=[
             {'label': 'A Posteriori Error Covariance', 'value': 'aposteriori-covariance'}
         ],
         value=['process', 'measure'],
-        labelStyle={'display': 'inline-block'}
+        labelStyle={'display': 'inline-block'},
+        style={"margin-top": 10, "margin-left":20}
     ),
     html.Div(children=[
         dcc.Graph(
             id='example-graph',
             figure=fig
         )
-    ], style={"width":"50%"}),
+    ], style={"display": "inline-block"}),
 
     html.Div(children=[
         dcc.Graph(
@@ -101,12 +103,12 @@ app.layout = html.Div(children=[
         html.Div(children=[
             html.H6(children='Seed'),
             html.Div(id='seed-output', style={'whiteSpace': 'pre-line'})
-        ], style=input_style),
+        ], style=output_style),
 
         html.Div(children=[
             html.H6(children='Root Mean Squared Error'),
             html.Div(id='rmse-output', style={'whiteSpace': 'pre-line'})
-        ], style=input_style),
+        ], style=output_style),
     ]),
 
     html.Div(children=[
@@ -430,11 +432,10 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         desc = ''
         # Print out the parameters on the plot
-        """
+
         for key, value in sim.descs[0].items():
             if key not in ["fep_at", "fep_ct", "fnu", "P", "Time Steps", "Gate Size", "Gate Expansion %"]:
                 desc += key + " = " + value.replace("\n", "<br>").replace("[[", "<br> [").replace("]]","]") + "<br>"
-        """
 
         data = []
 
@@ -480,6 +481,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         # Create error figure
         errlayout = go.Layout(
+        width=700,
         plot_bgcolor='rgba(0,0,0,0)',
         xaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
         yaxis=dict(linecolor="lightgray", gridcolor="lightgray")
@@ -532,6 +534,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             frames.append(go.Frame(data=scatters))
 
         layout = go.Layout(xaxis_range=xrange, yaxis_range=yrange, autosize=False,
+                           width=800,
                            plot_bgcolor='rgba(0,0,0,0)',
                            xaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
                            yaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
@@ -545,7 +548,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                                    showarrow=False,
                                    xref='paper',
                                    yref='paper',
-                                   x=1.4,
+                                   x=1.5,
                                    y=0,
                                )],
                            updatemenus=[{
