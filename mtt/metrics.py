@@ -28,7 +28,7 @@ class Metrics:
 			diff_y = process[1] - trajectos[index][1]
 			diff_x = diff_x[cut:]
 			diff_y = diff_y[cut:]
-			errors.append(np.sqrt(sum(np.square(diff_x) + np.square(diff_y) / len(diff_x))))
+			errors.append(np.sqrt(sum(np.square(diff_x) + np.square(diff_y)) / len(diff_x)))
 			index += 1
 		return errors
 
