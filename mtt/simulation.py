@@ -11,6 +11,8 @@ from itertools import repeat
 from scipy.stats import chi2
 
 from .pipeline.track_maintenance import TrackMaintenance
+from .pipeline.gating import DistanceGating
+
 from .metrics import *
 
 from mpl_toolkits import mplot3d
@@ -70,8 +72,8 @@ class Simulation:
 		self.measures[len(self.measures.keys())], self.measure_colors[len(self.measure_colors.keys())] = self.generator.measure(process, self.rng)
 
 		self.descs[len(self.descs.keys())] = {
-			"Tangent Variance": str(self.generator.Q[2, 2]),
-			"Normal Variance": str(self.generator.Q[3, 3]),
+			"Along-track Variance": str(self.generator.Q[2, 2]),
+			"Cross-track Variance": str(self.generator.Q[3, 3]),
 			"Measurement Noise": str(self.generator.R[1, 1]),
 			"Missed Measures": str(self.generator.miss_p),
 			"FA Rate": str(self.generator.lam),
@@ -86,11 +88,6 @@ class Simulation:
 
 		Args:
 			index (int): the stored trajectory to predict
-			x0 (ndarray): a single 2D column vector representing the starting states
-			Q (ndarray): the process noise covariance matrix
-			R (ndarray): the measurement noise covariance matrix
-			H (ndarray): the measurement function jacobian
-			u (ndarray): the input control vector
 		"""
 
 		if index is None:
@@ -127,20 +124,28 @@ class Simulation:
 		self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.false_alarms
 		self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
 
+		gate_size = 0
+		gate_expand = 0
 		for method in self.tracker_model.methods:
 			if isinstance(method, TrackMaintenance):
 				kalman_params = method.filter_params
-				break
+			if isinstance(method, DistanceGating):
+				gate_size = method.error_threshold
+				gate_expand = method.expand_gating
+
 
 		# this code will throw an error if there's no track maintenance object in the pipeline
 
 		self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
 			"Q": str(kalman_params['Q']),
 			"R": str(kalman_params['R']),
+			"Gate Size": str(gate_size),
+			"Gate Expansion %":str(gate_expand),
 			"fep_at": str(kalman_params['Q'][2][2]),
 			"fep_ct": str(kalman_params['Q'][3][3]),
 			"fnu": str(kalman_params['R'][0][0]),
-			"P": str(kalman_params['P'][0][0])
+			"P": str(kalman_params['P'][0][0]),
+
 		}}
 
 		#process = self.processes[index]

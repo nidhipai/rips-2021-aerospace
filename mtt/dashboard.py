@@ -88,7 +88,7 @@ app.layout = html.Div(children=[
             id='example-graph',
             figure=fig
         )
-    ], style={"display":"inline-block"}),
+    ], style={"width":"50%"}),
 
     html.Div(children=[
         dcc.Graph(
@@ -427,33 +427,17 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         ymin = min([min([process[1].min() for process in processes]), min([trajectory[1].min() for trajectory in trajectories] + measure_min)])
         xrange = [xmin*1.1, xmax*1.1]
         yrange = [ymin*1.1, ymax*1.1]
-        layout = go.Layout(xaxis_range=xrange, yaxis_range=yrange, autosize=False,
-        plot_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
-        yaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
-        margin=dict(l=30, r=30, t=30, b=30)
-        )
+
+        desc = ''
+        # Print out the parameters on the plot
         """
-        updatemenus=[{
-        "buttons": [
-            {
-                "args": [None, {"frame": {"duration": 500, "redraw": False},
-                                "fromcurrent": False, "transition": {"duration": 0,
-                                                                    "easing": "linear"}}],
-                "label": "Play",
-                "method": "animate"
-            },
-            {
-                "args": [[None], {"frame": {"duration": 0, "redraw": False},
-                                  "mode": "immediate",
-                                  "transition": {"duration": 0}}],
-                "label": "Pause",
-                "method": "animate"
-            }
-        ]}]
+        for key, value in sim.descs[0].items():
+            if key not in ["fep_at", "fep_ct", "fnu", "P", "Time Steps", "Gate Size", "Gate Expansion %"]:
+                desc += key + " = " + value.replace("\n", "<br>").replace("[[", "<br> [").replace("]]","]") + "<br>"
         """
 
         data = []
+
         if 'process' in options:
             for i, process in enumerate(processes):
                 # NOTE: the "time" text here assumes all objects are on-screen for an equal number of time steps;
@@ -465,7 +449,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 data.append(go.Scatter(x=value[0], y=value[1], mode='markers', name="Measures Assigned Obj {}".format(key),
                                      marker=dict(color=DEFAULT_COLORS[key])))
             data.append(go.Scatter(x=false_alarms[0], y=false_alarms[1], mode='markers', name="False Alarms",
-                                marker=dict(color="gray")))
+                                marker=dict(color="black", symbol="x")))
         if 'trajectory' in options:
             for i, trajectory in enumerate(trajectories):
                 data.append(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines',
@@ -494,7 +478,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
             data.append(go.Scatter(x=xs, y=ys, mode="lines", name="A Posteriori Error Covariance"))
 
-        #Create error figure
+        # Create error figure
         errlayout = go.Layout(
         plot_bgcolor='rgba(0,0,0,0)',
         xaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
@@ -502,6 +486,18 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         )
 
         err = go.Figure(layout=errlayout)
+
+        # Set font size
+        fontsize = 14
+        err.update_xaxes(tickfont_size=fontsize, title = "Time Step")
+        err.update_yaxes(tickfont_size=fontsize)
+        err.update_layout(
+        legend=dict(
+            font=dict(
+                size=fontsize,
+                color="black"
+            )
+        ))
 
         for obj_error in atct_errors:
             err.add_trace(go.Scatter(y=obj_error[0], x=list(range(len(obj_error[0]))), mode='lines', name="Along-track Position Error", marker=dict(color="orange")))
@@ -519,26 +515,70 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                     scatters.append(
                         go.Scatter(x=process[0, :(t+1)], y=process[1, :(t+1)], mode='lines', name='Object {} Process'.format(i),
                                    text=time))
-            """
+
             if 'measure' in options:
-                m = np.array(sim.measures[0][:(t+1)]).squeeze().T
-                mc = np.array(sim.measure_colors[0][:(t+1)]).squeeze().T
-                m_t = m[:, mc == "black"]
-                m_f = m[:, mc != "black"]
-                scatters.append(go.Scatter(x=m_t[0], y=m_t[1], mode='markers', name="True Measures",
-                                         marker=dict(color="black"), text=time))
-                scatters.append(go.Scatter(x=m_f[0], y=m_f[1], mode='markers', name="False Alarms",
-                                         marker=dict(color="gray"), text=time))
-            """
+                for key, value in measures.items():
+                    # NOTE: no time step added
+                    scatters.append(go.Scatter(x=value[0][:(t+1)], y=value[1][:(t+1)], mode='markers', name="Measures Assigned Obj {}".format(key),
+                                   marker=dict(color=DEFAULT_COLORS[key])))
+                scatters.append(go.Scatter(x=false_alarms[0][:(t+1)], y=false_alarms[1][:(t+1)], mode='markers', name="False Alarms",
+                                       marker=dict(color="black", symbol="x")))
+
             if 'trajectory' in options:
                 for i, trajectory in enumerate(trajectories):
-                    scatters.append(go.Scatter(x=trajectory[0, :(t+1)], y=trajectory[1, :(t+1)], mode='lines+markers',
+                    scatters.append(go.Scatter(x=trajectory[0, :(t+1)], y=trajectory[1, :(t+1)], mode='lines',
                                              name='Object {} Prediction'.format(i), text=time, line=dict(width=3, dash='dash')))
 
             frames.append(go.Frame(data=scatters))
 
+        layout = go.Layout(xaxis_range=xrange, yaxis_range=yrange, autosize=False,
+                           plot_bgcolor='rgba(0,0,0,0)',
+                           xaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
+                           yaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
+                           xaxis_title="x",
+                           yaxis_title="y",
+                           margin=dict(l=30, r=30, t=30, b=30),
+                           annotations=[
+                               go.layout.Annotation(
+                                   text=desc,
+                                   align='left',
+                                   showarrow=False,
+                                   xref='paper',
+                                   yref='paper',
+                                   x=1.4,
+                                   y=0,
+                               )],
+                           updatemenus=[{
+                               "buttons": [
+                                   {
+                                       "args": [None, {"frame": {"duration": 500, "redraw": False},
+                                                       "fromcurrent": False, "transition": {"duration": 0,
+                                                                                            "easing": "linear"}}],
+                                       "label": "Play",
+                                       "method": "animate"
+                                   },
+                                   {
+                                       "args": [[None], {"frame": {"duration": 0, "redraw": False},
+                                                         "mode": "immediate",
+                                                         "transition": {"duration": 0}}],
+                                       "label": "Pause",
+                                       "method": "animate"
+                                   }
+                               ],"pad": {"r": 30, "t": 30}}]
+                           )
+
         rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
         fig = go.Figure(data=data, layout=layout, frames=frames)
+        fig.update_xaxes(tickfont_size=fontsize)
+        fig.update_yaxes(tickfont_size=fontsize)
+        fig.update_layout(
+        legend=dict(
+            font=dict(
+                size=fontsize,
+                color="black"
+            )
+        ))
+
 
     return fig, err, sim.cur_seed, rmse
 

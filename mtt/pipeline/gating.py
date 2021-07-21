@@ -6,7 +6,7 @@ Aerospace Team
 from mtt.distances import Distances
 
 class DistanceGating:
-    def __init__(self, error_threshold, method="euclidean", expand_gating=0):
+    def __init__(self, error_threshold, method="mahalanobis", expand_gating=0):
         """
         Choose what kind of distance metric and also the error thresold
         Args:
@@ -20,7 +20,7 @@ class DistanceGating:
             "mahalanobis": Distances.mahalanobis_threshold
         }
         self.distance_function = switcher.get(method)
-        if expand_gating > 1 or expand_gating < 0:
+        if method == "mahalanobis" and (expand_gating > 1 or expand_gating < 0):
             raise Exception("Gate Expansion greater than 1 or less than 0. Must be within [0,1]")
         else:
             self.expand_gating = expand_gating
