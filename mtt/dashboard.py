@@ -403,6 +403,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         trajectories = sim.clean_trajectory(sim.trajectories[0])
 
+        # THIS IS NOT ROTATING ELLIPSES
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
         atct_errors = mtt.MTTMetrics.atct_signed(processes, trajectories)
@@ -434,7 +435,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         # Print out the parameters on the plot
 
         for key, value in sim.descs[0].items():
-            if key not in ["fep_at", "fep_ct", "fnu", "P", "Time Steps", "Gate Size", "Gate Expansion %"]:
+            if key not in ["fep_at", "fep_ct", "fnu", "P", "Time Steps", "Gate Size", "Gate Expansion %", "FA Rate", "FA Scale"]:
                 desc += key + " = " + value.replace("\n", "<br>").replace("[[", "<br> [").replace("]]","]") + "<br>"
 
         data = []

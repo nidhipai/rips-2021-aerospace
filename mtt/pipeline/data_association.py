@@ -29,6 +29,8 @@ class DataAssociation:
 			time: current timestep
 			false_alarms not used
 		"""
+
+		# BUG: NOT ALL MEASUREMENTS ARE BEING ADDED HERE
 		linsum_matrix = [] # matrix of distances that we'll use GNN on
 
 		for track_key, track in tracks.items():  # iterate over all the tracks
@@ -50,13 +52,28 @@ class DataAssociation:
 		# solve the linear sum assignment/weighted bipartite matching problem
 		row_ind, col_ind = linsum(linsum_matrix)
 
+
+
 		# for the pairs that were found, add the measurement to the track
+		"""
 		for index_track in row_ind:
 			for index_measurement in col_ind:
 				if linsum_matrix[index_track][index_measurement] < sys.maxsize:
 					tracks[index_track].add_measurement(time, measurements[index_measurement])
-					linsum_matrix[index_track][index_measurement] = -1 # so that we know tracks and measurements have been used
+
+					# Set the entries that we have checked already to -1 to denote they have been added
+					linsum_matrix[index_track][index_measurement] = -1
 					measurements[index_measurement] = None # so that we know which obs were attributed to tracks
+		"""
+
+		for i in range(len(row_ind)):
+			if linsum_matrix[row_ind[i]][col_ind[i]] < sys.maxsize:
+				tracks[row_ind[i]].add_measurement(time, measurements[col_ind[i]])
+				# Set the entries that we have checked already to -1 to denote they have been added
+				linsum_matrix[row_ind[i]][col_ind[i]] = -1
+				measurements[col_ind[i]] = None  # so that we know which obs were attributed to tracks
+
+
 
 		# address all the tracks without measurements - consider it as a missed measurement
 		for row in range(0, len(linsum_matrix)):
