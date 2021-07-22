@@ -11,7 +11,6 @@ class KalmanFilter:
     def __init__(self, f, A, h, Q, W, R, H=None, u=0, dt=1):
         """
         Initialize the Extended Kalman Filter object
-        :param x_hat0: initial state vector
         :param f: function representing the process
         :param A: Jacobian matrix of the process function
         :param h: function representing the measurement
