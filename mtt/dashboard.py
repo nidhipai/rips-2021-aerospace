@@ -47,13 +47,7 @@ output_style = {"display": "inline-block", "margin-right": 20, "margin-left": 20
 
 # Set up the necessary infrastructure to run a simulation
 gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa_scale)
-"""
-gate = mtt.DistanceGating(gate_size, expand_gating=gate_expand_size, method="mahalanobis")
-assoc = mtt.DataAsskalmanfilter2.pyociation()
-params = gen.get_params()
-maintain = mtt.TrackMaintenance(mtt.KalmanFilter, params, num_obj=num_objects, num_init = 2, num_init_frames=3, num_delete=3)
-filter_ = mtt.FilterPredict()
-"""
+
 
 #Set up a default tracker and simulation
 tracker = mtt.MTTTracker(mtt.Presets.standardSHT(num_objects, gen.get_params()))
@@ -433,11 +427,11 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         desc = ''
         # Print out the parameters on the plot
-
+        """
         for key, value in sim.descs[0].items():
             if key not in ["fep_at", "fep_ct", "fnu", "P", "Time Steps", "Gate Size", "Gate Expansion %", "FA Rate", "FA Scale"]:
                 desc += key + " = " + value.replace("\n", "<br>").replace("[[", "<br> [").replace("]]","]") + "<br>"
-
+        """
         data = []
 
         if 'process' in options:
@@ -491,7 +485,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         err = go.Figure(layout=errlayout)
 
         # Set font size
-        fontsize = 14
+        fontsize = 13
         err.update_xaxes(tickfont_size=fontsize, title = "Time Step")
         err.update_yaxes(tickfont_size=fontsize)
         err.update_layout(
@@ -502,11 +496,11 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             )
         ))
 
-        for obj_error in atct_errors:
-            err.add_trace(go.Scatter(y=obj_error[0], x=list(range(len(obj_error[0]))), mode='lines', name="Along-track Position Error", marker=dict(color="orange")))
-            err.add_trace(go.Scatter(y=obj_error[1], x=list(range(len(obj_error[1]))), mode='lines', name="Cross-track Position Error", marker=dict(color="blue")))
-            err.add_trace(go.Scatter(y=obj_error[2], x=list(range(len(obj_error[2]))), mode='lines', name="Along-track Velocity Error", marker=dict(color="red")))
-            err.add_trace(go.Scatter(y=obj_error[3], x=list(range(len(obj_error[3]))), mode='lines', name="Cross-track Velocity Error", marker=dict(color="purple")))
+        for i, obj_error in enumerate(atct_errors):
+            err.add_trace(go.Scatter(y=obj_error[0], x=list(range(len(obj_error[0]))), mode='lines', name="Obj {} Along-track Position Error".format(i)))
+            err.add_trace(go.Scatter(y=obj_error[1], x=list(range(len(obj_error[1]))), mode='lines', name="Obj {} Cross-track Position Error".format(i)))
+            err.add_trace(go.Scatter(y=obj_error[2], x=list(range(len(obj_error[2]))), mode='lines', name="Obj {} Along-track Velocity Error".format(i)))
+            err.add_trace(go.Scatter(y=obj_error[3], x=list(range(len(obj_error[3]))), mode='lines', name="Obj {} Cross-track Velocity Error".format(i)))
 
         frames = []
         for t in range(ts):
@@ -572,6 +566,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                            )
 
         rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
+        print(rmse)
         fig = go.Figure(data=data, layout=layout, frames=frames)
         fig.update_xaxes(tickfont_size=fontsize)
         fig.update_yaxes(tickfont_size=fontsize)
@@ -584,6 +579,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         ))
 
 
-    return fig, err, sim.cur_seed, rmse
+    return fig, err, sim.cur_seed, str(rmse)
 
-app.run_server(debug=True)
+app.run_server('0.0.0.0', port=8050, debug=True)
