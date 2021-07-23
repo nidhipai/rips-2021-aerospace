@@ -21,6 +21,7 @@ class Track_Maintenance:
                     new_tracks.append(Track(starting_observations, score))
             # consider the case of missed measurement
             missed_measurement_score = np.random.rand()
+            # TODO actually compute score
             if missed_measurement_score >= self.threshold:
                 track.score = missed_measurement_score
                 new_tracks.append(track)
