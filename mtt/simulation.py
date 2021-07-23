@@ -562,9 +562,9 @@ class Simulation:
 		mean.shape = (2,1)
 
 		# Eigendecompose the covariance matrix
-		cov = cov.round(decimals=16)
+		cov = cov.round(decimals=10)
 		w, v = np.linalg.eig(cov)
-
+		print(cov)
 		# Calculate the rotation of the ellipse and size of axes
 		ang = (np.pi / 2) - np.arctan2(v[0, 0], v[1, 0])
 		width = 2 * np.sqrt(chi2.ppf(p, 2) * w[0])
@@ -665,7 +665,7 @@ class Simulation:
 		for key, track in ellipses.items():
 			track_output = []
 			for param_set in track:
-				track_output.append(Simulation.cov_ellipse(param_set[0], param_set[1][:2,:2], mode=mode))
+				track_output.append(Simulation.cov_ellipse(param_set[0], param_set[1][2:,2:], mode=mode))
 			output.append(track_output)
 		return output
 
