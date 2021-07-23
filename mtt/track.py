@@ -25,6 +25,7 @@ class Track:
         # assuming first measure is the correct starting location
         self.measurements = {init_time: init_measure}  # keys are timesteps, value may be none
         self.predictions = dict() # keys are timesteps, doesn't need to start at 0
+        self.apriori_pred = dict()
         self.possible_observations = dict()  # used to pass around the possible measurements for this track for this ts
         self.apriori_ellipses = dict() # keys are timesteps, values are x_hat tuples - arguments for cov_ellipse in sim
         self.aposteriori_ellipses = dict() # keys are timesteps, values are x_hat tuples - arguments for cov_ellipse in sim
@@ -36,6 +37,12 @@ class Track:
         Returns: the current prediction of the state from the Kalman filter
         """
         return self.filter_model.get_current_guess()
+
+    def get_current_apriori_guess(self):
+        """
+        Returns: the current a priori prediction of the state from the Kalman filter
+        """
+        return self.filter_model.get_current_apriori_guess()
 
     def get_measurement_cov(self):
         """

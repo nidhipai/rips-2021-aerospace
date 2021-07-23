@@ -47,6 +47,7 @@ class Simulation:
 		self.processes = dict()
 		self.measures = dict()
 		self.measure_colors = dict()
+		self.apriori_traj = dict()
 		self.trajectories = dict()
 		self.signed_errors = dict()
 		self.descs = dict()
@@ -103,6 +104,8 @@ class Simulation:
 		# Store our output as an experiment
 		latest_trajectory = self.tracker_model.get_trajectories()
 		self.trajectories[len(self.trajectories.keys())] = latest_trajectory
+		latest_apriori_traj = self.tracker_model.get_apriori_traj()
+		self.apriori_traj[len(self.apriori_traj.keys())] = latest_apriori_traj
 
 		#Now store the errors at each time step
 		"""
@@ -695,11 +698,14 @@ class Simulation:
 			print("ERROR MEASURE LENGTH 0")
 			return
 		if len(self.trajectories) > 0:
-			output = self.trajectories[index]
-			output = self.clean_trajectory(output)
+			output1 = self.trajectories[index]
+			output1 = self.clean_trajectory(output1)
 		else:
 			print("ERROR TRAJECTORY LENGTH 0")
 			return
+		if len(self.apriori_traj) > 0:
+			output2 = self.apriori_traj[index]
+			output2 = self.clean_trajectory(output2)
 		if len(self.measure_colors) > 0:
 			true_false_alarms = self.get_true_fa_and_num_measures(self.measures[index], self.measure_colors[index])
 		else:
@@ -713,9 +719,9 @@ class Simulation:
 			return
 
 		if m == 'ame':
-			return Metrics.AME_euclidean(process, output, cut)
+			return Metrics.AME_euclidean(process, output1, cut)
 		if m == 'rmse':
-			return Metrics.RMSE_euclidean(process, output, cut)
+			return [Metrics.RMSE_euclidean(process, output1, cut), Metrics.RMSE_euclidean(process, output2, cut)]
 		if m == 'atct':
 			return Metrics.atct_signed(process, output, cut)
 		if m == 'fa':
