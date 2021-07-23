@@ -12,14 +12,16 @@ class Track_Maintenance:
         # create new tracks and score them, delete tracks that immediately have too low a score
         new_tracks = []
         for track in tracks:
-            # consider the case of missed measurement
-            missed_measurement_score = np.random.rand()
-            if missed_measurement_score >= self.threshold:
-                new_tracks.append(track)
             for possible_observation in track.possible_observations:
                 # TODO calculate score of this new track including the new observation
                 score = track.score + np.random.rand()
                 if score >= self.threshold:  # make a new track if the score is above the threshold
                     starting_observations = deepcopy(track.observations)
                     starting_observations[ts] = possible_observation
-                    new_tracks.append(Track(starting_observations))
+                    new_tracks.append(Track(starting_observations, score))
+            # consider the case of missed measurement
+            missed_measurement_score = np.random.rand()
+            if missed_measurement_score >= self.threshold:
+                track.score = missed_measurement_score
+                new_tracks.append(track)
+        return new_tracks
