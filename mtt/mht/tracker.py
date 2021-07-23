@@ -27,7 +27,11 @@ class MHT_Tracker:
         # 2) call each method's predict
         self.gating.predict(self.tracks)
         self.tracks = self.track_maintenance(self.ts, self.tracks)
-        self.hypothesis_comp(self.tracks)
+        self.hypothesis_comp.predict(self.tracks)
+        self.pruning.predict(self.ts, self.tracks)
+
+        for tracks in self.tracks:
+            # call the filter update for each track
 
         self.ts += 1
         for track in self.tracks:
