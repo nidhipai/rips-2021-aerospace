@@ -43,16 +43,11 @@ gate_expand_size = 0.5
 # Style Parameters
 input_margin = 10
 input_style = {"display": "inline-block", "margin": input_margin}
+output_style = {"display": "inline-block", "margin-right": 20, "margin-left": 20, "margin-top": 10, "margin-bottom": 10}
 
 # Set up the necessary infrastructure to run a simulation
 gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa_scale)
-"""
-gate = mtt.DistanceGating(gate_size, expand_gating=gate_expand_size, method="mahalanobis")
-assoc = mtt.DataAssociation()
-params = gen.get_params()
-maintain = mtt.TrackMaintenance(mtt.KalmanFilter, params, num_obj=num_objects, num_init = 2, num_init_frames=3, num_delete=3)
-filter_ = mtt.FilterPredict()
-"""
+
 
 #Set up a default tracker and simulation
 tracker = mtt.MTTTracker(mtt.Presets.standardSHT(num_objects, gen.get_params()))
@@ -64,14 +59,14 @@ err = go.Figure()
 
 #Create app layout
 app.layout = html.Div(children=[
-    html.H1(children='2D Object Trajectory Tracking'),
+    html.H1(children='2D Object Trajectory Tracking', style={"text-align":"center"}),
 
     html.Div(children='''
         This dashboard generates sample object movement in two directions and 
         uses the RIPS Aerospace Tracker to plot the predicted object trajectories.
-    '''),
+    ''', style={"margin":10}),
 
-    html.Button('Run Simulation', id='run', n_clicks=0),
+    html.Button('Run Simulation', id='run', n_clicks=0, style={"margin-top": 10,"margin-left":20}),
     dcc.Checklist(id='check-options',
         options=[
             {'label': 'Process', 'value': 'process'},
@@ -81,14 +76,15 @@ app.layout = html.Div(children=[
             {'label': 'A Posteriori Error Covariance', 'value': 'aposteriori-covariance'}
         ],
         value=['process', 'measure'],
-        labelStyle={'display': 'inline-block'}
+        labelStyle={'display': 'inline-block'},
+        style={"margin-top": 10, "margin-left":20}
     ),
     html.Div(children=[
         dcc.Graph(
             id='example-graph',
             figure=fig
         )
-    ], style={"width":"50%"}),
+    ], style={"display": "inline-block"}),
 
     html.Div(children=[
         dcc.Graph(
@@ -101,12 +97,12 @@ app.layout = html.Div(children=[
         html.Div(children=[
             html.H6(children='Seed'),
             html.Div(id='seed-output', style={'whiteSpace': 'pre-line'})
-        ], style=input_style),
+        ], style=output_style),
 
         html.Div(children=[
             html.H6(children='Root Mean Squared Error'),
             html.Div(id='rmse-output', style={'whiteSpace': 'pre-line'})
-        ], style=input_style),
+        ], style=output_style),
     ]),
 
     html.Div(children=[
@@ -401,6 +397,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         trajectories = sim.clean_trajectory(sim.trajectories[0])
 
+        # THIS IS NOT ROTATING ELLIPSES
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
         atct_errors = mtt.MTTMetrics.atct_signed(processes, trajectories)
@@ -432,10 +429,9 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         # Print out the parameters on the plot
         """
         for key, value in sim.descs[0].items():
-            if key not in ["fep_at", "fep_ct", "fnu", "P", "Time Steps", "Gate Size", "Gate Expansion %"]:
+            if key not in ["fep_at", "fep_ct", "fnu", "P", "Time Steps", "Gate Size", "Gate Expansion %", "FA Rate", "FA Scale"]:
                 desc += key + " = " + value.replace("\n", "<br>").replace("[[", "<br> [").replace("]]","]") + "<br>"
         """
-
         data = []
 
         if 'process' in options:
@@ -480,6 +476,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         # Create error figure
         errlayout = go.Layout(
+        width=700,
         plot_bgcolor='rgba(0,0,0,0)',
         xaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
         yaxis=dict(linecolor="lightgray", gridcolor="lightgray")
@@ -488,7 +485,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         err = go.Figure(layout=errlayout)
 
         # Set font size
-        fontsize = 14
+        fontsize = 13
         err.update_xaxes(tickfont_size=fontsize, title = "Time Step")
         err.update_yaxes(tickfont_size=fontsize)
         err.update_layout(
@@ -499,11 +496,11 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             )
         ))
 
-        for obj_error in atct_errors:
-            err.add_trace(go.Scatter(y=obj_error[0], x=list(range(len(obj_error[0]))), mode='lines', name="Along-track Position Error", marker=dict(color="orange")))
-            err.add_trace(go.Scatter(y=obj_error[1], x=list(range(len(obj_error[1]))), mode='lines', name="Cross-track Position Error", marker=dict(color="blue")))
-            err.add_trace(go.Scatter(y=obj_error[2], x=list(range(len(obj_error[2]))), mode='lines', name="Along-track Velocity Error", marker=dict(color="red")))
-            err.add_trace(go.Scatter(y=obj_error[3], x=list(range(len(obj_error[3]))), mode='lines', name="Cross-track Velocity Error", marker=dict(color="purple")))
+        for i, obj_error in enumerate(atct_errors):
+            err.add_trace(go.Scatter(y=obj_error[0], x=list(range(len(obj_error[0]))), mode='lines', name="Obj {} Along-track Position Error".format(i)))
+            err.add_trace(go.Scatter(y=obj_error[1], x=list(range(len(obj_error[1]))), mode='lines', name="Obj {} Cross-track Position Error".format(i)))
+            err.add_trace(go.Scatter(y=obj_error[2], x=list(range(len(obj_error[2]))), mode='lines', name="Obj {} Along-track Velocity Error".format(i)))
+            err.add_trace(go.Scatter(y=obj_error[3], x=list(range(len(obj_error[3]))), mode='lines', name="Obj {} Cross-track Velocity Error".format(i)))
 
         frames = []
         for t in range(ts):
@@ -532,6 +529,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             frames.append(go.Frame(data=scatters))
 
         layout = go.Layout(xaxis_range=xrange, yaxis_range=yrange, autosize=False,
+                           width=800,
                            plot_bgcolor='rgba(0,0,0,0)',
                            xaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
                            yaxis=dict(linecolor="lightgray", gridcolor="lightgray"),
@@ -545,7 +543,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                                    showarrow=False,
                                    xref='paper',
                                    yref='paper',
-                                   x=1.4,
+                                   x=1.5,
                                    y=0,
                                )],
                            updatemenus=[{
@@ -568,6 +566,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                            )
 
         rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
+        print(rmse)
         fig = go.Figure(data=data, layout=layout, frames=frames)
         fig.update_xaxes(tickfont_size=fontsize)
         fig.update_yaxes(tickfont_size=fontsize)
@@ -580,6 +579,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         ))
 
 
-    return fig, err, sim.cur_seed, rmse
+    return fig, err, sim.cur_seed, str(rmse)
 
-app.run_server(debug=True)
+app.run_server('0.0.0.0', port=8050, debug=True)
