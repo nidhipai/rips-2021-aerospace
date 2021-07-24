@@ -1,8 +1,9 @@
 """Aerospace Team - Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng"""
 
 class Track:
-    def __init__(self, starting_observations, x_hat, P = None):
-        self.score = None
+<<<<<<< HEAD
+    def __init__(self, starting_observations, score, x_hat, P = None):
+        self.score = score
         self.x_hat = x_hat
         self.observations = starting_observations  # list of (ts, k), where ts is the timestep and k is the number of the measurement
         # essentially this is the index in tracker.observations

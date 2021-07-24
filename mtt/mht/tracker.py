@@ -21,12 +21,16 @@ class MHT_Tracker:
 
         # 1) assign all measurements to all tracks in all children of tree
         for track in self.tracks:
-            track.possible_measurements = measurements
+            track.possible_measurements = list(range(0, len(measurements)))
 
         # 2) call each method's predict
-        self.gating.predict(self.tracks, self.measurements)
+        self.gating.predict(self.tracks, measurements)
         self.tracks = self.track_maintenance(self.ts, self.tracks)
-        self.hypothesis_comp(self.tracks)
+        self.hypothesis_comp.predict(self.tracks)
+        self.pruning.predict(self.ts, self.tracks)
+
+        for tracks in self.tracks:
+            # call the filter update for each track
 
         for track in self.tracks:
             track.run_kalman(global_kalman, self.measurements)
