@@ -1,11 +1,11 @@
 """Aerospace Team - Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng"""
 
 import numpy as np
-from mtt import Distances
+from mht import DistancesMHT
 
 # TODO THIS IS NOT DONE AND IS NOT COMPATIBLE WITH MHT
 
-class DistanceGating:
+class DistanceGatingMHT:
     def __init__(self, error_threshold, method="mahalanobis", expand_gating=0):
         """
         Choose what kind of distance metric and also the error thresold
@@ -22,7 +22,7 @@ class DistanceGating:
         self.distance_function = switcher.get(method)
         self.expand_gating = expand_gating
 
-    def predict(self, tracks=None):
+    def predict(self, tracks=None, measurements):
         """
         Removes possible observations from tracks based on distance
 
@@ -36,10 +36,7 @@ class DistanceGating:
             print("Error. Tracks in none in gating.")
         for key, track in tracks.items():
             expanded_gate_threshold = self.error_threshold + track.missed_measurements * self.expand_gating
-            remove_keys = []
-            for obs_key, obs in track.possible_observations.items():
+            for obs_index in track.possible_observations:
                 # if not self.distance_function(obs, track.filter_model, self.error_threshold):
-                if not self.distance_function(obs, track.filter_model, expanded_gate_threshold):
-                    remove_keys.append(obs_key)
-            for k in remove_keys:
-                track.possible_observations.pop(k)
+                if not self.distance_function(measurements[obs_index], track.filter_model, expanded_gate_threshold):
+                    track.possible_observations.remove(obs_index)
