@@ -3,7 +3,7 @@
 import numpy as np
 
 class MHT_Tracker:
-    def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning, filter_update):
+    def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning):
         self.tracks = []
         self.kalman = global_kalman
         self.measurements = [] # 2D array of state vectors - each row is a time step
@@ -14,7 +14,6 @@ class MHT_Tracker:
         self.track_maintenance = track_maintenance
         self.hypothesis_comp = hypothesis_comp
         self.pruning = pruning
-        self.filter_update = filter_update
 
     def predict(self, measurements):
         # measurements is an array of state vectors
@@ -32,6 +31,9 @@ class MHT_Tracker:
 
         for tracks in self.tracks:
             # call the filter update for each track
+
+        for track in self.tracks:
+            track.run_kalman(global_kalman, self.measurements)
 
         self.ts += 1
         for track in self.tracks:
