@@ -27,12 +27,12 @@ class DistancesMHT:
 
     @staticmethod
     def euclidean_threshold(measurement, kfilter, error_threshold):
-        dis = Distances.euclidean(measurement, kfilter)
+        dis = DistancesMHT.euclidean(measurement, kfilter)
         return dis < error_threshold
 
     @staticmethod
     def mahalanobis_threshold(measurement, kfilter, error_threshold):
-        dis = Distances.mahalanobis(measurement, kfilter)
+        dis = DistancesMHT.mahalanobis(measurement, kfilter)
         cutoff = chi2.ppf(error_threshold, 2)
         return dis < cutoff
 
