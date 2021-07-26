@@ -1,7 +1,6 @@
 """Aerospace Team - Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng"""
 
-import numpy as np
-from mht import DistancesMHT
+from mtt.mht.distances_mht import *
 
 # TODO THIS IS NOT DONE AND IS NOT COMPATIBLE WITH MHT
 
@@ -16,27 +15,25 @@ class DistanceGatingMHT:
         """
         self.error_threshold = error_threshold
         switcher = {
-            "euclidean": Distances.euclidean_threshold,
-            "mahalanobis": Distances.mahalanobis_threshold
+            "euclidean": DistancesMHT.euclidean_threshold,
+            "mahalanobis": DistancesMHT.mahalanobis_threshold
         }
         self.distance_function = switcher.get(method)
         self.expand_gating = expand_gating
 
-    def predict(self, tracks=None, measurements):
+    def predict(self, measurements, tracks=None,):
         """
         Removes possible observations from tracks based on distance
 
         Args:
-            tracks: dict of tracks from MTTTracker
-            measurements: not used
-            time: not used
-            false_alarms: not used
+            measurements (list): List of list of ndarray representing the measurements at each time step
+            tracks (dict): dict of tracks from MTTTracker
         """
+
         if tracks is None:
             print("Error. Tracks in none in gating.")
         for key, track in tracks.items():
             expanded_gate_threshold = self.error_threshold + track.missed_measurements * self.expand_gating
             for obs_index in track.possible_observations:
-                # if not self.distance_function(obs, track.filter_model, self.error_threshold):
                 if not self.distance_function(measurements[obs_index], track.filter_model, expanded_gate_threshold):
                     track.possible_observations.remove(obs_index)

@@ -31,6 +31,7 @@ class MHT_Tracker:
 
         for tracks in self.tracks:
             # call the filter update for each track
+            
 
         for track in self.tracks:
             track.run_kalman(global_kalman, self.measurements)

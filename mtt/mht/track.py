@@ -1,7 +1,6 @@
 """Aerospace Team - Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng"""
 
 class Track:
-<<<<<<< HEAD
     def __init__(self, starting_observations, score, x_hat, P = None):
         self.score = score
         self.x_hat = x_hat
