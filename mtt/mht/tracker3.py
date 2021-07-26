@@ -30,7 +30,9 @@ class MHT_Tracker:
         self.pruning.predict(self.ts, self.tracks, best_tracks_indexes)
 
         for track in self.tracks:
-            new_x_hat, new_P = self.kalman.time_update(track.x_hat[-1], track.P[-1])
+            x_hat_minus, P_minus = self.kalman.time_update(track.x_hat[-1], track.P[-1])
+            measurement = track.observations[self.ts] if self.ts in track.observations.keys() else None
+            new_x_hat, new_P = self.kalman.measurement_update(x_hat_minus[-1], P_minus[-1], measurement)
             track.x_hat.append(new_x_hat)
             track.P.append(new_P)
 
