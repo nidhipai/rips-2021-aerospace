@@ -14,6 +14,7 @@ class MHT_Tracker:
         self.track_maintenance = track_maintenance
         self.hypothesis_comp = hypothesis_comp
         self.pruning = pruning
+        self.gating.kalman = global_kalman
 
     def predict(self, measurements):
         # measurements is an array of state vectors

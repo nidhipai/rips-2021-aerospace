@@ -14,25 +14,25 @@ class DistancesMHT:
     Measurement is a column vector and kfilter is a filter
     """
     @staticmethod
-    def euclidean(measurement, kfilter):
-        return np.linalg.norm(measurement - kfilter.get_current_guess())
+    def euclidean(measurement, track, kfilter):
+        return np.linalg.norm(measurement - track.x_hat)
 
     @staticmethod
-    def mahalanobis(measurement, kfilter):
+    def mahalanobis(measurement, track, kfilter):
         innovation = measurement - kfilter.h(kfilter.x_hat_minus)
-        K = kfilter.H @ kfilter.P_minus @ kfilter.H.T + kfilter.R
+        K = kfilter.H @ track.P_minus @ kfilter.H.T + kfilter.R
         dis = np.sqrt(innovation.T @ np.linalg.inv(K) @ innovation)
         dis = dis[0][0]  # this is kinda hacky and the fact that I have to do this may signal that something is wrong
         return dis
 
     @staticmethod
-    def euclidean_threshold(measurement, kfilter, error_threshold):
-        dis = Distances.euclidean(measurement, kfilter)
+    def euclidean_threshold(measurement, track, kfilter, error_threshold):
+        dis = Distances.euclidean(measurement, track, kfilter)
         return dis < error_threshold
 
     @staticmethod
-    def mahalanobis_threshold(measurement, kfilter, error_threshold):
-        dis = Distances.mahalanobis(measurement, kfilter)
+    def mahalanobis_threshold(measurement, track, kfilter, error_threshold):
+        dis = Distances.mahalanobis(measurement, track, kfilter)
         cutoff = chi2.ppf(error_threshold, 2)
         return dis < cutoff
 
