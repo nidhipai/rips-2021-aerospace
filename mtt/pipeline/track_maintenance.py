@@ -3,8 +3,8 @@ Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
 Aerospace Team
 """
 
-from mtt import Track
-import numpy as np
+from mtt.track import Track
+
 
 class TrackMaintenance:
     """

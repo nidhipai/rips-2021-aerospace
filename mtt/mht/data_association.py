@@ -1,7 +1,7 @@
 """Aerospace Team - Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng"""
 
 import numpy as np
-from mtt import Track
+from .track import Track
 
 """
 - start with the results of gating

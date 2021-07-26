@@ -1,4 +1,5 @@
 """Aerospace Team - Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng"""
+from itertools import repeat
 
 class MHTTracker:
     def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning):
@@ -31,11 +32,22 @@ class MHTTracker:
 
         for track in self.tracks:
             x_hat_minus, P_minus = self.kalman.time_update(track.x_hat[-1], track.P[-1])
-            measurement = track.observations[self.ts] if self.ts in track.observations.keys() else None
+            measurement = self.measurements[self.ts][track.observations[self.ts]] if self.ts in track.observations.keys() else None
             new_x_hat, new_P = self.kalman.measurement_update(x_hat_minus[-1], P_minus[-1], measurement)
             track.x_hat.append(new_x_hat)
             track.P.append(new_P)
 
         self.ts += 1
-        for track in self.tracks:
-            track.possible_observations = []
+        # for track in self.tracks: should be unnecessary since we're making new tracks each time
+        #     track.possible_observations = []
+
+    def get_trajectories(self):
+        result = []
+        for ts in range(0, self.ts - 1):  # iterate over timesteps
+            result.append(dict())
+            for i, track in enumerate(self.tracks):
+                if ts in track.observations.keys:
+                    result[ts][i] = self.measurements[ts][track.observations[ts]]
+                else:
+                    result[ts][i] = list(repeat([None], 4))
+        return result
