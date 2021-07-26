@@ -3,7 +3,12 @@ import numpy as np
 
 class Pruning:
     def __init__(self, n):
-        self.n = n
+        """
+
+
+        """
+
+        self.n = n # The number of time steps from which to prune back
 
     def predict(self, tracks, best_tracks):
         """

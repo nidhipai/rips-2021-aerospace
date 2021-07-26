@@ -1,6 +1,6 @@
 """Aerospace Team - Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng"""
 
-class MHT_Tracker:
+class MHTTracker:
     def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning):
         self.tracks = []
         self.kalman = global_kalman
