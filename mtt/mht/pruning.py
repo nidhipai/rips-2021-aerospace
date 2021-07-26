@@ -15,6 +15,7 @@ class Pruning:
             best_tracks (list): list of indices of the best tracks selected at the current time step.
         """
         # Extract and store the sequences of measurements that correspond to valid tracks
+
         required_obs = []
         for index in best_tracks:
             prev_obs = np.array(list(tracks[index].observations.values))
@@ -22,6 +23,7 @@ class Pruning:
         required_obs = np.array(required_obs)
 
         # Test each track to see whether its initial sequence leads to a valid part of the tree
+        # OLD METHOD
         for track in tracks:
             keep = False
             # Extract the first part of the sequence of measurements, up to n
@@ -36,6 +38,10 @@ class Pruning:
             # Remove the current track if its initial sequence of measurements does not match the current best hypothesis up to n
             if not keep:
                 tracks.remove(track)
+
+
+
+
 
 
 
