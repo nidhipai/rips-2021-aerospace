@@ -1,20 +1,18 @@
 """Aerospace Team - Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng"""
 
-import numpy as np
-
 class MHT_Tracker:
-    def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning, filter_update):
+    def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning):
         self.tracks = []
         self.kalman = global_kalman
         self.measurements = [] # 2D array of state vectors - each row is a time step
         self.ts = 0
+        self.num_objects = 0 # total number of objects, including dead ones
 
         # all the methods
         self.gating = gating
         self.track_maintenance = track_maintenance
         self.hypothesis_comp = hypothesis_comp
         self.pruning = pruning
-        self.filter_update = filter_update
 
     def predict(self, measurements):
         # measurements is an array of state vectors
@@ -26,12 +24,15 @@ class MHT_Tracker:
 
         # 2) call each method's predict
         self.gating.predict(self.tracks, measurements)
-        self.tracks = self.track_maintenance(self.ts, self.tracks)
-        self.hypothesis_comp.predict(self.tracks)
-        self.pruning.predict(self.ts, self.tracks)
+        self.tracks, self.num_objects = self.track_maintenance(self.ts, self.tracks, measurements, self.num_objects)
+        best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
+        # TODO save most likely hypothesis (can print to the user)
+        self.pruning.predict(self.ts, self.tracks, best_tracks_indexes)
 
-        for tracks in self.tracks:
-            # call the filter update for each track
+        for track in self.tracks:
+            new_x_hat, new_P = self.kalman.time_update(track.x_hat[-1], track.P[-1])
+            track.x_hat.append(new_x_hat)
+            track.P.append(new_P)
 
         self.ts += 1
         for track in self.tracks:
