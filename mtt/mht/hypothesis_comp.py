@@ -5,8 +5,6 @@ import networkx as nx
 import networkx.algorithms.clique as nxac
 
 class HypothesisComp:
-	def __init__(self):
-		pass
 
 	def predict(self, tracks):
 		G = nx.Graph()
@@ -28,7 +26,7 @@ class HypothesisComp:
 		for ts, obs in track1.observations.items():
 			if ts in track2.observations.keys():
 				if obs == track2.observations[ts]:
-					return false
+					return False
 			else:
 				continue
-		return true
+		return True

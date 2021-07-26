@@ -38,7 +38,7 @@ class KalmanFilter:
     # Update a posteriori estimate based on a priori estimate and measurement
     def time_update(self, x_hat, P):
         x_hat_minus = self.f(x_hat, self.u)
-        P_minus = self.A(x_hat_minus, self.u) @ P @ self.A(x_hat_minus, self.u).T +
+        P_minus = self.A(x_hat_minus, self.u) @ P @ self.A(x_hat_minus, self.u).T + \
                   (self.W(x_hat_minus) @ self.Q @ self.W(x_hat_minus).T)
         return x_hat_minus, P_minus
 
