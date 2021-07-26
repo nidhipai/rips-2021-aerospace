@@ -17,7 +17,6 @@ from .kalmanfilter2 import *
 # from .tracker2 import *
 
 # MHT pipeline
-from .mht.data_association import *
 from .mht.distances_mht import *
 from .mht.gating_mht import *
 from .mht.hypothesis_comp import *

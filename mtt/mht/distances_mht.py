@@ -8,13 +8,13 @@ from scipy.stats import chi2
 
 class DistancesMHT:
     """
-    Just calculates various distances
+    Calculates various distances
 
     Methods tagged with threshold means that it takes in a thresold and returns True if the dis is < threshold
     Measurement is a column vector and kfilter is a filter
     """
     @staticmethod
-    def euclidean(measurement, track, kfilter):
+    def euclidean(measurement, track):
         return np.linalg.norm(measurement - track.x_hat)
 
     @staticmethod
@@ -27,12 +27,12 @@ class DistancesMHT:
 
     @staticmethod
     def euclidean_threshold(measurement, track, kfilter, error_threshold):
-        dis = Distances.euclidean(measurement, track, kfilter)
+        dis = DistancesMHT.euclidean(measurement, track, kfilter)
         return dis < error_threshold
 
     @staticmethod
     def mahalanobis_threshold(measurement, track, kfilter, error_threshold):
-        dis = Distances.mahalanobis(measurement, track, kfilter)
+        dis = DistancesMHT.mahalanobis(measurement, track, kfilter)
         cutoff = chi2.ppf(error_threshold, 2)
         return dis < cutoff
 

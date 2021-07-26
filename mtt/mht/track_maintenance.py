@@ -10,7 +10,7 @@ class TrackMaintenanceMHT:
     """
     Scores potential new tracks and creates them if the score is above the threshold
     """
-    def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R):
+    def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R, kFilter_model):
         """
         Args:
             threshold_old_track (numeric): score threshold for creating a new track from an existing object
@@ -28,6 +28,7 @@ class TrackMaintenanceMHT:
         self.pd = prob_detection
         self.lambda_fa = lambda_fa
         self.R = R
+        self.kFilter_model = kFilter_model
 
     def predict(self, ts, tracks, measurements, num_obj):
         """
@@ -46,28 +47,31 @@ class TrackMaintenanceMHT:
             for possible_observation in track.possible_observations:
                 score = track.score + self.score_measurement_received(possible_observation, track)
                 if score >= self.threshold_old_track:  # make a new track if the score is above the threshold
+                    # TODO: deepcopy is expensive, can we avoid this?
                     starting_observations = deepcopy(track.observations)
                     starting_observations[ts] = possible_observation
-                    new_tracks.append(Track(starting_observations, score, track.object_id))
+                    # Create a new track starting at the current observation
+                    new_tracks.append(Track(starting_observations, score, track.object_id, [measurements[possible_observation]]))
             # consider the case of missed measurement
             missed_measurement_score = track.score + self.score_no_measurement()
             if missed_measurement_score >= self.threshold_miss_measurement:
                 track.score = missed_measurement_score
                 new_tracks.append(track)
-        # consider each as a new track - measurement is an index
+
+        # consider each as a new track - measurement is an integer
         for measurement in measurements:
-            score = 1 + measurement  # TODO compute real score for new track
+            score = 0 # TODO: Compute real score for new measurement
             if score >= self.threshold_new_track:
                 starting_observations = {ts: measurement}
-                new_tracks.append(Track(starting_observations, score, num_obj))
+                # Create a new track starting the current measurement being considered
+                new_tracks.append(Track(starting_observations, score, num_obj, [measurement]))
                 num_obj += 1
         return new_tracks, num_obj
 
     def score_measurement_received(self, obs, track):
-        # TODO make sure that this integrates with the Distances class
-        # TODO figure out the variables in the score equation
-        m_dis_sq = DistancesMHT.mahalanobis() ** 2 # TODO fix
-        norm_S = np.linalg.norm(self.R, ord=2) #TODO this may not be the right norm
+
+        m_dis_sq = DistancesMHT.mahalanobis(obs, track, self.kFilter_model) ** 2 # TODO fix
+        norm_S = np.linalg.norm(self.R, ord=2) # TODO this may not be the right norm
         return np.log(self.pd / ((2 * np.pi) ** (self.M / 2) * self.lambda_fa * np.sqrt(norm_S))) - m_dis_sq / 2
 
     def score_no_measurement(self):

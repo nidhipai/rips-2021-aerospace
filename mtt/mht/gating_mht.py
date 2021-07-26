@@ -28,12 +28,13 @@ class DistanceGatingMHT:
 
         Args:
             measurements (list): List of list of ndarray representing the measurements at each time step
-            tracks (dict): dict of tracks from MTTTracker
+            tracks (list): list of tracks from MTTTracker
         """
 
         if tracks is None:
             print("Error. Tracks in none in gating.")
-        for key, track in tracks.items():
+        for track in tracks:
+            print(track)
             expanded_gate_threshold = self.error_threshold + track.missed_measurements * self.expand_gating
             for obs_index in track.possible_observations:
                 # if not self.distance_function(obs, track.filter_model, self.error_threshold):
