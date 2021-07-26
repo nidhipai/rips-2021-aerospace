@@ -21,6 +21,7 @@ class DistanceGatingMHT:
         }
         self.distance_function = switcher.get(method)
         self.expand_gating = expand_gating
+        self.kalman = None
 
     def predict(self, tracks=None, measurements):
         """
@@ -38,5 +39,5 @@ class DistanceGatingMHT:
             expanded_gate_threshold = self.error_threshold + track.missed_measurements * self.expand_gating
             for obs_index in track.possible_observations:
                 # if not self.distance_function(obs, track.filter_model, self.error_threshold):
-                if not self.distance_function(measurements[obs_index], track.filter_model, expanded_gate_threshold):
+                if not self.distance_function(measurements[obs_index], track, self.kalman, expanded_gate_threshold):
                     track.possible_observations.remove(obs_index)
