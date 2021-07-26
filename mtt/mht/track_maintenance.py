@@ -5,9 +5,10 @@ from .track import Track
 from copy import deepcopy
 from mtt import Distances
 
-class Track_Maintenance:
+class TrackMaintenance:
     def __init__(self, threshold, prob_detection, obs_dim, lambda_fa, R):
-        self.threshold = threshold #TODO might want many thresholds for the 3 uses
+        self.threshold = threshold 
+        # TODO might want many thresholds for the 3 uses
         self.M = obs_dim
         self.pd = prob_detection
         self.lambda_fa = lambda_fa
