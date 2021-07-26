@@ -10,6 +10,8 @@ class HypothesisComp:
 		G = nx.Graph()
 		index = 0
 		for track in tracks:
+			# NOTE: hacky way to turn track scores into integers.
+			# May want a better way to do this
 			G.add_node(index, weight = track.score)
 			index += 1
 		for i in range(len(tracks)):

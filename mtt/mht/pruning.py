@@ -3,10 +3,6 @@ import numpy as np
 
 class Pruning:
     def __init__(self, n):
-        """
-
-
-        """
 
         self.n = n # The number of time steps from which to prune back
 
@@ -23,7 +19,7 @@ class Pruning:
 
         required_obs = []
         for index in best_tracks:
-            prev_obs = np.array(list(tracks[index].observations.values))
+            prev_obs = np.array(list(tracks[index].observations.values()))
             required_obs.append(prev_obs[:(prev_obs.size - 1 - self.n)])
         required_obs = np.array(required_obs)
 
@@ -32,7 +28,7 @@ class Pruning:
         for track in tracks:
             keep = False
             # Extract the first part of the sequence of measurements, up to n
-            prev_ob = np.array(list(track.observations.values))
+            prev_ob = np.array(list(track.observations.values()))
             prev_ob = prev_ob[:(prev_ob.size - 1 - self.n)]
 
             # Test each possibility

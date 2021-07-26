@@ -24,18 +24,20 @@ class MHTTracker:
             track.possible_measurements = list(range(0, len(measurements)))
 
         # 2) call each method's predict
-        self.gating.predict(self.tracks, measurements)
-        self.tracks, self.num_objects = self.track_maintenance(self.ts, self.tracks, measurements, self.num_objects)
+        self.gating.predict(measurements, self.tracks)
+        self.tracks, self.num_objects = self.track_maintenance.predict(self.ts, self.tracks, measurements, self.num_objects)
         best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
         # TODO save most likely hypothesis (can print to the user)
-        self.pruning.predict(self.ts, self.tracks, best_tracks_indexes)
+        self.pruning.predict(self.tracks, best_tracks_indexes)
 
+        # Run the Kalman Filter for each track
         for track in self.tracks:
             x_hat_minus, P_minus = self.kalman.time_update(track.x_hat[-1], track.P[-1])
             measurement = self.measurements[self.ts][track.observations[self.ts]] if self.ts in track.observations.keys() else None
             new_x_hat, new_P = self.kalman.measurement_update(x_hat_minus[-1], P_minus[-1], measurement)
             track.x_hat.append(new_x_hat)
             track.P.append(new_P)
+
 
         self.ts += 1
         # for track in self.tracks: should be unnecessary since we're making new tracks each time

@@ -6,6 +6,7 @@ class Track:
     def __init__(self, starting_observations, score, object_id, x_hat, P = None):
         self.score = score
         self.x_hat = x_hat
+        self.n = self.x_hat[0].shape[0]
         self.x_hat_minus = self.x_hat
         self.observations = starting_observations  # list of (ts, k), where ts is the timestep and k is the number of the measurement
 
@@ -23,5 +24,5 @@ class Track:
 
     def run_kalman(self, kalman_filter, measurements):
         self.x_hat_minus, self.P_minus = kalman_filter.time_update(self.x_hat, self.P)
-        self.x_hat, self.P = kalman_filter.measurement_update(self.x_hat_minus, self.P_minus, measurements[possible_observations[0]])
+        self.x_hat, self.P = kalman_filter.measurement_update(self.x_hat_minus, self.P_minus, measurements[self.possible_observations[0]])
         self.possible_observations = []
