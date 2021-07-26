@@ -1,6 +1,5 @@
 """Aerospace Team - Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng"""
 
-import numpy as np
 import networkx as nx
 import networkx.algorithms.clique as nxac
 
