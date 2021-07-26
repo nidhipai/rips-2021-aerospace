@@ -5,8 +5,6 @@ import networkx as nx
 import networkx.algorithms.clique as nxac
 
 class HypothesisComp:
-	def __init__(self):
-		pass
 
 	def predict(self, tracks):
 		G = nx.Graph()
