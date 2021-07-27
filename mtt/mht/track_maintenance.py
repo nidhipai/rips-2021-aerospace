@@ -44,36 +44,40 @@ class TrackMaintenanceMHT:
         """
         new_tracks = []
         for track in tracks:
-            for possible_observation in track.possible_observations:
-                score = track.score + self.score_measurement_received(possible_observation, track)
-                if score >= self.threshold_old_track:  # make a new track if the score is above the threshold
-                    # TODO: deepcopy is expensive, can we avoid this?
-                    starting_observations = deepcopy(track.observations)
-                    starting_observations[ts] = possible_observation
-                    # Create a new track starting at the current observation
-                    new_tracks.append(Track(starting_observations, score, track.object_id, [measurements[possible_observation]]))
-            # consider the case of missed measurement
+            # consider the case of missed measurement, replicate each of these tracks as if they missed a measurement
             missed_measurement_score = track.score + self.score_no_measurement()
             if missed_measurement_score >= self.threshold_miss_measurement:
-                track.score = missed_measurement_score
-                new_tracks.append(track)
+                mm_track = deepcopy(track)
+                mm_track.score = missed_measurement_score
+                mm_track.possible_observations = []
+                new_tracks.append(mm_track)
 
-        # consider each as a new track - measurement is an integer
+            #Now, for every possible observation in a track, create a new track
+            for possible_observation in track.possible_observations:
+                score = track.score + self.score_measurement_received(possible_observation, track)
+                if score >= self.threshold_old_track:  
+                    observations = deepcopy(track.observations)
+                    po_track = Track(observations, score, track.object_id, [measurements[possible_observation]], None,  track.ts)
+                    po_track.possible_observations = [possible_observation]
+                    new_tracks.append(po_track)
+
+        # finally, for every measurement, make a new track (assume it is a new object)
         for i, measurement in enumerate(measurements):
-            score = 0 # TODO: Compute real score for new measurement
+            score = 1 
             if score >= self.threshold_new_track:
                 starting_observations = {ts: i}
-                print(starting_observations)
-                # Create a new track starting the current measurement being considered
                 new_tracks.append(Track(starting_observations, score, num_obj, [measurement]))
                 num_obj += 1
         return new_tracks, num_obj
 
     def score_measurement_received(self, obs, track):
 
+        #scoring occurs here
         m_dis_sq = DistancesMHT.mahalanobis(obs, track, self.kFilter_model) ** 2 # TODO fix
         norm_S = np.linalg.norm(self.R, ord=2) # TODO this may not be the right norm
-        return np.log(self.pd / ((2 * np.pi) ** (self.M / 2) * self.lambda_fa * np.sqrt(norm_S))) - m_dis_sq / 2
+        score = np.log(self.pd / ((2 * np.pi) ** (self.M / 2) * self.lambda_fa * np.sqrt(norm_S))) - m_dis_sq / 2
+        return score
 
     def score_no_measurement(self):
+        #scoring without measurement occurs here
         return np.log(1 - self.pd)
