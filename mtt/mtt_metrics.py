@@ -144,6 +144,17 @@ class MTTMetrics:
 
 	@staticmethod
 	def motp(processes, trajectories):
+		"""
+		Multi-Object Tracking Precision. Calculates how well the filter performs (RMSE) on time steps in
+		which the correct object was tracked
+
+		Args:
+			processes (list): a list of ndarray representing true state vector over time for each object
+			trajectories (list): a list of ndarray representing predicted state vector over time for each object
+
+		Returns:
+			error (numeric): a numeric value representing the root-mean-squared-error over all objects
+		"""
 		error = 0
 		n = 0
 		for i, estimate in enumerate(trajectories):
@@ -154,5 +165,36 @@ class MTTMetrics:
 						error += dist[i]
 						n += 1
 		error = np.sqrt(error) / n
+		return error
+
+	@staticmethod
+	def mota(processes, trajectories):
+		"""
+		Multi-Object Tracking Accuracy. Calculates how often the correct object was tracked.
+
+		NOTE: This method currently only calculates the number of "swaps" when the incorrect object is tracked.
+		Ideally, this method should also count the number of times that an object was tracked when it really died,
+		and how many times an object was not tracked by the algorithm (when it was considered "dead" even though
+		it was still alive. However, our data generation does not currently support births or deaths; when it does,
+		this method must be changed.
+
+		Args:
+			processes (list): a list of ndarray representing true state vector over time for each object
+			trajectories (list): a list of ndarray representing predicted state vector over time for each object
+
+		Returns:
+			error (numeric): a numeric value representing the root-mean-squared-error over all objects
+		"""
+		error = 0
+		total_objects = len(processes)
+		for i, estimate in enumerate(trajectories):
+			for j in range(estimate[0].size):
+				if estimate[0, j] != None:
+					dist = np.power((np.array(processes)[:, :, j] - estimate[:, j]), 2).sum(axis=1)
+					if dist.argmin() != i:
+						# Add a mismatch
+						error += 1
+
+		error = error / total_objects
 		return error
 
