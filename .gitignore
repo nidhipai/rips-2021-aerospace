@@ -9,6 +9,8 @@
 */.ipynb_checkpoints/*
 do not push to github.ipynb
 
+*.ipynb
+
 # IPython
 profile_default/
 ipython_config.py
