@@ -29,6 +29,7 @@ class Track:
             self.x_hat_minus, self.P_minus = kalman_filter.time_update(self.x_hat, self.P)
 
     def measurement_update(self, kalman_filter, measurements, ts):
+        self.x_hat_minus = np.array(self.x_hat_minus)
         if self.ts != 0:
             if len(self.possible_observations) != 0:
                 observation = measurements[self.possible_observations[0]]
