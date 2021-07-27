@@ -5,7 +5,7 @@ from .multiobject_simple import *
 from .multiobject_fixed import *
 
 # Multi-target tracking tools
-from .kalmanfilter2 import *
+# from .kalmanfilter2 import *
 # from .track import *
 
 # SHT pipeline
