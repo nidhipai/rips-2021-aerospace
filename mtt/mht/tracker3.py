@@ -28,9 +28,9 @@ class MHTTracker:
         self.gating.predict(measurements, self.tracks)
         self.tracks, self.num_objects = self.track_maintenance.predict(self.ts, self.tracks, measurements, self.num_objects)
         best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
-        print(best_tracks_indexes)
+        # print(best_tracks_indexes)
         # TODO save most likely hypothesis (can print to the user)
-        # self.pruning.predict(self.tracks, best_tracks_indexes)
+        self.pruning.predict(self.tracks, best_tracks_indexes)
 
         # Run the Kalman Filter for each track
         for track in self.tracks:

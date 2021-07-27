@@ -33,7 +33,7 @@ class Pruning:
 
             # Test each possibility
             for required_ob in required_obs:
-                if required_ob.size == prev_ob.size and prev_ob(required_ob == prev_ob).all():
+                if required_ob.size == prev_ob.size and (required_ob == prev_ob).all():
                     keep = True
 
             # Remove the current track if its initial sequence of measurements does not match the current best hypothesis up to n
