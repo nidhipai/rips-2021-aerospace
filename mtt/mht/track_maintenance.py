@@ -55,7 +55,7 @@ class TrackMaintenanceMHT:
 
             #Now, for every possible observation in a track, create a new track
             for possible_observation in track.possible_observations:
-                score = self.score_measurement_received(measurements[possible_observation], track)
+                score = self.score_measurement(measurements[possible_observation], track)
                 if score >= self.threshold_old_track:  
                     observations = deepcopy(track.observations)
                     po_track = Track(observations, score, track.object_id, [measurements[possible_observation]], None,  track.ts)
