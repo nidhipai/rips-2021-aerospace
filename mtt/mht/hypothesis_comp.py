@@ -11,13 +11,16 @@ class HypothesisComp:
 		for track in tracks:
 			# NOTE: hacky way to turn track scores into integers.
 			# May want a better way to do this
-			G.add_node(index, weight = track.score)
+			G.add_node(index, weight = int(track.score*1000))
 			index += 1
 		for i in range(len(tracks)):
 			for j in range(i):
+				# print(self.are_compatible(tracks[i], tracks[j]))
 				if self.are_compatible(tracks[i], tracks[j]):
 					G.add_edge(i, j)
 		result = nxac.max_weight_clique(G)
+		print(result)
+		print("NODES: ", G.nodes)
 		clique = result[0]
 		return clique
 
