@@ -42,13 +42,21 @@ class MTTMetrics:
 	def atct_signed(processes, trajectos, cut = 0):
 		i = 0
 		errors = []
+		for j in range(len(trajectos)):
+			for k in range(len(trajectos[j])):
+				if trajectos[j][0][k] is None:
+					continue
+				else:
+					if cut < k:
+						cut == k
+		print(cut)
 		for process in processes:
-			diff_x = process[0] - trajectos[i][0]
-			diff_y = process[1] - trajectos[i][1]
-			vx = process[2]
-			vy = process[3]
-			diff_vx = vx - trajectos[i][2]
-			diff_vy = vy - trajectos[i][3]
+			diff_x = process[0][cut:] - trajectos[i][0][cut:]
+			diff_y = process[1][cut:] - trajectos[i][1][cut:]
+			vx = process[2][cut:]
+			vy = process[3][cut:]
+			diff_vx = vx - trajectos[i][2][cut:]
+			diff_vy = vy - trajectos[i][3][cut:]
 			angles = np.arctan2(vy, vx)
 			j = 0
 			diff_at = []
@@ -63,10 +71,10 @@ class MTTMetrics:
 				diff_atv.append(c * diff_vx[j] - s * diff_vy[j])
 				diff_ctv.append(s * diff_vx[j] + s * diff_vy[j])
 				j += 1
-			diff_at = diff_at[cut:]
-			diff_ct = diff_ct[cut:]
-			diff_atv = diff_atv[cut:]
-			diff_ctv = diff_ctv[cut:]
+			diff_at = diff_at
+			diff_ct = diff_ct
+			diff_atv = diff_atv
+			diff_ctv = diff_ctv
 			errors.append([diff_at, diff_ct, diff_atv, diff_ctv])
 			i += 1
 		return errors

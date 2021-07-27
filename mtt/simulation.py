@@ -13,7 +13,7 @@ from scipy.stats import chi2
 from .pipeline.track_maintenance import TrackMaintenance
 from .pipeline.gating import DistanceGating
 
-from .metrics import *
+from .mtt_metrics import *
 
 from mpl_toolkits import mplot3d
 from matplotlib.patches import Ellipse
@@ -564,7 +564,6 @@ class Simulation:
 		# Eigendecompose the covariance matrix
 		cov = cov.round(decimals=10)
 		w, v = np.linalg.eig(cov)
-		print(cov)
 		# Calculate the rotation of the ellipse and size of axes
 		ang = (np.pi / 2) - np.arctan2(v[0, 0], v[1, 0])
 		width = 2 * np.sqrt(chi2.ppf(p, 2) * w[0])
@@ -719,11 +718,11 @@ class Simulation:
 			return
 
 		if m == 'ame':
-			return Metrics.AME_euclidean(process, output1, cut)
+			return MTTMetrics.AME_euclidean(process, output1, cut)
 		if m == 'rmse':
-			return [Metrics.RMSE_euclidean(process, output1, cut), Metrics.RMSE_euclidean(process, output2, cut)]
+			return [MTTMetrics.RMSE_euclidean(process, output1, cut), Metrics.RMSE_euclidean(process, output2, cut)]
 		if m == 'atct':
-			return Metrics.atct_signed(process, output, cut)
+			return MTTMetrics.atct_signed(process, output1, cut)
 		if m == 'fa':
-			return Metrics.false_id_rate(true_false_alarms, false_alarms)
+			return MTTMetrics.false_id_rate(true_false_alarms, false_alarms)
 		print("ERROR INVALID METRIC")
