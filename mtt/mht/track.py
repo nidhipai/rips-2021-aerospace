@@ -24,9 +24,12 @@ class Track:
 		self.ts = ts
 		self.missed_measurements = 0
 
-	def run_kalman(self, kalman_filter, measurements, ts):
+	def time_update(self, kalman_filter):
 		if self.ts != 0:
 			self.x_hat_minus, self.P_minus = kalman_filter.time_update(self.x_hat, self.P)
+
+	def measurement_update(self, kalman_filter, measurements, ts):
+		if self.ts != 0:
 			if len(self.possible_observations) != 0:
 				observation = measurements[self.possible_observations[0]]
 				self.observations[ts] = self.possible_observations[0]

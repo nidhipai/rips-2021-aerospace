@@ -581,4 +581,4 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
     return fig, err, sim.cur_seed, str(rmse)
 
-app.run_server('0.0.0.0', port=8050, debug=True)
+app.run_server(port=8050, debug=True)
