@@ -20,21 +20,28 @@ class MHTTracker:
         # measurements is an array of state vectors
         self.measurements.append(measurements)
 
-        # 1) assign all measurements to all tracks in all children of tree
+        # 1) assign all measurements to all tracks in all children of tree, AND...
+        # 2) calculate the expected next position for each track using the time update equation
+
         for track in self.tracks:
             track.possible_observations = list(range(0, len(measurements)))
+            track.time_update(self.kalman)
 
-        # 2) call each method's predict
+        # 3) call each method's predict to process measurements through the MHT pipeline
+
+        # First, remove measurements that are determined to be outliers by the gating
         self.gating.predict(measurements, self.tracks)
+
+        # Next, calculate track scores
         self.tracks, self.num_objects = self.track_maintenance.predict(self.ts, self.tracks, measurements, self.num_objects)
         best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
         print(best_tracks_indexes)
         # TODO save most likely hypothesis (can print to the user)
         # self.pruning.predict(self.tracks, best_tracks_indexes)
 
-        # Run the Kalman Filter for each track
+        # Run the Kalman Filter measurement update for each track
         for track in self.tracks:
-            track.run_kalman(self.kalman, self.measurements, self.ts)
+            track.measurement_update(self.kalman, self.measurements, self.ts)
             # print(track.observations
         print("--------")
 
