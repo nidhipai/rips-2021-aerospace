@@ -59,10 +59,11 @@ class TrackMaintenanceMHT:
                 new_tracks.append(track)
 
         # consider each as a new track - measurement is an integer
-        for measurement in measurements:
+        for i, measurement in enumerate(measurements):
             score = 0 # TODO: Compute real score for new measurement
             if score >= self.threshold_new_track:
-                starting_observations = {ts: measurement}
+                starting_observations = {ts: i}
+                print(starting_observations)
                 # Create a new track starting the current measurement being considered
                 new_tracks.append(Track(starting_observations, score, num_obj, [measurement]))
                 num_obj += 1
