@@ -19,10 +19,11 @@ class DistancesMHT:
 
     @staticmethod
     def mahalanobis(measurement, track, kfilter):
-        innovation = measurement - kfilter.h(kfilter.x_hat_minus)
+        innovation = measurement - kfilter.h(track.x_hat_minus).squeeze()
         K = kfilter.H @ track.P_minus @ kfilter.H.T + kfilter.R
         dis = np.sqrt(innovation.T @ np.linalg.inv(K) @ innovation)
-        dis = dis[0][0]  # this is kinda hacky and the fact that I have to do this may signal that something is wrong
+        print(dis)
+        # dis = dis[0][0]  # this is kinda hacky and the fact that I have to do this may signal that something is wrong
         return dis
 
     @staticmethod

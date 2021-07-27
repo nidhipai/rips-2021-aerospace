@@ -11,7 +11,7 @@ class DistanceGatingMHT:
         Args:
             error_threshold: distance if method="euclidean", p-value if method="mahalanobis" higher means larger gate so it's easier to be under the cutoff
             method: metric of measuring distance - see Distances class
-            expand_gating: interval at which gate should be expanded (a percent of error_threshold, which is pval for mahalanobis distance)
+            expand_gating: interval at which gate should be expanded (a percent of error_threshold, which is oval for mahalanobis distance)
         """
         self.error_threshold = error_threshold
         switcher = {
@@ -34,7 +34,6 @@ class DistanceGatingMHT:
         if tracks is None:
             print("Error. Tracks in none in gating.")
         for track in tracks:
-            print(track)
             expanded_gate_threshold = self.error_threshold + track.missed_measurements * self.expand_gating
             for obs_index in track.possible_observations:
                 # if not self.distance_function(obs, track.filter_model, self.error_threshold):
