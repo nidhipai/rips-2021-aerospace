@@ -58,7 +58,7 @@ class SingleTargetEvaluation:
 
 	def rmse(self):
 		norms = np.square(self.truth - self.prediction).sum(axis = 1)
-		print(norms.shape)
+		#print(norms.shape)
 		return np.sqrt(1 / len(self.truth) * np.sum(norms, axis = 1))
 
 	# def failure_rate(self,error_threshold=.5):

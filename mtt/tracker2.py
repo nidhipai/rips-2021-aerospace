@@ -73,7 +73,7 @@ class MTTTracker:
 				else:
 					# Note that this assumes the state vector is of length 4
 					result[ts][j] = list(repeat([None], 4))
-		print("?", result)
+		#print("?", result)
 		return result
 
 	def get_ellipses(self, mode="apriori"):

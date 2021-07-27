@@ -389,15 +389,22 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         processes = sim.clean_process(sim.processes[0])
 
         colors = sim.clean_measure(sim.measure_colors[0])
-        measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
-        measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
-        measures = sim.clean_measure2(sim.sorted_measurements[0])
+        # If there are no measures, we must skip plotting them
+        skip_measures = False
+        if(colors.size > 0):
+            measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
+            measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
+            measures = sim.clean_measure2(sim.sorted_measurements[0])
+        else:
+            skip_measures = True
+            measures_true = np.array([])
+            measures_false = np.array([])
         false_alarms = sim.false_alarms[0]
         false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
 
         trajectories = sim.clean_trajectory(sim.trajectories[0])
+        skip_traj = trajectories[-1] is None
 
-        # THIS IS NOT ROTATING ELLIPSES
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
         atct_errors = mtt.MTTMetrics.atct_signed(processes, trajectories)
@@ -406,24 +413,33 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         # Set the range manually to prevent the animation from dynamically changing the range
         measure_max = []
         measure_min = []
-        if measures_true.size > 0:
+        if measures_true.size > 0 and not skip_measures:
             measure_max.append(measures_true[0].max())
             measure_max.append(measures_true[1].max())
             measure_min.append(measures_true[0].min())
             measure_min.append(measures_true[1].min())
 
-        if measures_false.size > 0:
+        if measures_false.size > 0 and not skip_measures:
             measure_max.append(measures_false[0].max())
             measure_max.append(measures_false[1].max())
             measure_min.append(measures_false[0].min())
             measure_min.append(measures_false[1].min())
 
-        xmax = max([max([process[0].max() for process in processes]), max([trajectory[0].max() for trajectory in trajectories] + measure_max)])
-        xmin = min([min([process[0].min() for process in processes]), min([trajectory[0].min() for trajectory in trajectories] + measure_min)])
-        ymax = max([max([process[1].max() for process in processes]), max([trajectory[1].max() for trajectory in trajectories] + measure_max)])
-        ymin = min([min([process[1].min() for process in processes]), min([trajectory[1].min() for trajectory in trajectories] + measure_min)])
-        xrange = [xmin*1.1, xmax*1.1]
-        yrange = [ymin*1.1, ymax*1.1]
+        # Check to make sure there is a trajectory to plot, and not a filler list of Nones
+        if not skip_traj:
+            xmax = max([max([process[0].max() for process in processes]), max([trajectory[0][trajectory[0] != None].max() for trajectory in trajectories] + measure_max)])
+            xmin = min([min([process[0].min() for process in processes]), min([trajectory[0][trajectory[0] != None].min() for trajectory in trajectories] + measure_min)])
+            ymax = max([max([process[1].max() for process in processes]), max([trajectory[1][trajectory[0] != None].max() for trajectory in trajectories] + measure_max)])
+            ymin = min([min([process[1].min() for process in processes]), min([trajectory[1][trajectory[0] != None].min() for trajectory in trajectories] + measure_min)])
+            xrange = [xmin*1.1, xmax*1.1]
+            yrange = [ymin*1.1, ymax*1.1]
+        else:
+            xmax = max([max([process[0].max() for process in processes])])
+            xmin = min([min([process[0].min() for process in processes])])
+            ymax = max([max([process[1].max() for process in processes])])
+            ymin = min([min([process[1].min() for process in processes])])
+            xrange = [xmin * 1.1, xmax * 1.1]
+            yrange = [ymin * 1.1, ymax * 1.1]
 
         desc = ''
         # Print out the parameters on the plot
@@ -439,14 +455,14 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 # NOTE: the "time" text here assumes all objects are on-screen for an equal number of time steps;
                 # Otherwise "time" will be incorrect
                 data.append(go.Scatter(x=process[0], y=process[1], mode='lines', name='Obj {} Process'.format(i), text=time, line=dict(color=DEFAULT_COLORS[i])))
-        if 'measure' in options:
+        if 'measure' in options and not skip_measures:
             for key, value in measures.items():
                 # NOTE: no time step added
                 data.append(go.Scatter(x=value[0], y=value[1], mode='markers', name="Measures Assigned Obj {}".format(key),
                                      marker=dict(color=DEFAULT_COLORS[key])))
             data.append(go.Scatter(x=false_alarms[0], y=false_alarms[1], mode='markers', name="False Alarms",
                                 marker=dict(color="black", symbol="x")))
-        if 'trajectory' in options:
+        if 'trajectory' in options and not skip_traj:
             for i, trajectory in enumerate(trajectories):
                 data.append(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines',
                                          name='Obj {} Prediction'.format(i), text=time, line=dict(width=3, dash='dot', color=DEFAULT_COLORS[i])))
@@ -513,7 +529,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                         go.Scatter(x=process[0, :(t+1)], y=process[1, :(t+1)], mode='lines', name='Object {} Process'.format(i),
                                    text=time))
 
-            if 'measure' in options:
+            if 'measure' in options and not skip_measures:
                 for key, value in measures.items():
                     # NOTE: no time step added
                     scatters.append(go.Scatter(x=value[0][:(t+1)], y=value[1][:(t+1)], mode='markers', name="Measures Assigned Obj {}".format(key),
@@ -521,7 +537,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 scatters.append(go.Scatter(x=false_alarms[0][:(t+1)], y=false_alarms[1][:(t+1)], mode='markers', name="False Alarms",
                                        marker=dict(color="black", symbol="x")))
 
-            if 'trajectory' in options:
+            if 'trajectory' in options and not skip_traj:
                 for i, trajectory in enumerate(trajectories):
                     scatters.append(go.Scatter(x=trajectory[0, :(t+1)], y=trajectory[1, :(t+1)], mode='lines',
                                              name='Object {} Prediction'.format(i), text=time, line=dict(width=3, dash='dash')))
@@ -565,8 +581,11 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                                ],"pad": {"r": 30, "t": 30}}]
                            )
 
-        rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
-        print(rmse)
+        if not skip_traj:
+            rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
+        else:
+            rmse = -1
+        #print(rmse)
         fig = go.Figure(data=data, layout=layout, frames=frames)
         fig.update_xaxes(tickfont_size=fontsize)
         fig.update_yaxes(tickfont_size=fontsize)
@@ -581,4 +600,4 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
     return fig, err, sim.cur_seed, str(rmse)
 
-app.run_server('0.0.0.0', port=8050, debug=True)
+app.run_server(port=8050, debug=True)

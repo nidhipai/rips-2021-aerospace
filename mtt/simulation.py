@@ -613,7 +613,11 @@ class Simulation:
 		Converts a single trajectory from a dictionary of lists of state vectors to a list of numpy arrays
 		representing the position at each time step for plotting
 		"""
-		output = list(repeat(np.empty((4, 1)), max([key for step in trajectories for key in step.keys()]) + 1))
+		# Check to make sure we are not being passed a list of empty dictionaries
+		temp = [key for step in trajectories for key in step.keys()]
+		if len(temp) == 0:
+			return list(repeat(None, len(trajectories)))
+		output = list(repeat(np.empty((4, 1)), max(temp) + 1))
 		for step in trajectories: # iterate over each of the timesteps
 			for key, value in step.items(): # each timestep is a dict of object predictions
 				output[key] = np.append(output[key], value, axis=1) if value is not None else None

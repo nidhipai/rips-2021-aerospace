@@ -22,7 +22,7 @@ class FilterPredict:
 				# measurement could be none but that's cool
 				track.filter_model.predict(measurement=track.measurements[time])
 				track.predictions[time] = track.get_current_guess()
-				print("CG: (", time, ")", track.get_current_guess())
+				#print("CG: (", time, ")", track.get_current_guess())
 				track.apriori_pred[time] = track.get_current_apriori_guess()
 
 				mean = (track.filter_model.x_hat[0, 0], track.filter_model.x_hat[1, 0])
