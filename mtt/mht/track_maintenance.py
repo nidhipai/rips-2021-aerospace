@@ -1,6 +1,7 @@
 """Aerospace Team - Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng"""
 
 import numpy as np
+from scipy.stats import chi2
 from .track import Track
 from copy import deepcopy
 from mtt.mht.distances_mht import DistancesMHT
@@ -45,7 +46,7 @@ class TrackMaintenanceMHT:
         new_tracks = []
         for track in tracks:
             # consider the case of missed measurement, replicate each of these tracks as if they missed a measurement
-            missed_measurement_score = track.score + self.score_no_measurement()
+            missed_measurement_score = self.score_no_measurement(track)
             if missed_measurement_score >= self.threshold_miss_measurement:
                 mm_track = deepcopy(track)
                 mm_track.score = missed_measurement_score
@@ -54,7 +55,7 @@ class TrackMaintenanceMHT:
 
             #Now, for every possible observation in a track, create a new track
             for possible_observation in track.possible_observations:
-                score = track.score + self.score_measurement_received(possible_observation, track)
+                score = self.score_measurement_received(measurements[possible_observation], track)
                 if score >= self.threshold_old_track:  
                     observations = deepcopy(track.observations)
                     po_track = Track(observations, score, track.object_id, [measurements[possible_observation]], None,  track.ts)
@@ -68,16 +69,40 @@ class TrackMaintenanceMHT:
                 starting_observations = {ts: i}
                 new_tracks.append(Track(starting_observations, score, num_obj, [measurement]))
                 num_obj += 1
+
         return new_tracks, num_obj
 
-    def score_measurement_received(self, obs, track):
+    def score_measurement(self, measurement, track, method="chi2"):
+        # scoring occurs here
 
-        #scoring occurs here
-        m_dis_sq = DistancesMHT.mahalanobis(obs, track, self.kFilter_model) ** 2 # TODO fix
-        norm_S = np.linalg.norm(self.R, ord=2) # TODO this may not be the right norm
-        score = np.log(self.pd / ((2 * np.pi) ** (self.M / 2) * self.lambda_fa * np.sqrt(norm_S))) - m_dis_sq / 2
-        return score
+        # Old method
+        if method == "loglikelihood":
+            m_dis_sq = DistancesMHT.mahalanobis(measurement, track, self.kFilter_model) ** 2 # TODO fix
+            norm_S = np.linalg.norm(self.R, ord=2) # TODO this may not be the right norm
+            score = np.log(self.pd / ((2 * np.pi) ** (self.M / 2) * self.lambda_fa * np.sqrt(norm_S))) - m_dis_sq / 2
+            return track.score + score
 
-    def score_no_measurement(self):
-        #scoring without measurement occurs here
-        return np.log(1 - self.pd)
+        # New method: Chi2
+        else:
+            # First, convert the track score, which is a probability, into a chi2 test statistic
+            test_stat = chi2.ppf(track.score, len(track.observations))
+
+            # Next, calculate the sum of squared differences between the measurement and the predicted value,
+            # weighted by the expected meausurement noise variance
+            diff = measurement - track.x_hat_minus
+            test_stat += diff.T @ np.linalg.inv(self.R) @ diff
+
+            # Finally, convert back to a p-value, but with an additional degree of freedom
+            # representing the additional time step which has been added
+            return chi2.cdf(test_stat, len(track.observations) + 1)
+
+    def score_no_measurement(self, track, method="chi2"):
+        # scoring without measurement occurs here
+        if method == "loglikelihood":
+            return track.score + np.log(1 - self.pd)
+        # New method: Chi2
+        else:
+            # Here we simply recalculate the p-value, but with an additional degree of freedom
+            # which represents the time step that passed without a new measurement
+            test_stat = chi2.ppf(track.score, len(track.observations))
+            return chi2.cdf(test_stat, len(track.observations) + 1)
