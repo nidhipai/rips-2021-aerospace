@@ -21,8 +21,15 @@ class Track:
         else:
             self.P = P # posteriori estimate error covariance initialized to the identity matrix
         self.P_minus = self.P
+        self.ts = 0
+        self.missed_measurements = 0
 
-    def run_kalman(self, kalman_filter, measurements):
-        self.x_hat_minus, self.P_minus = kalman_filter.time_update(self.x_hat, self.P)
-        self.x_hat, self.P = kalman_filter.measurement_update(self.x_hat_minus, self.P_minus, measurements[self.possible_observations[0]])
-        self.possible_observations = []
+    def run_kalman(self, kalman_filter, measurements, ts):
+        if self.ts != 0:
+            self.x_hat_minus, self.P_minus = kalman_filter.time_update(self.x_hat, self.P)
+            if len(self.possible_observations) != 0:
+                observation = measurements[self.possible_observations[0]]
+                self.observations.append({ts: self.possible_observations[0]})
+                self.x_hat, self.P = kalman_filter.measurement_update(self.x_hat_minus, self.P_minus, observation)
+                self.possible_observations = []
+        self.ts += 1
