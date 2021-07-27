@@ -45,11 +45,23 @@ class MTTMetrics:
 		return errors
 
 
-	# Returns lists of AT and CT errors for each object
-	# Access AT errors of ith object with errors[i][0]
-	# Access CT errors of ith object with errors[i][1]
+
 	@staticmethod
 	def atct_signed(processes, trajectos, cut = 0):
+		"""
+		Outputs the along-track and cross-track error of the prediction.
+		Asssumes processes and trajectories have been cleaned with sim.clean_process
+		and sim.clean_trajectory methods.
+
+		Args:
+			processes (list): a list of ndarray representing true state vector over time for each object
+			trajectos (list): a list of ndarray representing predicted state vector over time for each object
+		"""
+
+
+		# Returns lists of AT and CT errors for each object
+		# Access AT errors of ith object with errors[i][0]
+		# Access CT errors of ith object with errors[i][1]
 		errors = []
 
 		# Check to make sure the trajectories are not None
@@ -129,4 +141,18 @@ class MTTMetrics:
 					break
 			cuts.append(cut)
 		return cuts
+
+	@staticmethod
+	def motp(processes, trajectories):
+		error = 0
+		n = 0
+		for i, estimate in enumerate(trajectories):
+			for j in range(estimate[0].size):
+				if estimate[0, j] != None:
+					dist = np.power((np.array(processes)[:, :, j] - estimate[:, j]), 2).sum(axis=1)
+					if dist.argmin() == i:
+						error += dist[i]
+						n += 1
+		error = np.sqrt(error) / n
+		return error
 
