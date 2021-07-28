@@ -12,6 +12,9 @@ from scipy.stats import chi2
 
 from .pipeline.track_maintenance import TrackMaintenance
 from .pipeline.gating import DistanceGating
+from .tracker2 import MTTTracker
+from .mht.tracker3 import MHTTracker
+
 
 from .metrics import *
 
@@ -82,7 +85,6 @@ class Simulation:
 			"Time Steps": str(time_steps)
 		}
 
-	#We use the kalman filter and the generated data to predict the trajectory of the simulated object
 	def predict(self, ellipse_mode="mpl", index=None):
 		"""
 		The predict function uses Tracker to create an estimated trajectory for our simulated object.
@@ -104,10 +106,11 @@ class Simulation:
 		# Store our output as an experiment
 		latest_trajectory = self.tracker_model.get_trajectories()
 		self.trajectories[len(self.trajectories.keys())] = latest_trajectory
+
 		latest_apriori_traj = self.tracker_model.get_apriori_traj()
 		self.apriori_traj[len(self.apriori_traj.keys())] = latest_apriori_traj
 
-		#Now store the errors at each time step
+		# Now store the errors at each time step
 		"""
 		self.signed_errors[index] = []
 		for i, next_guess in enumerate(latest_trajectory):
@@ -124,32 +127,39 @@ class Simulation:
 		self.apriori_ellipses[len(self.apriori_ellipses.keys())] = self.tracker_model.get_ellipses("apriori")
 		self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())] = self.tracker_model.get_ellipses("aposteriori")
 
-		self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.false_alarms
+		# MTTTracker stores false alarms and has a pipeline, but with MHT, we cannot do this until the end
+		# Therefore, we divide into two instances
+		if isinstance(self.tracker_model, MTTTracker):
+			self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.false_alarms
+			gate_size = 0
+			gate_expand = 0
+			for method in self.tracker_model.methods:
+				if isinstance(method, TrackMaintenance):
+					kalman_params = method.filter_params
+				if isinstance(method, DistanceGating):
+					gate_size = method.error_threshold
+					gate_expand = method.expand_gating
+
+			self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
+				"Q": str(kalman_params['Q']),
+				"R": str(kalman_params['R']),
+				"Gate Size": str(gate_size),
+				"Gate Expansion %": str(gate_expand),
+				"fep_at": str(kalman_params['Q'][2][2]),
+				"fep_ct": str(kalman_params['Q'][3][3]),
+				"fnu": str(kalman_params['R'][0][0]),
+				"P": str(kalman_params['P'][0][0]),
+
+			}}
+
+		if isinstance(self.tracker_model, MHTTracker):
+			self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.get_false_alarms()
+
 		self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
-
-		gate_size = 0
-		gate_expand = 0
-		for method in self.tracker_model.methods:
-			if isinstance(method, TrackMaintenance):
-				kalman_params = method.filter_params
-			if isinstance(method, DistanceGating):
-				gate_size = method.error_threshold
-				gate_expand = method.expand_gating
-
 
 		# this code will throw an error if there's no track maintenance object in the pipeline
 
-		self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
-			"Q": str(kalman_params['Q']),
-			"R": str(kalman_params['R']),
-			"Gate Size": str(gate_size),
-			"Gate Expansion %":str(gate_expand),
-			"fep_at": str(kalman_params['Q'][2][2]),
-			"fep_ct": str(kalman_params['Q'][3][3]),
-			"fnu": str(kalman_params['R'][0][0]),
-			"P": str(kalman_params['P'][0][0]),
 
-		}}
 
 		#process = self.processes[index]
 		#process = self.clean_process(process)[0]  # get first two position coordinates
