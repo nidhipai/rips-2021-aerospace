@@ -3,8 +3,8 @@
 import numpy as np
 
 class Track:
-    def __init__(self, starting_observations, score, x_hat, start_time = 0, P = None):
-        self.start_time = start_time
+    def __init__(self, starting_observations, score, x_hat, obj_id, P = None):
+        self.obj_id = obj_id
         self.score = score
         self.x_hat = x_hat
         self.n = self.x_hat.shape[0]
@@ -17,7 +17,6 @@ class Track:
         self.aposteriori_estimates = dict()
         self.apriori_P = dict()
         self.aposteriori_P = dict()
-        self.type = "sht"
 
         # essentially this is the index in tracker.observations
         self.possible_observations = []  # lists possible observations for this timestep, indexes

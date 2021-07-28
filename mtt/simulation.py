@@ -99,39 +99,41 @@ class Simulation:
 
 		# {0: first}
 		# Iterate through each time step for which we have measurements
+		self.trajectories[len(self.trajectories.keys())] = []
+		self.apriori_traj[len(self.apriori_traj.keys())] = []
+		self.apriori_ellipses[len(self.apriori_ellipses.keys())] = []
+		self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())] = []
+		self.false_alarms[len(self.false_alarms.keys())] = dict()
+		self.sorted_measurements[len(self.sorted_measurements)] = dict()
+
 		for i in range(len(self.processes[index])):
 			# Obtain a set of guesses for the current location of the object given the measurements
 			self.tracker_model.predict(deepcopy(self.measures[index][i]))
-			if self.tracker_model.type == "mht" and i != len(self.processes[index]) - 1:
-				self.trajectories[i] = self.tracker_model.get_trajectories()
+
+			if isinstance(self.tracker_model, MHTTracker) and i != len(self.processes[index]) - 1:
+				self.trajectories[len(self.trajectories.keys())-1].append(self.tracker_model.get_trajectories())
+				self.apriori_traj[len(self.apriori_traj.keys())-1].append(self.tracker_model.get_apriori_traj())
+				self.apriori_ellipses[len(self.apriori_ellipses.keys())-1].append(self.tracker_model.get_ellipses("apriori"))
+				self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())-1].append(self.tracker_model.get_ellipses("aposteriori"))
+				self.false_alarms[len(self.false_alarms.keys())-1][i] = self.tracker_model.get_false_alarms()
+
+				sort = self.tracker_model.get_sorted_measurements()
+				for key, value in sort.items():
+					if key not in self.sorted_measurements[len(self.sorted_measurements)-1].keys():
+						self.sorted_measurements[len(self.sorted_measurements)-1][key] = []
+					self.sorted_measurements[len(self.sorted_measurements)-1][key].append(value)
 
 		# Store our output as an experiment
-		latest_trajectory = self.tracker_model.get_trajectories()
-		self.trajectories[len(self.trajectories.keys())] = latest_trajectory
-
-		latest_apriori_traj = self.tracker_model.get_apriori_traj()
-		self.apriori_traj[len(self.apriori_traj.keys())] = latest_apriori_traj
-
-		# Now store the errors at each time step
-		"""
-		self.signed_errors[index] = []
-		for i, next_guess in enumerate(latest_trajectory):
-			# Calculate the along-track and cross track error using rotation matrix
-			for j, value in next_guess.items():
-				true_val = self.processes[index][i][j]
-				step_error = self.generator.W(true_val) @ (true_val - next_guess[0])
-				self.signed_errors[index].append(step_error)
-				
-		self.signed_errors[index] = np.array(self.signed_errors[index]).squeeze().T
-		"""
-
-		# Store our output as an experiment
-		self.apriori_ellipses[len(self.apriori_ellipses.keys())] = self.tracker_model.get_ellipses("apriori")
-		self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())] = self.tracker_model.get_ellipses("aposteriori")
-
-		# MTTTracker stores false alarms and has a pipeline, but with MHT, we cannot do this until the end
-		# Therefore, we divide into two instances
 		if isinstance(self.tracker_model, MTTTracker):
+			latest_trajectory = self.tracker_model.get_trajectories()
+			self.trajectories[len(self.trajectories.keys())] = latest_trajectory
+
+			latest_apriori_traj = self.tracker_model.get_apriori_traj()
+			self.apriori_traj[len(self.apriori_traj.keys())] = latest_apriori_traj
+			# Store our output as an experiment
+			self.apriori_ellipses[len(self.apriori_ellipses.keys())] = self.tracker_model.get_ellipses("apriori")
+			self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())] = self.tracker_model.get_ellipses("aposteriori")
+
 			self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.false_alarms
 			gate_size = 0
 			gate_expand = 0
@@ -154,10 +156,25 @@ class Simulation:
 
 			}}
 
-		if isinstance(self.tracker_model, MHTTracker):
-			self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.get_false_alarms()
+			self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
 
-		self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
+
+		# Now store the errors at each time step
+		"""
+		self.signed_errors[index] = []
+		for i, next_guess in enumerate(latest_trajectory):
+			# Calculate the along-track and cross track error using rotation matrix
+			for j, value in next_guess.items():
+				true_val = self.processes[index][i][j]
+				step_error = self.generator.W(true_val) @ (true_val - next_guess[0])
+				self.signed_errors[index].append(step_error)
+				
+		self.signed_errors[index] = np.array(self.signed_errors[index]).squeeze().T
+		"""
+
+		# MTTTracker stores false alarms and has a pipeline, but with MHT, we cannot do this until the end
+		# Therefore, we divide into two instances
+
 
 		# this code will throw an error if there's no track maintenance object in the pipeline
 

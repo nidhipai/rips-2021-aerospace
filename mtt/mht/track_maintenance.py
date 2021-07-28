@@ -30,6 +30,7 @@ class TrackMaintenanceMHT:
         self.lambda_fa = lambda_fa
         self.R = R
         self.kFilter_model = kFilter_model
+        self.num_objects = 0
 
     def predict(self, ts, tracks, measurements):
         """
@@ -83,7 +84,8 @@ class TrackMaintenanceMHT:
             if score >= self.threshold_new_track:
                 # print("New Object Proposed, score: {}".format(score))
                 starting_observations = {ts: i}
-                new_tracks.append(Track(starting_observations, score, measurement, ts))
+                new_tracks.append(Track(starting_observations, score, measurement, self.num_objects))
+                self.num_objects += 1
 
         return new_tracks
 
