@@ -13,9 +13,10 @@ class HypothesisComp:
 
 		# Calculate values needed to normalize the score
 		scores = [track.score for track in tracks]
-		if len(scores) > 1:
+		dif = max(scores) - min(scores)
+		if len(scores) > 1 and dif !=0:
 			minimum = min(scores)
-			dif = max(scores) - min(scores)
+			print("scores:", scores)
 		else:
 			minimum = scores[0]
 			dif = 1
@@ -31,7 +32,7 @@ class HypothesisComp:
 				# print(self.are_compatible(tracks[i], tracks[j]))
 				if self.are_compatible(tracks[i], tracks[j]):
 					self.G.add_edge(i, j)
-		result = nxac.max_weight_clique(G)
+		result = nxac.max_weight_clique(self.G)
 		#print("NODES: ", len(G.nodes))
 		clique = result[0]
 		return clique

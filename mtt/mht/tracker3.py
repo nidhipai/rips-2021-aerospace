@@ -35,31 +35,32 @@ class MHTTracker:
         for track in self.tracks:
             track.possible_observations = list(range(0, len(measurements)))
             track.time_update(self.kalman)
-            print("A priori estimate:\n", track.x_hat_minus)
+            # print("A priori estimate:\n", track.x_hat_minus)
 
         # 3) call each method's predict to process measurements through the MHT pipeline
 
         # First, remove possible observations from each track that are determined to be outliers by the gating
         self.gating.predict(measurements, self.tracks)
 
-        for i, track in enumerate(self.tracks):
-            print("Possible Observations {}:".format(i), track.possible_observations)
+        # for i, track in enumerate(self.tracks):
+            # print("Possible Observations {}:".format(i), track.possible_observations)
 
         # Next, calculate track scores and create new potential tracks
         self.tracks = self.track_maintenance.predict(self.ts, self.tracks, measurements)
 
         # Calculate the maximum weighted clique
         best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
-        print("Best tracks:", best_tracks_indexes)
+        # print("Best tracks:", best_tracks_indexes)
 
         # Save the current best hypothesis to output
         self.cur_best_hypothesis = best_tracks_indexes
+        print("Length of best hypothesis: ", len(self.cur_best_hypothesis))
         #self.pruning.predict(self.tracks, best_tracks_indexes)
 
         # Run the Kalman Filter measurement update for each track
         for track in self.tracks:
             track.measurement_update(self.kalman, measurements)
-            print("A posteriori estimate:\n", track.x_hat)
+            # print("A posteriori estimate:\n", track.x_hat)
 
         self.ts += 1
 
@@ -76,6 +77,8 @@ class MHTTracker:
 
     def get_best_trajectory(self):
         result = []
+        for track in self.cur_best_hypothesis:
+            print("Number of Posteriori estimates:", len(self.tracks[track].aposteriori_estimates))
         for t in range(self.ts):
             step = {}
             for i, track_id in enumerate(self.cur_best_hypothesis):
