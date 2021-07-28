@@ -16,7 +16,7 @@ class HypothesisComp:
 		minimum = min(scores)
 		maximum = max(scores)
 		if max(scores) != min(scores):
-			dif = max(scores) - min(scores)
+			dif = maximum - minimum
 		else:
 			dif = 1
 

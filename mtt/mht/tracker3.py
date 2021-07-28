@@ -17,7 +17,6 @@ class MHTTracker:
         self.gating.kalman = global_kalman
         self.cur_best_hypothesis = []
         self.prev_best_hypotheses = []
-        self.type = "mht"
 
     def predict(self, measurements):
         """
@@ -63,7 +62,7 @@ class MHTTracker:
             self.prev_best_hypotheses.append(best_tracks_indexes)
 
         # Remove tracks that do not lead to the best hypothesis within a certain number of time steps
-        self.pruning.predict(self.tracks, best_tracks_indexes)
+        #self.pruning.predict(self.tracks, best_tracks_indexes)
 
         # Run the Kalman Filter measurement update for each track
         for track in self.tracks:
@@ -104,64 +103,49 @@ class MHTTracker:
     def get_trajectories(self):
         """
         Outputs hypothesized trajectory prediction from best hypothesis at
-        each respective time step in format used by the Simulation class.
+        current time step in format used by the Simulation class.
 
         This is used to obtain predictions over time, so we can analyze how well
         the algorithm performs.
         """
-        result = []
-        for t, prev_hypothesis in enumerate(self.prev_best_hypotheses):
-            step = dict()
-            for i, track_id in enumerate(prev_hypothesis):
-                if t in self.tracks[track_id].aposteriori_estimates.keys():
-                    step[i] = self.tracks[track_id].aposteriori_estimates[t]
-            result.append(step)
+        result = dict()
+        for track_id in self.cur_best_hypothesis:
+            result[self.tracks[track_id].obj_id] = self.tracks[track_id].x_hat
         return result
 
     def get_apriori_traj(self):
         """
         Outputs hypothesized a priori estimates from best hypothesis at
-        each respective time step in format used by the Simulation class.
+        current time step in format used by the Simulation class.
 
         This is used to obtain predictions over time, so we can analyze how well
         the algorithm performs.
         """
 
-        # NOTE: This outputs a blank dictionary in the first step
-        result = []
-        for t, prev_hypothesis in enumerate(self.prev_best_hypotheses):
-            step = dict()
-            for i, track_id in enumerate(prev_hypothesis):
-                if t in self.tracks[track_id].apriori_estimates.keys():
-                    step[i] = self.tracks[track_id].apriori_estimates[t]
-            result.append(step)
+        result = dict()
+        for track_id in self.cur_best_hypothesis:
+            result[self.tracks[track_id].obj_id] = self.tracks[track_id].x_hat_minus
         return result
 
     def get_ellipses(self, mode="apriori"):
-        """
-		Returns: a dict with keys: tracks and values: array of ellipse params
-		"""
+
         ellipses = dict()
 
         # Iterate through the hypothesis at each time step
-        for t, prev_hypothesis in enumerate(self.prev_best_hypotheses):
-            for i, track_id in enumerate(prev_hypothesis):
-                if t in self.tracks[track_id].apriori_estimates.keys() and \
-                    t in self.tracks[track_id].aposteriori_estimates.keys():
-
-                    # Create new key value pair if we have found a new object
-                    if i not in list(ellipses.keys()):
-                        ellipses[i] = []
-
-                    # Add ellipses using attributes stored previously in Track object
-                    if mode == "apriori":
-                        ellipses[i].append([self.tracks[track_id].apriori_estimates[t], self.tracks[track_id].apriori_P[t]])
-                    else:
-                        ellipses[i].append([self.tracks[track_id].aposteriori_estimates[t], self.tracks[track_id].aposteriori_P[t]])
+        for track_id in self.cur_best_hypothesis:
+            if mode == "apriori":
+                ellipses[self.tracks[track_id].obj_id] = [self.tracks[track_id].x_hat_minus, self.tracks[track_id].P_minus]
+            else:
+                ellipses[self.tracks[track_id].obj_id] = [self.tracks[track_id].x_hat, self.tracks[track_id].P]
         return ellipses
 
     def get_sorted_measurements(self):
+        # OLD; NOT DONE
         result = dict()
+
+        for track_id in self.cur_best_hypothesis:
+            result[self.tracks[track_id].obj_id] = self.measurements[-1][self.tracks[track_id].observations[max(self.tracks[track_id].observations.keys())]]
+        """
         for t, prev_hypothesis in enumerate(self.prev_best_hypotheses):
             for i, track_id in enumerate(prev_hypothesis):
                 if t in self.tracks[track_id].observations.keys():
@@ -169,13 +153,25 @@ class MHTTracker:
                         result[i] = []
                     # Add the measurement for this time step and track to the results for said track
                     result[i].append(self.measurements[t][self.tracks[track_id].observations[t]])
+        """
         return result
 
     def get_false_alarms(self):
         """
         Gets a list of false alarms at each time step in the data format required by the Simulation class
         """
-        result = dict()
+        # OLD; NOT DONE
+
+        possible_measurements = list(range(len(self.measurements[-1])))
+        for track_id in self.cur_best_hypothesis:
+            # Remove observation assigned most recently to track
+            possible_measurements.remove(
+                    self.tracks[track_id].observations[
+                        max(self.tracks[track_id].observations.keys())
+                ]
+            )
+
+        """
         for t, prev_hypothesis in enumerate(self.prev_best_hypotheses):
             # Start by setting all measurements as potential false alarms
             all_measurements = []
@@ -189,4 +185,8 @@ class MHTTracker:
             for p in possible:
                 all_measurements.append(self.measurements[t][p])
             result[t] = all_measurements
+        """
+        result = []
+        for p in possible_measurements:
+            result.append(self.measurements[-1][p])
         return result
