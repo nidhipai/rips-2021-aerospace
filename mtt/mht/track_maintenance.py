@@ -31,7 +31,7 @@ class TrackMaintenanceMHT:
         self.R = R
         self.kFilter_model = kFilter_model
 
-    def predict(self, ts, tracks, measurements, num_obj):
+    def predict(self, ts, tracks, measurements):
         """
         Scores potential tracks, scores them, immediately deletes tracks with too low a score
         Args:
@@ -44,35 +44,50 @@ class TrackMaintenanceMHT:
 
         """
         new_tracks = []
-        for track in tracks:
+        for j, track in enumerate(tracks):
             # consider the case of missed measurement, replicate each of these tracks as if they missed a measurement
             missed_measurement_score = self.score_no_measurement(track)
             if missed_measurement_score >= self.threshold_miss_measurement:
+                print("Assumed Missed Measurement")
                 mm_track = deepcopy(track)
                 mm_track.score = missed_measurement_score
                 mm_track.possible_observations = []
                 new_tracks.append(mm_track)
 
-            #Now, for every possible observation in a track, create a new track
+            # Now, for every possible observation in a track, create a new track
+            # This new tracks should be a copy of the old track, with the new possible
+            # observation added to the observations
             for possible_observation in track.possible_observations:
                 score = self.score_measurement(measurements[possible_observation], track)
-                if score >= self.threshold_old_track:  
-                    observations = deepcopy(track.observations)
-                    po_track = Track(observations, score, track.object_id, [measurements[possible_observation]], None,  track.ts)
-                    po_track.possible_observations = [possible_observation]
+                print("Track {}, {} has score:".format(j, possible_observation), score)
+                if score >= self.threshold_old_track:
+                    print("Created New Track")
+                    # Create a new track with the new observations and score
+                    po_track = deepcopy(track)
+                    po_track.score = score
+                    po_track.observations[ts] = possible_observation
+                    po_track.possible_observations = []
                     new_tracks.append(po_track)
 
         # finally, for every measurement, make a new track (assume it is a new object)
         for i, measurement in enumerate(measurements):
-            score = 0.001 
+            if len(tracks) > 0:
+                print("Scores:", [track.score for track in new_tracks])
+                score = min([track.score for track in new_tracks]) - 1
+            else:
+                score = 0
+            # TODO: The below line is completely pointless as of right now.
+            # Need to replace with the actual probability of a new track appearing
+            # This is where the chi-square test could come in...
+            # Is this parameter necessary?
             if score >= self.threshold_new_track:
+                print("New Object Proposed, score: {}".format(score))
                 starting_observations = {ts: i}
-                new_tracks.append(Track(starting_observations, score, num_obj, [measurement]))
-                num_obj += 1
+                new_tracks.append(Track(starting_observations, score, [measurement]))
 
-        return new_tracks, num_obj
+        return new_tracks
 
-    def score_measurement(self, measurement, track, method="chi2"):
+    def score_measurement(self, measurement, track, method="distance"):
         # scoring occurs here
 
         # Old method
@@ -81,6 +96,10 @@ class TrackMaintenanceMHT:
             norm_S = np.linalg.norm(self.R, ord=2) # TODO this may not be the right norm
             score = np.log(self.pd / ((2 * np.pi) ** (self.M / 2) * self.lambda_fa * np.sqrt(norm_S))) - m_dis_sq / 2
             return track.score + score
+
+        elif method == "distance":
+            m_dis_sq = DistancesMHT.mahalanobis(measurement, track, self.kFilter_model) ** 2 # TODO fix
+            return track.score - m_dis_sq / 2
 
         # New method: Chi2
         else:
@@ -91,14 +110,15 @@ class TrackMaintenanceMHT:
             # weighted by the expected meausurement noise variance
             diff = measurement - track.x_hat_minus
             test_stat += diff.T @ np.linalg.inv(self.R) @ diff
+            test_stat = test_stat[0,0] # Remove numpy array wrapping
 
             # Finally, convert back to a p-value, but with an additional degree of freedom
             # representing the additional time step which has been added
             return chi2.cdf(test_stat, len(track.observations) + 1)
 
-    def score_no_measurement(self, track, method="chi2"):
+    def score_no_measurement(self, track, method="distance"):
         # scoring without measurement occurs here
-        if method == "loglikelihood":
+        if method == "loglikelihood" or method == "distance":
             return track.score + np.log(1 - self.pd)
         # New method: Chi2
         else:
