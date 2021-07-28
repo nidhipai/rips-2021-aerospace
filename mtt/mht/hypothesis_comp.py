@@ -2,6 +2,7 @@
 
 import networkx as nx
 import networkx.algorithms.clique as nxac
+import matplotlib.pyplot as plt
 
 class HypothesisComp:
 
@@ -20,8 +21,8 @@ class HypothesisComp:
 				if self.are_compatible(tracks[i], tracks[j]):
 					G.add_edge(i, j)
 		result = nxac.max_weight_clique(G)
-		nx.draw(G)
-		print("NODES: ", len(G.nodes))
+		plt.figure()
+		nx.draw_circular(G)
 		clique = result[0]
 		return clique
 
