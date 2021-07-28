@@ -20,6 +20,8 @@ class HypothesisComp:
 		else:
 			dif = 1
 
+		print(len(tracks))
+
 		for track in tracks:
 			# NOTE: hacky way to turn track scores into integers.
 			# May want a better way to do this

@@ -435,17 +435,18 @@ class Simulation:
 			if legend is True:
 				ax.legend(handles=lines, labels=labs, fontsize=legend_size)
 			# Plot labels
-			true_noises = "true ep_at = " + str(self.generator.ep_tangent) + ", true ep_ct = " + str(self.generator.ep_normal)
-			filter_noises = "filter ep_at = " + self.descs[0]["fep_at"] + ", filter ep_ct = " + self.descs[0]["fep_ct"]
-			measurement_noise = "measurement noise = " + str(self.generator.R[0][0])
-			filter_measurement_noise = "filter measurement noise = " + str(self.generator.get_params()["R"][0][0])
-			#true_state = "true state = " + "[" + self.descs[0]["x0"] + ", " + self.descs[0]["y0"] + ", " + self.descs[0]["vx0"] + ", " + self.descs[0]["vy0"] + "]"
-			#filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
-			covariance = "P = " + self.descs[0]["P"]
+			if isinstance(self.tracker_model, MTTTracker):
+				true_noises = "true ep_at = " + str(self.generator.ep_tangent) + ", true ep_ct = " + str(self.generator.ep_normal)
+				filter_noises = "filter ep_at = " + self.descs[0]["fep_at"] + ", filter ep_ct = " + self.descs[0]["fep_ct"]
+				measurement_noise = "measurement noise = " + str(self.generator.R[0][0])
+				filter_measurement_noise = "filter measurement noise = " + str(self.generator.get_params()["R"][0][0])
+				#true_state = "true state = " + "[" + self.descs[0]["x0"] + ", " + self.descs[0]["y0"] + ", " + self.descs[0]["vx0"] + ", " + self.descs[0]["vy0"] + "]"
+				#filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
+				covariance = "P = " + self.descs[0]["P"]
 
-			caption = true_noises + "\n" + filter_noises + "\n" + measurement_noise + "\n" + filter_measurement_noise + "\n" + covariance + "\n"# + "RMSE of plot = " + str(self.RMSE) + "\nAME of plot = " + str(self.AME)
-			if tail >= 0:
-				fig.text(1, 0.5, caption, ha='center', fontsize = 14)
+				caption = true_noises + "\n" + filter_noises + "\n" + measurement_noise + "\n" + filter_measurement_noise + "\n" + covariance + "\n"# + "RMSE of plot = " + str(self.RMSE) + "\nAME of plot = " + str(self.AME)
+				if tail >= 0:
+					fig.text(1, 0.5, caption, ha='center', fontsize = 14)
 			#else:
 				#print(caption)
 			return lines;
@@ -574,7 +575,6 @@ class Simulation:
 		# Eigendecompose the covariance matrix
 		cov = cov.round(decimals=10)
 		w, v = np.linalg.eig(cov)
-		print(cov)
 		# Calculate the rotation of the ellipse and size of axes
 		ang = (np.pi / 2) - np.arctan2(v[0, 0], v[1, 0])
 		width = 2 * np.sqrt(chi2.ppf(p, 2) * w[0])
@@ -675,7 +675,7 @@ class Simulation:
 		for key, track in ellipses.items():
 			track_output = []
 			for param_set in track:
-				track_output.append(Simulation.cov_ellipse(param_set[0], param_set[1][2:,2:], mode=mode))
+				track_output.append(Simulation.cov_ellipse(param_set[0][0:2], param_set[1][2:,2:], mode=mode))
 			output.append(track_output)
 		return output
 

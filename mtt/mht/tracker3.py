@@ -174,15 +174,14 @@ class MHTTracker:
         """
         Gets a list of false alarms at each time step in the data format required by the Simulation class
         """
-        # THIS DOESNT WORK , False alarms not detected
         result = dict()
         for t, prev_hypothesis in enumerate(self.prev_best_hypotheses):
             # Start by setting all measurements as potential false alarms
             all_measurements = []
             possible = list(range(len(self.measurements[t])))
-            print(possible)
             for i, track_id in enumerate(prev_hypothesis):
-                if t in self.tracks[track_id].observations.keys() and len(all_measurements) > 0:
+                # Check to ensure the track exists at the time step and it contains the observation
+                if t in self.tracks[track_id].observations.keys() and self.tracks[track_id].observations[t] in possible:
                     # Remove from the list of false alarms any measurement that was actually used
                     possible.remove(self.tracks[track_id].observations[t])
             # Add the false alarms at this time step to results

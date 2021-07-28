@@ -83,7 +83,7 @@ class TrackMaintenanceMHT:
             if score >= self.threshold_new_track:
                 # print("New Object Proposed, score: {}".format(score))
                 starting_observations = {ts: i}
-                new_tracks.append(Track(starting_observations, score, [measurement], ts))
+                new_tracks.append(Track(starting_observations, score, measurement, ts))
 
         return new_tracks
 
