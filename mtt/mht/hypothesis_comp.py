@@ -19,10 +19,12 @@ class HypothesisComp:
 		else:
 			dif = 1
 
+		print(len(tracks))
+
 		for track in tracks:
 			# NOTE: hacky way to turn track scores into integers.
 			# May want a better way to do this
-			G.add_node(index, weight = int(((track.score - minimum) / dif)*1000))
+			G.add_node(index, weight=int(((track.score - minimum) / dif)*1000))
 			index += 1
 		for i in range(len(tracks)):
 			for j in range(i):

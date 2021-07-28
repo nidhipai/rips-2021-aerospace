@@ -7,7 +7,7 @@ class Track:
         self.start_time = start_time
         self.score = score
         self.x_hat = x_hat
-        self.n = self.x_hat[0].shape[0]
+        self.n = self.x_hat.shape[0]
         self.x_hat_minus = self.x_hat
         self.observations = starting_observations  # list of (ts, k), where ts is the timestep and k is the number of the measurement
 
