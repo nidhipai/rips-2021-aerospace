@@ -6,7 +6,7 @@ import networkx.algorithms.clique as nxac
 class HypothesisComp:
 
 	def predict(self, tracks):
-		print("number of tracks: ", len(tracks))
+		#print("number of tracks: ", len(tracks))
 		G = nx.Graph()
 		index = 0
 		for track in tracks:
@@ -20,8 +20,7 @@ class HypothesisComp:
 				if self.are_compatible(tracks[i], tracks[j]):
 					G.add_edge(i, j)
 		result = nxac.max_weight_clique(G)
-		nx.draw(G)
-		print("NODES: ", len(G.nodes))
+		#print("NODES: ", len(G.nodes))
 		clique = result[0]
 		return clique
 

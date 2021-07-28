@@ -17,6 +17,13 @@ class MHTTracker:
         self.gating.kalman = global_kalman
 
     def predict(self, measurements):
+        """
+        Takes in a list of measurements and performs gating, track maintenance (adding and deleting tracks), hypothesis
+        computation, and pruning on the current set of tracks
+
+        Args:
+            measurements (list): A list of ndarray representing state vectors of all measurements at the current time
+        """
         # measurements is an array of state vectors
         self.measurements.append(measurements)
 
@@ -29,19 +36,21 @@ class MHTTracker:
 
         # 3) call each method's predict to process measurements through the MHT pipeline
 
-        # First, remove measurements that are determined to be outliers by the gating
+        # First, remove possible observations from each track that are determined to be outliers by the gating
         self.gating.predict(measurements, self.tracks)
 
-        # Next, calculate track scores
+        # Next, calculate track scores and create new potential tracks
         self.tracks, self.num_objects = self.track_maintenance.predict(self.ts, self.tracks, measurements, self.num_objects)
+
+        # Calculate the maximum weighted clique
         best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
-        # print(best_tracks_indexes)
+        print(best_tracks_indexes)
         # TODO save most likely hypothesis (can print to the user)
-        # self.pruning.predict(self.tracks, best_tracks_indexes)
+        #self.pruning.predict(self.tracks, best_tracks_indexes)
 
         # Run the Kalman Filter measurement update for each track
         for track in self.tracks:
-            track.measurement_update(self.kalman, self.measurements, self.ts)
+            track.measurement_update(self.kalman, measurements, self.ts)
 
         self.ts += 1
 
