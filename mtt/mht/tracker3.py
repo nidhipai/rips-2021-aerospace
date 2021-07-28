@@ -29,20 +29,15 @@ class MHTTracker:
         # measurements is an array of state vectors
         self.measurements.append(measurements)
         print("___________ Time step: {} _________________________________".format(self.ts))
-        print("Measurements:\n", measurements)
+        # print("Measurements:\n", measurements)
 
         # 1) assign all measurements to all tracks in all children of tree, AND...
         # 2) calculate the expected next position for each track using the time update equation
 
         for track in self.tracks:
             track.possible_observations = list(range(0, len(measurements)))
-<<<<<<< HEAD
-            track.time_update(self.kalman)
-            # print("A priori estimate:\n", track.x_hat_minus)
-=======
             track.time_update(self.kalman, self.ts)
-            print("A priori estimate:\n", track.x_hat_minus)
->>>>>>> dfab6c6777342bc322229c50428e9f2ed4ae4815
+            # print("A priori estimate:\n", track.x_hat_minus)
 
         # 3) call each method's predict to process measurements through the MHT pipeline
 
@@ -61,25 +56,19 @@ class MHTTracker:
 
         # Save the current best hypothesis to output
         self.cur_best_hypothesis = best_tracks_indexes
-<<<<<<< HEAD
         print("Length of best hypothesis: ", len(self.cur_best_hypothesis))
-=======
+
         if len(best_tracks_indexes) > 0:
             self.prev_best_hypotheses.append(best_tracks_indexes)
 
         # Remove tracks that do not lead to the best hypothesis within a certain number of time steps
->>>>>>> dfab6c6777342bc322229c50428e9f2ed4ae4815
-        #self.pruning.predict(self.tracks, best_tracks_indexes)
+        self.pruning.predict(self.tracks, best_tracks_indexes)
 
         # Run the Kalman Filter measurement update for each track
         for track in self.tracks:
-<<<<<<< HEAD
-            track.measurement_update(self.kalman, measurements)
             # print("A posteriori estimate:\n", track.x_hat)
-=======
             track.measurement_update(self.kalman, measurements, self.ts)
-            print("A posteriori estimate:\n", track.x_hat)
->>>>>>> dfab6c6777342bc322229c50428e9f2ed4ae4815
+            # print("A posteriori estimate:\n", track.x_hat)
 
         # Indicate that one time step has passed
         self.ts += 1
