@@ -75,7 +75,7 @@ class TrackMaintenanceMHT:
                 print("Scores:", [track.score for track in new_tracks])
                 score = min([track.score for track in new_tracks]) - 1
             else:
-                score = 0
+                score = -1
             # TODO: The below line is completely pointless as of right now.
             # Need to replace with the actual probability of a new track appearing
             # This is where the chi-square test could come in...
@@ -83,7 +83,7 @@ class TrackMaintenanceMHT:
             if score >= self.threshold_new_track:
                 print("New Object Proposed, score: {}".format(score))
                 starting_observations = {ts: i}
-                new_tracks.append(Track(starting_observations, score, [measurement]))
+                new_tracks.append(Track(starting_observations, score, [measurement], ts))
 
         return new_tracks
 

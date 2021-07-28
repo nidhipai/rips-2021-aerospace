@@ -12,11 +12,11 @@ class HypothesisComp:
 
 		# Calculate values needed to normalize the score
 		scores = [track.score for track in tracks]
-		if len(scores) > 1:
-			minimum = min(scores)
+		minimum = min(scores)
+		maximum = max(scores)
+		if max(scores) != min(scores):
 			dif = max(scores) - min(scores)
 		else:
-			minimum = scores[0]
 			dif = 1
 
 		for track in tracks:

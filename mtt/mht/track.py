@@ -3,7 +3,8 @@
 import numpy as np
 
 class Track:
-    def __init__(self, starting_observations, score, x_hat, P = None):
+    def __init__(self, starting_observations, score, x_hat, start_time = 0, P = None):
+        self.start_time = start_time
         self.score = score
         self.x_hat = x_hat
         self.n = self.x_hat[0].shape[0]
@@ -11,10 +12,11 @@ class Track:
         self.observations = starting_observations  # list of (ts, k), where ts is the timestep and k is the number of the measurement
 
         # Storage for plotting output
-        self.apriori_estimates = []
-        self.aposteriori_estimates = []
-        self.apriori_ellipses = []
-        self.aposteriori_ellipses = []
+        # Each key is a time step
+        self.apriori_estimates = dict()
+        self.aposteriori_estimates = dict()
+        self.apriori_P = dict()
+        self.aposteriori_P = dict()
 
         # essentially this is the index in tracker.observations
         self.possible_observations = []  # lists possible observations for this timestep, indexes
@@ -28,13 +30,13 @@ class Track:
         self.P_minus = self.P
         self.missed_measurements = 0
 
-    def time_update(self, kalman_filter):
+    def time_update(self, kalman_filter, ts):
         # Run the time update of the kalman filter and store estimates for plotting
         self.x_hat_minus, self.P_minus = kalman_filter.time_update(self.x_hat, self.P)
-        self.apriori_estimates.append(self.x_hat_minus)
-        self.apriori_ellipses.append(self.P_minus)
+        self.apriori_estimates[ts] = self.x_hat_minus
+        self.apriori_P[ts] = self.P_minus
 
-    def measurement_update(self, kalman_filter, measurements):
+    def measurement_update(self, kalman_filter, measurements, ts):
         self.x_hat_minus = np.array(self.x_hat_minus)
         # Select the measurement to incorporation based on the next observation
         observation = measurements[self.observations[max(list(self.observations.keys()))]]
@@ -43,5 +45,5 @@ class Track:
         self.x_hat, self.P = kalman_filter.measurement_update(self.x_hat_minus, self.P_minus, observation)
 
         # Store the new values for plotting
-        self.aposteriori_estimates.append(self.x_hat)
-        self.aposteriori_ellipses.append(self.P)
+        self.aposteriori_estimates[ts] = self.x_hat
+        self.aposteriori_P[ts] = self.P
