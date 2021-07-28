@@ -7,7 +7,6 @@ class MHTTracker:
         self.kalman = global_kalman
         self.measurements = [] # 2D array of state vectors - each row is a time step
         self.ts = 0
-        self.num_objects = 0 # total number of objects, including dead ones
 
         # all the methods
         self.gating = gating
@@ -15,6 +14,7 @@ class MHTTracker:
         self.hypothesis_comp = hypothesis_comp
         self.pruning = pruning
         self.gating.kalman = global_kalman
+        self.cur_best_hypothesis = []
 
     def predict(self, measurements):
         """
@@ -26,6 +26,8 @@ class MHTTracker:
         """
         # measurements is an array of state vectors
         self.measurements.append(measurements)
+        print("___________ Time step: {} _________________________________".format(self.ts))
+        print("Measurements:\n", measurements)
 
         # 1) assign all measurements to all tracks in all children of tree, AND...
         # 2) calculate the expected next position for each track using the time update equation
@@ -33,24 +35,31 @@ class MHTTracker:
         for track in self.tracks:
             track.possible_observations = list(range(0, len(measurements)))
             track.time_update(self.kalman)
+            print("A priori estimate:\n", track.x_hat_minus)
 
         # 3) call each method's predict to process measurements through the MHT pipeline
 
         # First, remove possible observations from each track that are determined to be outliers by the gating
         self.gating.predict(measurements, self.tracks)
 
+        for i, track in enumerate(self.tracks):
+            print("Possible Observations {}:".format(i), track.possible_observations)
+
         # Next, calculate track scores and create new potential tracks
-        self.tracks, self.num_objects = self.track_maintenance.predict(self.ts, self.tracks, measurements, self.num_objects)
+        self.tracks = self.track_maintenance.predict(self.ts, self.tracks, measurements)
 
         # Calculate the maximum weighted clique
         best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
-        print(best_tracks_indexes)
-        # TODO save most likely hypothesis (can print to the user)
+        print("Best tracks:", best_tracks_indexes)
+
+        # Save the current best hypothesis to output
+        self.cur_best_hypothesis = best_tracks_indexes
         #self.pruning.predict(self.tracks, best_tracks_indexes)
 
         # Run the Kalman Filter measurement update for each track
         for track in self.tracks:
-            track.measurement_update(self.kalman, measurements, self.ts)
+            track.measurement_update(self.kalman, measurements)
+            print("A posteriori estimate:\n", track.x_hat)
 
         self.ts += 1
 
@@ -63,4 +72,13 @@ class MHTTracker:
                     result[ts][i] = self.measurements[ts][track.observations[ts]]
                 else:
                     result[ts][i] = list(repeat([None], 4))
+        return result
+
+    def get_best_trajectory(self):
+        result = []
+        for t in range(self.ts):
+            step = {}
+            for i, track_id in enumerate(self.cur_best_hypothesis):
+                step[i] = self.tracks[track_id].aposteriori_estimates[t]
+            result.append(step)
         return result
