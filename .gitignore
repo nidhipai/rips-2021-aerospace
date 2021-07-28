@@ -11,6 +11,8 @@ do not push to github.ipynb
 
 *.ipynb
 
+*.ipynb
+
 # IPython
 profile_default/
 ipython_config.py

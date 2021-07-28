@@ -136,7 +136,6 @@ class Simulation:
 				gate_size = method.error_threshold
 				gate_expand = method.expand_gating
 
-
 		# this code will throw an error if there's no track maintenance object in the pipeline
 
 		self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
@@ -150,7 +149,6 @@ class Simulation:
 			"P": str(kalman_params['P'][0][0]),
 
 		}}
-
 		#process = self.processes[index]
 		#process = self.clean_process(process)[0]  # get first two position coordinates
 		#traj = self.trajectories[index]
@@ -164,7 +162,6 @@ class Simulation:
 		#self.RMSE = np.sqrt(np.dot(center_errors, center_errors) / len(center_errors))
 		#print(self.RMSE)
 		#self.AME = sum(center_errors) / len(center_errors)
-
 
 	def experiment(self, ts, test="data", **kwargs):
 		"""
@@ -272,7 +269,6 @@ class Simulation:
 			return lines
 		else:
 			print("Number of dimensions cannot be graphed (error plot).")
-
 
 	'''We plot our trajectory based on the predicted trajectories given by the kalman filter object. '''
 	def plot(self, var="Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0, tail = 0):
