@@ -7,21 +7,20 @@ class HypothesisComp:
 
 	def predict(self, tracks):
 		print("number of tracks: ", len(tracks))
-		G = nx.Graph()
+		self.G = nx.Graph()
 		index = 0
 		for track in tracks:
 			# NOTE: hacky way to turn track scores into integers.
 			# May want a better way to do this
-			G.add_node(index, weight = abs(int(track.score*1000)))
+			self.G.add_node(index, weight = abs(int(track.score*1000)))
 			index += 1
 		for i in range(len(tracks)):
 			for j in range(i):
 				# print(self.are_compatible(tracks[i], tracks[j]))
 				if self.are_compatible(tracks[i], tracks[j]):
-					G.add_edge(i, j)
-		result = nxac.max_weight_clique(G)
-		nx.draw(G)
-		print("NODES: ", len(G.nodes))
+					self.G.add_edge(i, j)
+		result = nxac.max_weight_clique(self.G)
+		print("NODES: ", len(self.G.nodes))
 		clique = result[0]
 		return clique
 
@@ -35,3 +34,6 @@ class HypothesisComp:
 			else:
 				continue
 		return True
+
+	def draw_graph(self):
+		nx.draw(self.G)
