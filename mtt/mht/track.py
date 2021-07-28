@@ -17,6 +17,7 @@ class Track:
         self.aposteriori_estimates = dict()
         self.apriori_P = dict()
         self.aposteriori_P = dict()
+        self.type = "sht"
 
         # essentially this is the index in tracker.observations
         self.possible_observations = []  # lists possible observations for this timestep, indexes
