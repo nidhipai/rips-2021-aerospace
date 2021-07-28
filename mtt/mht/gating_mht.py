@@ -32,7 +32,7 @@ class DistanceGatingMHT:
 		"""
 
 		if tracks is None:
-			print("Error. Tracks in none in gating.")
+			raise Exception("Error. Tracks in none in gating.")
 		for track in tracks:
 			expanded_gate_threshold = self.error_threshold + track.missed_measurements * self.expand_gating
 			for obs_index in track.possible_observations:

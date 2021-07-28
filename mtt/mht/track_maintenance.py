@@ -52,18 +52,28 @@ class TrackMaintenanceMHT:
 				mm_track.possible_observations = []
 				new_tracks.append(mm_track)
 
-			#Now, for every possible observation in a track, create a new track
+			# Now, for every possible observation in a track, create a new track
+			# This new tracks should be a copy of the old track, with the new possible
+			# observation added to the observations
 			for possible_observation in track.possible_observations:
 				score = self.score_measurement(measurements[possible_observation], track)
-				if score >= self.threshold_old_track:  
+				print(possible_observation, score)
+				if score >= self.threshold_old_track:
+					# Copy the observations from the previous track and add the current observation
 					observations = deepcopy(track.observations)
-					po_track = Track(observations, score, track.object_id, [measurements[possible_observation]], None,	track.ts)
-					po_track.possible_observations = [possible_observation]
+					observations[ts] = possible_observation
+
+					# Create a new track with the new observations and score
+					# The starting value is the previous track's x_hat
+					po_track = Track(observations, score, track.object_id, track.x_hat, None, ts = track.ts)
+					po_track.possible_observations = []
 					new_tracks.append(po_track)
 
 		# finally, for every measurement, make a new track (assume it is a new object)
 		for i, measurement in enumerate(measurements):
-			score = 0.001 
+			score = 0
+			# TODO: The below line is completely pointless as of right now
+			# Is this parameter necessary?
 			if score >= self.threshold_new_track:
 				starting_observations = {ts: i}
 				new_tracks.append(Track(starting_observations, score, num_obj, [measurement]))
@@ -71,7 +81,7 @@ class TrackMaintenanceMHT:
 
 		return new_tracks, num_obj
 
-	def score_measurement(self, measurement, track, method="chi2"):
+	def score_measurement(self, measurement, track, method="distance"):
 		# scoring occurs here
 
 		# Old method
@@ -80,6 +90,10 @@ class TrackMaintenanceMHT:
 			norm_S = np.linalg.norm(self.R, ord=2) # TODO this may not be the right norm
 			score = np.log(self.pd / ((2 * np.pi) ** (self.M / 2) * self.lambda_fa * np.sqrt(norm_S))) - m_dis_sq / 2
 			return track.score + score
+
+		elif method == "distance":
+			m_dis_sq = DistancesMHT.mahalanobis(measurement, track, self.kFilter_model) ** 2 # TODO fix
+			return track.score - m_dis_sq / 2
 
 		# New method: Chi2
 		else:
@@ -90,6 +104,7 @@ class TrackMaintenanceMHT:
 			# weighted by the expected meausurement noise variance
 			diff = measurement - track.x_hat_minus
 			test_stat += diff.T @ np.linalg.inv(self.R) @ diff
+			test_stat = test_stat[0,0] # Remove numpy array wrapping
 
 			# Finally, convert back to a p-value, but with an additional degree of freedom
 			# representing the additional time step which has been added
