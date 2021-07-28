@@ -59,9 +59,9 @@ class TrackMaintenanceMHT:
             # observation added to the observations
             for possible_observation in track.possible_observations:
                 score = self.score_measurement(measurements[possible_observation], track)
-                print("Track {}, {} has score:".format(j, possible_observation), score)
+                # print("Track {}, {} has score:".format(j, possible_observation), score)
                 if score >= self.threshold_old_track:
-                    print("Created New Track")
+                    # print("Created New Track")
                     # Create a new track with the new observations and score
                     po_track = deepcopy(track)
                     po_track.score = score
@@ -72,7 +72,7 @@ class TrackMaintenanceMHT:
         # finally, for every measurement, make a new track (assume it is a new object)
         for i, measurement in enumerate(measurements):
             if len(tracks) > 0:
-                print("Scores:", [track.score for track in new_tracks])
+                # print("Scores:", [track.score for track in new_tracks])
                 score = min([track.score for track in new_tracks]) - 1
             else:
                 score = 0
@@ -81,7 +81,7 @@ class TrackMaintenanceMHT:
             # This is where the chi-square test could come in...
             # Is this parameter necessary?
             if score >= self.threshold_new_track:
-                print("New Object Proposed, score: {}".format(score))
+                # print("New Object Proposed, score: {}".format(score))
                 starting_observations = {ts: i}
                 new_tracks.append(Track(starting_observations, score, [measurement]))
 
