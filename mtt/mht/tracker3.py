@@ -17,6 +17,7 @@ class MHTTracker:
         self.gating.kalman = global_kalman
         self.cur_best_hypothesis = []
         self.prev_best_hypotheses = []
+        self.type = "mht"
 
     def predict(self, measurements):
         """

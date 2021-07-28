@@ -71,7 +71,7 @@ class TrackMaintenanceMHT:
 
         # finally, for every measurement, make a new track (assume it is a new object)
         for i, measurement in enumerate(measurements):
-            if len(tracks) > 0:
+            if len(new_tracks) > 0:
                 # print("Scores:", [track.score for track in new_tracks])
                 score = min([track.score for track in new_tracks]) - 1
             else:

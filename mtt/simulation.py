@@ -102,6 +102,8 @@ class Simulation:
 		for i in range(len(self.processes[index])):
 			# Obtain a set of guesses for the current location of the object given the measurements
 			self.tracker_model.predict(deepcopy(self.measures[index][i]))
+			if self.tracker_model.type == "mht" and i != len(self.processes[index]) - 1:
+				self.trajectories[i] = self.tracker_model.get_trajectories()
 
 		# Store our output as an experiment
 		latest_trajectory = self.tracker_model.get_trajectories()

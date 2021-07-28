@@ -22,6 +22,7 @@ class MTTTracker:
 		self.tracks = dict()  # dictionary of all the tracks
 		self.time = 0  # a counter for the timestep
 		self.false_alarms = dict()	# each key is a timestep, the value is an array of false alarms for that timestep
+		self.type = "sht"
 
 	def predict(self, measurements):
 		"""
