@@ -12,6 +12,9 @@ from scipy.stats import chi2
 
 from .pipeline.track_maintenance import TrackMaintenance
 from .pipeline.gating import DistanceGating
+from .tracker2 import MTTTracker
+from .mht.tracker3 import MHTTracker
+
 
 from .metrics import *
 
@@ -82,7 +85,6 @@ class Simulation:
 			"Time Steps": str(time_steps)
 		}
 
-	#We use the kalman filter and the generated data to predict the trajectory of the simulated object
 	def predict(self, ellipse_mode="mpl", index=None):
 		"""
 		The predict function uses Tracker to create an estimated trajectory for our simulated object.
@@ -97,17 +99,79 @@ class Simulation:
 
 		# {0: first}
 		# Iterate through each time step for which we have measurements
+		self.trajectories[len(self.trajectories.keys())] = []
+		self.apriori_traj[len(self.apriori_traj.keys())] = []
+		self.apriori_ellipses[len(self.apriori_ellipses.keys())] = dict()
+		self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())] = dict()
+		self.false_alarms[len(self.false_alarms.keys())] = dict()
+		self.sorted_measurements[len(self.sorted_measurements)] = dict()
+
 		for i in range(len(self.processes[index])):
 			# Obtain a set of guesses for the current location of the object given the measurements
 			self.tracker_model.predict(deepcopy(self.measures[index][i]))
 
-		# Store our output as an experiment
-		latest_trajectory = self.tracker_model.get_trajectories()
-		self.trajectories[len(self.trajectories.keys())] = latest_trajectory
-		latest_apriori_traj = self.tracker_model.get_apriori_traj()
-		self.apriori_traj[len(self.apriori_traj.keys())] = latest_apriori_traj
+			if isinstance(self.tracker_model, MHTTracker) and i != len(self.processes[index]) - 1:
+				self.trajectories[len(self.trajectories.keys())-1].append(self.tracker_model.get_trajectories())
+				self.apriori_traj[len(self.apriori_traj.keys())-1].append(self.tracker_model.get_apriori_traj())
+				#self.apriori_ellipses[len(self.apriori_ellipses.keys())-1].append(self.tracker_model.get_ellipses("apriori"))
+				#self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())-1].append(self.tracker_model.get_ellipses("aposteriori"))
+				self.false_alarms[len(self.false_alarms.keys())-1][i] = self.tracker_model.get_false_alarms()
 
-		#Now store the errors at each time step
+				apriori_ellipses = self.tracker_model.get_ellipses("apriori")
+				for key, value in apriori_ellipses.items():
+					if key not in self.apriori_ellipses[len(self.apriori_ellipses.keys())-1].keys():
+						self.apriori_ellipses[len(self.apriori_ellipses)-1][key] = []
+					self.apriori_ellipses[len(self.apriori_ellipses)-1][key].append(value)
+
+				aposteriori_ellipses = self.tracker_model.get_ellipses("aposteriori")
+				for key, value in aposteriori_ellipses.items():
+					if key not in self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())-1].keys():
+						self.aposteriori_ellipses[len(self.aposteriori_ellipses)-1][key] = []
+					self.aposteriori_ellipses[len(self.aposteriori_ellipses)-1][key].append(value)
+
+				sort = self.tracker_model.get_sorted_measurements()
+				for key, value in sort.items():
+					if key not in self.sorted_measurements[len(self.sorted_measurements)-1].keys():
+						self.sorted_measurements[len(self.sorted_measurements)-1][key] = []
+					self.sorted_measurements[len(self.sorted_measurements)-1][key].append(value)
+
+		# Store our output as an experiment
+		if isinstance(self.tracker_model, MTTTracker):
+			latest_trajectory = self.tracker_model.get_trajectories()
+			self.trajectories[len(self.trajectories.keys())] = latest_trajectory
+
+			latest_apriori_traj = self.tracker_model.get_apriori_traj()
+			self.apriori_traj[len(self.apriori_traj.keys())] = latest_apriori_traj
+			# Store our output as an experiment
+			self.apriori_ellipses[len(self.apriori_ellipses.keys())] = self.tracker_model.get_ellipses("apriori")
+			self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())] = self.tracker_model.get_ellipses("aposteriori")
+
+			self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.false_alarms
+			gate_size = 0
+			gate_expand = 0
+			for method in self.tracker_model.methods:
+				if isinstance(method, TrackMaintenance):
+					kalman_params = method.filter_params
+				if isinstance(method, DistanceGating):
+					gate_size = method.error_threshold
+					gate_expand = method.expand_gating
+
+			self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
+				"Q": str(kalman_params['Q']),
+				"R": str(kalman_params['R']),
+				"Gate Size": str(gate_size),
+				"Gate Expansion %": str(gate_expand),
+				"fep_at": str(kalman_params['Q'][2][2]),
+				"fep_ct": str(kalman_params['Q'][3][3]),
+				"fnu": str(kalman_params['R'][0][0]),
+				"P": str(kalman_params['P'][0][0]),
+
+			}}
+
+			self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
+
+
+		# Now store the errors at each time step
 		"""
 		self.signed_errors[index] = []
 		for i, next_guess in enumerate(latest_trajectory):
@@ -120,35 +184,12 @@ class Simulation:
 		self.signed_errors[index] = np.array(self.signed_errors[index]).squeeze().T
 		"""
 
-		# Store our output as an experiment
-		self.apriori_ellipses[len(self.apriori_ellipses.keys())] = self.tracker_model.get_ellipses("apriori")
-		self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())] = self.tracker_model.get_ellipses("aposteriori")
-
-		self.false_alarms[len(self.false_alarms.keys())] = self.tracker_model.false_alarms
-		self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
-
-		gate_size = 0
-		gate_expand = 0
-		for method in self.tracker_model.methods:
-			if isinstance(method, TrackMaintenance):
-				kalman_params = method.filter_params
-			if isinstance(method, DistanceGating):
-				gate_size = method.error_threshold
-				gate_expand = method.expand_gating
+		# MTTTracker stores false alarms and has a pipeline, but with MHT, we cannot do this until the end
+		# Therefore, we divide into two instances
 
 		# this code will throw an error if there's no track maintenance object in the pipeline
 
-		self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
-			"Q": str(kalman_params['Q']),
-			"R": str(kalman_params['R']),
-			"Gate Size": str(gate_size),
-			"Gate Expansion %":str(gate_expand),
-			"fep_at": str(kalman_params['Q'][2][2]),
-			"fep_ct": str(kalman_params['Q'][3][3]),
-			"fnu": str(kalman_params['R'][0][0]),
-			"P": str(kalman_params['P'][0][0]),
 
-		}}
 		#process = self.processes[index]
 		#process = self.clean_process(process)[0]  # get first two position coordinates
 		#traj = self.trajectories[index]
@@ -305,7 +346,7 @@ class Simulation:
 			output = self.clean_trajectory(output)
 
 		colors_process = ['skyblue', 'seagreen', 'darkkhaki'] # DOESN"T WORK FOR MORE THAN 3 OBJECTS
-		colors_filter = ['orange', 'violet', 'hotpink']
+		colors_filter = ['orange', 'violet', 'hotpink','red']
 		false_alarm_color = 'red'
 		proc_size = 3
 		traj_size = 1.5
@@ -339,9 +380,9 @@ class Simulation:
 			if len(self.processes) > 0:
 				for i, obj in enumerate(process):
 					if tail > 0:
-						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=proc_size, markersize=8, marker=',', color=colors_process[i])
+						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=proc_size, markersize=8, marker=',')
 					else:
-						line1, = ax.plot(obj[0], obj[1], lw=proc_size, markersize=8, marker=',', color=colors_process[i])
+						line1, = ax.plot(obj[0], obj[1], lw=proc_size, markersize=8, marker=',')
 					lines.append(line1)
 					labs.append("Obj" + str(i) + " Process")
 
@@ -350,18 +391,16 @@ class Simulation:
 				for i, out in enumerate(output):
 					if out is not None:
 						if tail > 0:
-							line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=traj_size, markersize=8, marker=',',
-											 color=colors_filter[i])
+							line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=traj_size, markersize=8, marker=',')
 						else:
-							line3, = ax.plot(out[0], out[1], lw=traj_size, markersize=8, marker=',',
-											 color=colors_filter[i])
+							line3, = ax.plot(out[0], out[1], lw=traj_size, markersize=8, marker=',')
 						lines.append(line3)
 						labs.append("Obj" + str(i) + " Filter")
 
 			# Add the measures to the plot - the colors of a measurement correspond to which track the filter thinks it belongs to
 			if len(measure.values()) != 0:
 				for key, value in measure.items():
-					linex = ax.scatter(value[0], value[1], s=measure_dot_size, marker='x', color=colors_filter[key])
+					linex = ax.scatter(value[0], value[1], s=measure_dot_size, marker='x')
 					lines.append(linex)
 					labs.append("Obj" + str(key) + " Associated Measure")
 
@@ -421,17 +460,18 @@ class Simulation:
 			if legend is True:
 				ax.legend(handles=lines, labels=labs, fontsize=legend_size)
 			# Plot labels
-			true_noises = "true ep_at = " + str(self.generator.ep_tangent) + ", true ep_ct = " + str(self.generator.ep_normal)
-			filter_noises = "filter ep_at = " + self.descs[0]["fep_at"] + ", filter ep_ct = " + self.descs[0]["fep_ct"]
-			measurement_noise = "measurement noise = " + str(self.generator.R[0][0])
-			filter_measurement_noise = "filter measurement noise = " + str(self.generator.get_params()["R"][0][0])
-			#true_state = "true state = " + "[" + self.descs[0]["x0"] + ", " + self.descs[0]["y0"] + ", " + self.descs[0]["vx0"] + ", " + self.descs[0]["vy0"] + "]"
-			#filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
-			covariance = "P = " + self.descs[0]["P"]
+			if isinstance(self.tracker_model, MTTTracker):
+				true_noises = "true ep_at = " + str(self.generator.ep_tangent) + ", true ep_ct = " + str(self.generator.ep_normal)
+				filter_noises = "filter ep_at = " + self.descs[0]["fep_at"] + ", filter ep_ct = " + self.descs[0]["fep_ct"]
+				measurement_noise = "measurement noise = " + str(self.generator.R[0][0])
+				filter_measurement_noise = "filter measurement noise = " + str(self.generator.get_params()["R"][0][0])
+				#true_state = "true state = " + "[" + self.descs[0]["x0"] + ", " + self.descs[0]["y0"] + ", " + self.descs[0]["vx0"] + ", " + self.descs[0]["vy0"] + "]"
+				#filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
+				covariance = "P = " + self.descs[0]["P"]
 
-			caption = true_noises + "\n" + filter_noises + "\n" + measurement_noise + "\n" + filter_measurement_noise + "\n" + covariance + "\n"# + "RMSE of plot = " + str(self.RMSE) + "\nAME of plot = " + str(self.AME)
-			if tail >= 0:
-				fig.text(1, 0.5, caption, ha='center', fontsize = 14)
+				caption = true_noises + "\n" + filter_noises + "\n" + measurement_noise + "\n" + filter_measurement_noise + "\n" + covariance + "\n"# + "RMSE of plot = " + str(self.RMSE) + "\nAME of plot = " + str(self.AME)
+				if tail >= 0:
+					fig.text(1, 0.5, caption, ha='center', fontsize = 14)
 			#else:
 				#print(caption)
 			return lines;
@@ -660,7 +700,7 @@ class Simulation:
 		for key, track in ellipses.items():
 			track_output = []
 			for param_set in track:
-				track_output.append(Simulation.cov_ellipse(param_set[0], param_set[1][2:,2:], mode=mode))
+				track_output.append(Simulation.cov_ellipse(param_set[0][0:2], param_set[1][2:,2:], mode=mode))
 			output.append(track_output)
 		return output
 
