@@ -43,19 +43,22 @@ class TrackMaintenanceMHT:
         Returns: list of new tracks for this ts, number of objects
 
         """
-        score_method = "chi2"
+        score_method = "distance"
 
         new_tracks = []
         for j, track in enumerate(tracks):
             # consider the case of missed measurement, replicate each of these tracks as if they missed a measurement
+            """
             missed_measurement_score = self.score_no_measurement(track, method=score_method)
             print("Threshold:", self.threshold_miss_measurement)
             if missed_measurement_score >= self.threshold_miss_measurement:
                 print("Assumed Missed Measurement")
                 mm_track = deepcopy(track)
                 mm_track.score = missed_measurement_score
+                mm_track.observations[ts] = None
                 mm_track.possible_observations = []
                 new_tracks.append(mm_track)
+            """
 
             # Now, for every possible observation in a track, create a new track
             # This new tracks should be a copy of the old track, with the new possible
@@ -79,10 +82,9 @@ class TrackMaintenanceMHT:
                     # print("Scores:", [track.score for track in new_tracks])
                     score = min([track.score for track in new_tracks]) - 1
                 else:
-                    score_method
                     score = -1
             else:
-                score = 0.01
+                score = 0.0001
             # TODO: The below line is completely pointless as of right now.
             # Need to replace with the actual probability of a new track appearing
             # This is where the chi-square test could come in...
@@ -119,7 +121,7 @@ class TrackMaintenanceMHT:
             # Next, calculate the sum of squared differences between the measurement and the predicted value,
             # weighted by the expected meausurement noise variance
             diff = measurement - track.x_hat_minus
-            test_stat += diff.T @ np.linalg.inv(self.R) @ diff
+            test_stat += diff.T @ np.linalg.inv(track.P_minus) @ diff
             test_stat = test_stat[0,0] # Remove numpy array wrapping
 
             # Finally, convert back to a p-value, but with an additional degree of freedom
