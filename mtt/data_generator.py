@@ -44,7 +44,7 @@ class DataGenerator(ABC):
         output = [xts]
 
         # Run the simulation for the specified time steps
-        for i in range(ts):
+        for i in range(ts-1):
             # Produce a new state for each object and store
             xts = self.process_step(xts, rng)
             output.append(xts)

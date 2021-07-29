@@ -7,22 +7,34 @@ import matplotlib.pyplot as plt
 class HypothesisComp:
 
 	def predict(self, tracks):
-		#print("number of tracks: ", len(tracks))
-		G = nx.Graph()
+		print("number of tracks: ", len(tracks))
+		self.G = nx.Graph()
+
 		index = 0
+
+		# Calculate values needed to normalize the score
+		scores = [track.score for track in tracks]
+		minimum = min(scores)
+		maximum = max(scores)
+		if max(scores) != min(scores):
+			dif = maximum - minimum
+		else:
+			dif = 1
+
+		print(len(tracks))
+
 		for track in tracks:
 			# NOTE: hacky way to turn track scores into integers.
 			# May want a better way to do this
-			G.add_node(index, weight = abs(int(track.score*1000)))
+
+			self.G.add_node(index, weight = int(((track.score - minimum) / dif)*1000))
 			index += 1
 		for i in range(len(tracks)):
 			for j in range(i):
 				# print(self.are_compatible(tracks[i], tracks[j]))
 				if self.are_compatible(tracks[i], tracks[j]):
-					G.add_edge(i, j)
-		result = nxac.max_weight_clique(G)
-		plt.figure()
-		nx.draw_circular(G)
+					self.G.add_edge(i, j)
+		result = nxac.max_weight_clique(self.G)
 		clique = result[0]
 		return clique
 
@@ -36,3 +48,6 @@ class HypothesisComp:
 			else:
 				continue
 		return True
+
+	def draw_graph(self):
+		nx.draw(self.G)

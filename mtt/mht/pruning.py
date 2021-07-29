@@ -17,6 +17,8 @@ class Pruning:
         """
         # Extract and store the sequences of measurements that correspond to valid tracks
 
+        # Gather the required observations that feed into the best tracks
+        # before the specified time step
         required_obs = []
         for index in best_tracks:
             prev_obs = np.array(list(tracks[index].observations.values()))
