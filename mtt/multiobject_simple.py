@@ -114,7 +114,7 @@ class MultiObjSimple(DataGenerator):
 		Returns:
 			ndarray: Random changes in state vector
 		"""
-		output = rng.normal(0, self.nu, self.n)
+		output = rng.normal(0, np.sqrt(self.nu), self.n)
 		output.shape = (4,1)
 		return output
 
