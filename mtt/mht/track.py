@@ -38,7 +38,7 @@ class Track:
 
     def measurement_update(self, kalman_filter, measurements, ts):
         self.x_hat_minus = np.array(self.x_hat_minus)
-        # Select the measurement to incorporation based on the next observation
+        # Select the measurement to incorporate based on the next observation
         observation = measurements[self.observations[max(list(self.observations.keys()))]]
 
         # Calculate the Kalman measurement update

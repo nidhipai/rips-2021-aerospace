@@ -71,9 +71,9 @@ class MHTTracker:
         i = 0
         for track in self.tracks:
             # print("A posteriori estimate:\n", track.x_hat)
+            print("Track {} Score:".format(i), track.score)
             track.measurement_update(self.kalman, measurements, self.ts)
             # print("A posteriori estimate:\n", track.x_hat)
-            print("Track {} Score:".format(i), track.score)
             i += 1
 
         # Indicate that one time step has passed
@@ -208,5 +208,5 @@ class MHTTracker:
         if lam is not None:
             self.track_maintenance.lambda_fa = lam
         if miss_p is not None:
-            self.track_maintenance.pd = lam
+            self.track_maintenance.pd = miss_p
 
