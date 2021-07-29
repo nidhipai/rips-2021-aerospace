@@ -2,10 +2,8 @@
 
 from mtt.mht.distances_mht import *
 
-# TODO THIS IS NOT DONE AND IS NOT COMPATIBLE WITH MHT
-
 class DistanceGatingMHT:
-	def __init__(self, error_threshold, method="mahalanobis", expand_gating=0):
+	def __init__(self, error_threshold, expand_gating=0, method="mahalanobis"):
 		"""
 		Choose what kind of distance metric and also the error thresold
 		Args:
