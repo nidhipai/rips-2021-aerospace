@@ -53,6 +53,7 @@ class MHTTracker:
 
         # Calculate the maximum weighted clique
         best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
+        print("BEST TRACKS: ", best_tracks_indexes)
         # print("Best tracks:", best_tracks_indexes)
 
         # Save the current best hypothesis to output

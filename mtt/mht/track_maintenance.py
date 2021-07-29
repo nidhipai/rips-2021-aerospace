@@ -43,7 +43,7 @@ class TrackMaintenanceMHT:
         Returns: list of new tracks for this ts, number of objects
 
         """
-        score_method = "distance"
+        score_method = "wheeeee"
 
         new_tracks = []
         for j, track in enumerate(tracks):
@@ -84,7 +84,7 @@ class TrackMaintenanceMHT:
                 else:
                     score = -1
             else:
-                score = 0.0001
+                score = 0.5001
             # TODO: The below line is completely pointless as of right now.
             # Need to replace with the actual probability of a new track appearing
             # This is where the chi-square test could come in...
@@ -116,19 +116,20 @@ class TrackMaintenanceMHT:
             # First, convert the track score, which is a probability, into a chi2 test statistic
             # We multiply by 4 because there are four independent components of the measurements, so
             # we add four random variables at each time step
-            test_stat = chi2.ppf(track.score, 4*len(track.observations))
+            test_stat = chi2.ppf(1 - track.score, 4*len(track.observations))
 
             # Next, calculate the sum of squared differences between the measurement and the predicted value,
             # weighted by the expected meausurement noise variance
             diff = measurement - track.x_hat_minus
-            test_stat += diff.T @ np.linalg.inv(track.P_minus) @ diff
+            #test_stat += diff.T @ np.linalg.inv(track.P_minus) @ diff
+            test_stat += diff.T @ np.linalg.inv(self.R) @ diff
             test_stat = test_stat[0,0] # Remove numpy array wrapping
 
             # Finally, convert back to a p-value, but with an additional degree of freedom
             # representing the additional time step which has been added
             # print("Test Stat:",test_stat)
             # print("Deg. of free:", 4*len(track.observations) + 4)
-            return chi2.cdf(test_stat, 4*len(track.observations) + 4)
+            return 1 - chi2.cdf(test_stat, 4*len(track.observations) + 4)
 
     def score_no_measurement(self, track, method="distance"):
         # scoring without measurement occurs here
