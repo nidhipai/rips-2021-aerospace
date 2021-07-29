@@ -44,10 +44,13 @@ class TrackMaintenanceMHT:
         Returns: list of new tracks for this ts, number of objects
 
         """
+        score_method = "chi2"
+
         new_tracks = []
         for j, track in enumerate(tracks):
             # consider the case of missed measurement, replicate each of these tracks as if they missed a measurement
-            missed_measurement_score = self.score_no_measurement(track)
+            missed_measurement_score = self.score_no_measurement(track, method=score_method)
+            print("Threshold:", self.threshold_miss_measurement)
             if missed_measurement_score >= self.threshold_miss_measurement:
                 print("Assumed Missed Measurement")
                 mm_track = deepcopy(track)
@@ -59,7 +62,7 @@ class TrackMaintenanceMHT:
             # This new tracks should be a copy of the old track, with the new possible
             # observation added to the observations
             for possible_observation in track.possible_observations:
-                score = self.score_measurement(measurements[possible_observation], track)
+                score = self.score_measurement(measurements[possible_observation], track, method=score_method)
                 # print("Track {}, {} has score:".format(j, possible_observation), score)
                 if score >= self.threshold_old_track:
                     # print("Created New Track")
@@ -72,11 +75,15 @@ class TrackMaintenanceMHT:
 
         # finally, for every measurement, make a new track (assume it is a new object)
         for i, measurement in enumerate(measurements):
-            if len(new_tracks) > 0:
-                # print("Scores:", [track.score for track in new_tracks])
-                score = min([track.score for track in new_tracks]) - 1
+            if score_method == "distance":
+                if len(new_tracks) > 0:
+                    # print("Scores:", [track.score for track in new_tracks])
+                    score = min([track.score for track in new_tracks]) - 1
+                else:
+                    score_method
+                    score = -1
             else:
-                score = -1
+                score = 0.01
             # TODO: The below line is completely pointless as of right now.
             # Need to replace with the actual probability of a new track appearing
             # This is where the chi-square test could come in...
@@ -118,6 +125,8 @@ class TrackMaintenanceMHT:
 
             # Finally, convert back to a p-value, but with an additional degree of freedom
             # representing the additional time step which has been added
+            # print("Test Stat:",test_stat)
+            # print("Deg. of free:", 4*len(track.observations) + 4)
             return chi2.cdf(test_stat, 4*len(track.observations) + 4)
 
     def score_no_measurement(self, track, method="distance"):
@@ -128,5 +137,5 @@ class TrackMaintenanceMHT:
         else:
             # Here we simply recalculate the p-value, but with an additional degree of freedom
             # which represents the time step that passed without a new measurement
-            test_stat = chi2.ppf(track.score, len(track.observations))
-            return chi2.cdf(test_stat, len(track.observations) + 1)
+            test_stat = chi2.ppf(track.score, 4*len(track.observations))
+            return chi2.cdf(test_stat, 4*len(track.observations) + 4)
