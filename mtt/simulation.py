@@ -560,7 +560,6 @@ class Simulation:
 		# Eigendecompose the covariance matrix
 		cov = cov.round(decimals=10)
 		w, v = np.linalg.eig(cov)
-		print(cov)
 		# Calculate the rotation of the ellipse and size of axes
 		ang = (np.pi / 2) - np.arctan2(v[0, 0], v[1, 0])
 		width = 2 * np.sqrt(chi2.ppf(p, 2) * w[0])
