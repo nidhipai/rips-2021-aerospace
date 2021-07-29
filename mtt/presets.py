@@ -12,4 +12,19 @@ class Presets:
 		maintain = mtt.TrackMaintenance(mtt.KalmanFilter, params, num_obj=num_objects,
 		                                num_init=num_init, num_init_frames=num_init_frames, num_delete=num_delete)
 		filter_ = mtt.FilterPredict()
-		return [gate, assoc, maintain, filter_]
+		return mtt.MTTTracker([gate, assoc, maintain, filter_])
+
+	@staticmethod
+	def standardMHT(params, miss_p, lam, gate_size=0.95, gate_expand_size=0, gate_method="mahalanobis",
+	                tot=-10000, tmm=1.1, tnt=-10000, prune_time=4):
+		if "P" in params.keys():
+			params.pop("P")
+
+		k = mtt.KalmanFilter(**params)
+		gate = mtt.DistanceGatingMHT(gate_size, gate_expand_size, gate_method)
+		main = mtt.TrackMaintenanceMHT(tot, tmm, tnt, 1 - miss_p, 4, lam, params['R'], k)
+		hypo = mtt.HypothesisComp()
+		prune = mtt.Pruning(prune_time)
+
+		return mtt.MHTTracker(k, gate, main, hypo, prune)
+

@@ -58,19 +58,23 @@ class MHTTracker:
         # Save the current best hypothesis to output
         self.cur_best_hypothesis = best_tracks_indexes
         self.cur_best_tracks = np.array(self.tracks)[self.cur_best_hypothesis]
-        print("Length of best hypothesis: ", len(self.cur_best_hypothesis))
+        # print("Length of best hypothesis: ", len(self.cur_best_hypothesis))
 
         if len(best_tracks_indexes) > 0:
             self.prev_best_hypotheses.append(best_tracks_indexes)
 
         # Remove tracks that do not lead to the best hypothesis within a certain number of time steps
-        # self.pruning.predict(self.tracks, best_tracks_indexes)
+        # USING PRUNING CAUSES ERRORS ATM
+        #self.pruning.predict(self.tracks, best_tracks_indexes)
 
         # Run the Kalman Filter measurement update for each track
+        i = 0
         for track in self.tracks:
             # print("A posteriori estimate:\n", track.x_hat)
             track.measurement_update(self.kalman, measurements, self.ts)
             # print("A posteriori estimate:\n", track.x_hat)
+            print("Track {} Score:".format(i), track.score)
+            i += 1
 
         # Indicate that one time step has passed
         self.ts += 1
@@ -93,8 +97,8 @@ class MHTTracker:
         in format used by the Simulation class
         """
         result = []
-        for track in self.cur_best_hypothesis:
-            print("Number of Posteriori estimates:", len(self.tracks[track].aposteriori_estimates))
+        # for track in self.cur_best_hypothesis:
+            # print("Number of Posteriori estimates:", len(self.tracks[track].aposteriori_estimates))
         for t in range(self.ts):
             step = dict()
             for i, track in enumerate(self.cur_best_tracks):
@@ -111,8 +115,8 @@ class MHTTracker:
         the algorithm performs.
         """
         result = dict()
-        for track_id in self.cur_best_hypothesis:
-            result[self.tracks[track_id].obj_id] = self.tracks[track_id].x_hat
+        for track in self.cur_best_tracks:
+            result[track.obj_id] = track.x_hat
         return result
 
     def get_apriori_traj(self):
@@ -125,8 +129,8 @@ class MHTTracker:
         """
 
         result = dict()
-        for track_id in self.cur_best_hypothesis:
-            result[self.tracks[track_id].obj_id] = self.tracks[track_id].x_hat_minus
+        for track in self.cur_best_tracks:
+            result[track.obj_id] = track.x_hat_minus
         return result
 
     def get_ellipses(self, mode="apriori"):
@@ -134,19 +138,19 @@ class MHTTracker:
         ellipses = dict()
 
         # Iterate through the hypothesis at each time step
-        for track_id in self.cur_best_hypothesis:
+        for track in self.cur_best_tracks:
             if mode == "apriori":
-                ellipses[self.tracks[track_id].obj_id] = [self.tracks[track_id].x_hat_minus, self.tracks[track_id].P_minus]
+                ellipses[track.obj_id] = [track.x_hat_minus, track.P_minus]
             else:
-                ellipses[self.tracks[track_id].obj_id] = [self.tracks[track_id].x_hat, self.tracks[track_id].P]
+                ellipses[track.obj_id] = [track.x_hat, track.P]
         return ellipses
 
     def get_sorted_measurements(self):
         # OLD; NOT DONE
         result = dict()
 
-        for track_id in self.cur_best_hypothesis:
-            result[self.tracks[track_id].obj_id] = self.measurements[-1][self.tracks[track_id].observations[max(self.tracks[track_id].observations.keys())]]
+        for track in self.cur_best_tracks:
+            result[track.obj_id] = self.measurements[-1][track.observations[max(track.observations.keys())]]
         """
         for t, prev_hypothesis in enumerate(self.prev_best_hypotheses):
             for i, track_id in enumerate(prev_hypothesis):
@@ -165,11 +169,11 @@ class MHTTracker:
         # OLD; NOT DONE
 
         possible_measurements = list(range(len(self.measurements[-1])))
-        for track_id in self.cur_best_hypothesis:
+        for track in self.cur_best_tracks:
             # Remove observation assigned most recently to track
             possible_measurements.remove(
-                    self.tracks[track_id].observations[
-                        max(self.tracks[track_id].observations.keys())
+                    track.observations[
+                        max(track.observations.keys())
                 ]
             )
 
@@ -192,3 +196,17 @@ class MHTTracker:
         for p in possible_measurements:
             result.append(self.measurements[-1][p])
         return result
+
+    def clear_tracks(self, lam=None, miss_p=None):
+        self.tracks = []
+        self.measurements = []  # 2D array of state vectors - each row is a time step
+        self.ts = 0
+        self.cur_best_hypothesis = []
+        self.prev_best_hypotheses = []
+        self.track_maintenance.num_objects = 0
+
+        if lam is not None:
+            self.track_maintenance.lambda_fa = lam
+        if miss_p is not None:
+            self.track_maintenance.pd = lam
+

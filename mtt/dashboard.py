@@ -50,7 +50,10 @@ gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa
 
 
 #Set up a default tracker and simulation
-tracker = mtt.MTTTracker(mtt.Presets.standardSHT(num_objects, gen.get_params()))
+# Old SHT tracker
+# tracker = mtt.Presets.standardSHT(num_objects, gen.get_params())
+# New MHT tracker
+tracker = mtt.Presets.standardMHT(gen.get_params(), miss_p, lam)
 sim = mtt.Simulation(gen, tracker, seed_value = 0)
 
 #Create blank figures to display at start
@@ -366,7 +369,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         #Set up the simulation with the newly specified parameters
         sim.seed_value = int(seed)
-        sim.clear()
+        sim.clear(lam, miss_p)
         sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale)
 
         params = {
@@ -380,7 +383,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             "P": P_parse
         }
 
-        sim.reset_tracker(mtt.MTTTracker(mtt.Presets.standardSHT(num_objects, params, gate_size=gate_size, gate_expand_size=gate_expand_size)))
+        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam))
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly")
 
@@ -400,7 +403,8 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         # THIS IS NOT ROTATING ELLIPSES
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
-        atct_errors = mtt.MTTMetrics.atct_signed(processes, trajectories)
+        #atct_errors = mtt.MTTMetrics.atct_signed(processes, trajectories)
+        atct_errors =  [[[0],[0],[0],[0]]]
         time = ["time = {}".format(t) for t in range(processes[0][0].size)]
 
         # Set the range manually to prevent the animation from dynamically changing the range
@@ -417,6 +421,8 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             measure_max.append(measures_false[1].max())
             measure_min.append(measures_false[0].min())
             measure_min.append(measures_false[1].min())
+
+        print(trajectories)
 
         xmax = max([max([process[0].max() for process in processes]), max([trajectory[0].max() for trajectory in trajectories] + measure_max)])
         xmin = min([min([process[0].min() for process in processes]), min([trajectory[0].min() for trajectory in trajectories] + measure_min)])
@@ -565,8 +571,8 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                                ],"pad": {"r": 30, "t": 30}}]
                            )
 
-        rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
-        print(rmse)
+        #rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
+        rmse = 0
         fig = go.Figure(data=data, layout=layout, frames=frames)
         fig.update_xaxes(tickfont_size=fontsize)
         fig.update_yaxes(tickfont_size=fontsize)
@@ -581,4 +587,4 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
     return fig, err, sim.cur_seed, str(rmse)
 
-app.run_server(port=8050, debug=True)
+app.run_server(debug=True)
