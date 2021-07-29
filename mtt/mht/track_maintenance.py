@@ -106,7 +106,9 @@ class TrackMaintenanceMHT:
         # New method: Chi2
         else:
             # First, convert the track score, which is a probability, into a chi2 test statistic
-            test_stat = chi2.ppf(track.score, len(track.observations))
+            # We multiply by 4 because there are four independent components of the measurements, so
+            # we add four random variables at each time step
+            test_stat = chi2.ppf(track.score, 4*len(track.observations))
 
             # Next, calculate the sum of squared differences between the measurement and the predicted value,
             # weighted by the expected meausurement noise variance
@@ -116,7 +118,7 @@ class TrackMaintenanceMHT:
 
             # Finally, convert back to a p-value, but with an additional degree of freedom
             # representing the additional time step which has been added
-            return chi2.cdf(test_stat, len(track.observations) + 1)
+            return chi2.cdf(test_stat, 4*len(track.observations) + 4)
 
     def score_no_measurement(self, track, method="distance"):
         # scoring without measurement occurs here
