@@ -538,7 +538,7 @@ class Simulation:
 			self.plot(ellipse_freq=ellipse_freq) if not error else self.plot_error(var=var)
 		plt.tight_layout()
 
-	def clear(self):
+	def clear(self, lam=None, miss_p=None):
 		"""
 		This function clears all the processes, measures, trajectories, descriptions, and the ellipses.
 		"""
@@ -561,7 +561,7 @@ class Simulation:
 		self.false_alarms = dict()
 
 		# Clear stored tracks from the tracker
-		self.tracker_model.clear_tracks()
+		self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
 
 	def reset_generator(self, **kwargs):
 		"""
