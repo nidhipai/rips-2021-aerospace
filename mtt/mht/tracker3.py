@@ -1,6 +1,7 @@
 """Aerospace Team - Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng"""
 from itertools import repeat
 from copy import deepcopy
+import numpy as np
 
 class MHTTracker:
     def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning):
@@ -56,6 +57,7 @@ class MHTTracker:
 
         # Save the current best hypothesis to output
         self.cur_best_hypothesis = best_tracks_indexes
+        self.cur_best_tracks = np.array(self.tracks)[self.cur_best_hypothesis]
         print("Length of best hypothesis: ", len(self.cur_best_hypothesis))
 
         if len(best_tracks_indexes) > 0:
@@ -95,8 +97,8 @@ class MHTTracker:
             print("Number of Posteriori estimates:", len(self.tracks[track].aposteriori_estimates))
         for t in range(self.ts):
             step = dict()
-            for i, track_id in enumerate(self.cur_best_hypothesis):
-                step[i] = self.tracks[track_id].aposteriori_estimates[t]
+            for i, track in enumerate(self.cur_best_tracks):
+                step[i] = track.aposteriori_estimates[t]
             result.append(step)
         return result
 
