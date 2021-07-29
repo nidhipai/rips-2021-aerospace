@@ -32,6 +32,8 @@ class Pruning:
             # Extract the first part of the sequence of measurements, up to n
             prev_ob = np.array(list(track.observations.values()))
             prev_ob = prev_ob[:(prev_ob.size - 1 - self.n)]
+            print(prev_ob)
+            print(required_obs)
 
             # Test each possibility
             for required_ob in required_obs:
@@ -41,6 +43,7 @@ class Pruning:
             # Remove the current track if its initial sequence of measurements does not match the current best hypothesis up to n
             if not keep:
                 tracks.remove(track)
+            print("number of tracks: ", tracks)
 
 
 
