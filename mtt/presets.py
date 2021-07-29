@@ -16,7 +16,7 @@ class Presets:
 
 	@staticmethod
 	def standardMHT(params, miss_p, lam, gate_size=0.95, gate_expand_size=0, gate_method="mahalanobis",
-	                tot=-10000, tmm=0, tnt=-10000, prune_time=4):
+	                tot=-10000, tmm=1.1, tnt=-10000, prune_time=4):
 		if "P" in params.keys():
 			params.pop("P")
 
@@ -24,7 +24,7 @@ class Presets:
 		gate = mtt.DistanceGatingMHT(gate_size, gate_expand_size, gate_method)
 		main = mtt.TrackMaintenanceMHT(tot, tmm, tnt, 1 - miss_p, 4, lam, params['R'], k)
 		hypo = mtt.HypothesisComp()
-		prune = mtt.Pruning(4)
+		prune = mtt.Pruning(prune_time)
 
 		return mtt.MHTTracker(k, gate, main, hypo, prune)
 
