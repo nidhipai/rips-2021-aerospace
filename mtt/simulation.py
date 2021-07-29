@@ -308,8 +308,8 @@ class Simulation:
 			output = self.trajectories[index]
 			output = self.clean_trajectory(output)
 
-		colors_process = ['skyblue', 'seagreen', 'darkkhaki'] # DOESN"T WORK FOR MORE THAN 3 OBJECTS
-		colors_filter = ['orange', 'violet', 'hotpink']
+		colors_process = ['skyblue', 'seagreen', 'darkkhaki', 'aqua', 'steelblue', 'olive', 'deepskyblue'] # DOESN"T WORK FOR MORE THAN 5 OBJECTS
+		colors_filter = ['orange', 'violet', 'hotpink', 'goldenrod', 'maroon', 'rebeccapurple', 'deeppink']
 		false_alarm_color = 'red'
 		proc_size = 3
 		traj_size = 1.5
@@ -343,9 +343,9 @@ class Simulation:
 			if len(self.processes) > 0:
 				for i, obj in enumerate(process):
 					if tail > 0:
-						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=proc_size, markersize=8, marker=',', color=colors_process[i])
+						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=proc_size, markersize=8, marker=',', color=colors_process[i % len(colors_process)])
 					else:
-						line1, = ax.plot(obj[0], obj[1], lw=proc_size, markersize=8, marker=',', color=colors_process[i])
+						line1, = ax.plot(obj[0], obj[1], lw=proc_size, markersize=8, marker=',', color=colors_process[i % len(colors_process)])
 					lines.append(line1)
 					labs.append("Obj" + str(i) + " Process")
 
@@ -355,17 +355,17 @@ class Simulation:
 					if out is not None:
 						if tail > 0:
 							line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=traj_size, markersize=8, marker=',',
-											 color=colors_filter[i])
+											 color=colors_filter[i % len(colors_filter)])
 						else:
 							line3, = ax.plot(out[0], out[1], lw=traj_size, markersize=8, marker=',',
-											 color=colors_filter[i])
+											 color=colors_filter[i % len(colors_filter)])
 						lines.append(line3)
 						labs.append("Obj" + str(i) + " Filter")
 
 			# Add the measures to the plot - the colors of a measurement correspond to which track the filter thinks it belongs to
 			if len(measure.values()) != 0:
 				for key, value in measure.items():
-					linex = ax.scatter(value[0], value[1], s=measure_dot_size, marker='x', color=colors_filter[key])
+					linex = ax.scatter(value[0], value[1], s=measure_dot_size, marker='x', color=colors_filter[key % len(colors_filter)])
 					lines.append(linex)
 					labs.append("Obj" + str(key) + " Associated Measure")
 

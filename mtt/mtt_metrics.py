@@ -1,7 +1,10 @@
 import numpy as np
 
 
+
 class MTTMetrics:
+	# in this whole class, processes and trajectos are the ones that have been cleaned in sim
+
 	# Returns AME of Euclidean distances between trajectory and actual process for each object
 	# Access AME of ith object with errors[i]
 	@staticmethod
@@ -156,11 +159,13 @@ class MTTMetrics:
 			error (numeric): a numeric value representing the root-mean-squared-error over all objects
 		"""
 		error = 0
-		n = 0
-		for i, estimate in enumerate(trajectories):
-			for j in range(estimate[0].size):
-				if estimate[0, j] != None:
+		n = 0 # number of objects
+		for i, estimate in enumerate(trajectories):  # estimate is the trajectory of an object, seperated by coordinate, iterating over trajectories
+			for j in range(estimate[0].size):  # estimate[0] is an array of x-coordinates, iterating over time steps
+				if estimate[0, j] != None:  # if it has a prediction for that time step
 					dist = np.power((np.array(processes)[:, :, j] - estimate[:, j]), 2).sum(axis=1)
+					#  [:, :, j] gets the jth timestep's state for each object
+					# [:, j] gets the state for the jth timestep
 					if dist.argmin() == i:
 						error += dist[i]
 						n += 1
