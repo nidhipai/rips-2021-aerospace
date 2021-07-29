@@ -58,7 +58,8 @@ class MHTTracker:
         # Save the current best hypothesis to output
         self.cur_best_hypothesis = best_tracks_indexes
         self.cur_best_tracks = np.array(self.tracks)[self.cur_best_hypothesis]
-        print("Length of best hypothesis: ", self.cur_best_hypothesis)
+        # print("Length of best hypothesis: ", len(self.cur_best_hypothesis))
+
 
         if len(best_tracks_indexes) > 0:
             self.prev_best_hypotheses.append(best_tracks_indexes)
@@ -69,10 +70,13 @@ class MHTTracker:
             self.pruning.predict(self.tracks, best_tracks_indexes)
 
         # Run the Kalman Filter measurement update for each track
+        i = 0
         for track in self.tracks:
             # print("A posteriori estimate:\n", track.x_hat)
+            print("Track {} Score:".format(i), track.score)
             track.measurement_update(self.kalman, measurements, self.ts)
             # print("A posteriori estimate:\n", track.x_hat)
+            i += 1
 
         # Indicate that one time step has passed
         self.ts += 1
@@ -95,8 +99,8 @@ class MHTTracker:
         in format used by the Simulation class
         """
         result = []
-        for track in self.cur_best_hypothesis:
-            print("Number of Posteriori estimates:", len(self.tracks[track].aposteriori_estimates))
+        # for track in self.cur_best_hypothesis:
+            # print("Number of Posteriori estimates:", len(self.tracks[track].aposteriori_estimates))
         for t in range(self.ts):
             step = dict()
             for i, track in enumerate(self.cur_best_tracks):
@@ -206,5 +210,5 @@ class MHTTracker:
         if lam is not None:
             self.track_maintenance.lambda_fa = lam
         if miss_p is not None:
-            self.track_maintenance.pd = lam
+            self.track_maintenance.pd = miss_p
 
