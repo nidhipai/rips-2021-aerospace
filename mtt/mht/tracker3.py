@@ -62,7 +62,7 @@ class MHTTracker:
             self.prev_best_hypotheses.append(best_tracks_indexes)
 
         # Remove tracks that do not lead to the best hypothesis within a certain number of time steps
-        #self.pruning.predict(self.tracks, best_tracks_indexes)
+        # self.pruning.predict(self.tracks, best_tracks_indexes)
 
         # Run the Kalman Filter measurement update for each track
         for track in self.tracks:

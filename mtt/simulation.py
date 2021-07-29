@@ -101,8 +101,8 @@ class Simulation:
 		# Iterate through each time step for which we have measurements
 		self.trajectories[len(self.trajectories.keys())] = []
 		self.apriori_traj[len(self.apriori_traj.keys())] = []
-		self.apriori_ellipses[len(self.apriori_ellipses.keys())] = []
-		self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())] = []
+		self.apriori_ellipses[len(self.apriori_ellipses.keys())] = dict()
+		self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())] = dict()
 		self.false_alarms[len(self.false_alarms.keys())] = dict()
 		self.sorted_measurements[len(self.sorted_measurements)] = dict()
 
@@ -113,9 +113,21 @@ class Simulation:
 			if isinstance(self.tracker_model, MHTTracker) and i != len(self.processes[index]) - 1:
 				self.trajectories[len(self.trajectories.keys())-1].append(self.tracker_model.get_trajectories())
 				self.apriori_traj[len(self.apriori_traj.keys())-1].append(self.tracker_model.get_apriori_traj())
-				self.apriori_ellipses[len(self.apriori_ellipses.keys())-1].append(self.tracker_model.get_ellipses("apriori"))
-				self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())-1].append(self.tracker_model.get_ellipses("aposteriori"))
+				#self.apriori_ellipses[len(self.apriori_ellipses.keys())-1].append(self.tracker_model.get_ellipses("apriori"))
+				#self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())-1].append(self.tracker_model.get_ellipses("aposteriori"))
 				self.false_alarms[len(self.false_alarms.keys())-1][i] = self.tracker_model.get_false_alarms()
+
+				apriori_ellipses = self.tracker_model.get_ellipses("apriori")
+				for key, value in apriori_ellipses.items():
+					if key not in self.apriori_ellipses[len(self.apriori_ellipses.keys())-1].keys():
+						self.apriori_ellipses[len(self.apriori_ellipses)-1][key] = []
+					self.apriori_ellipses[len(self.apriori_ellipses)-1][key].append(value)
+
+				aposteriori_ellipses = self.tracker_model.get_ellipses("aposteriori")
+				for key, value in aposteriori_ellipses.items():
+					if key not in self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())-1].keys():
+						self.aposteriori_ellipses[len(self.aposteriori_ellipses)-1][key] = []
+					self.aposteriori_ellipses[len(self.aposteriori_ellipses)-1][key].append(value)
 
 				sort = self.tracker_model.get_sorted_measurements()
 				for key, value in sort.items():
@@ -338,7 +350,7 @@ class Simulation:
 			output = self.clean_trajectory(output)
 
 		colors_process = ['skyblue', 'seagreen', 'darkkhaki'] # DOESN"T WORK FOR MORE THAN 3 OBJECTS
-		colors_filter = ['orange', 'violet', 'hotpink']
+		colors_filter = ['orange', 'violet', 'hotpink','red']
 		false_alarm_color = 'red'
 		proc_size = 3
 		traj_size = 1.5
@@ -372,9 +384,9 @@ class Simulation:
 			if len(self.processes) > 0:
 				for i, obj in enumerate(process):
 					if tail > 0:
-						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=proc_size, markersize=8, marker=',', color=colors_process[i])
+						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=proc_size, markersize=8, marker=',')
 					else:
-						line1, = ax.plot(obj[0], obj[1], lw=proc_size, markersize=8, marker=',', color=colors_process[i])
+						line1, = ax.plot(obj[0], obj[1], lw=proc_size, markersize=8, marker=',')
 					lines.append(line1)
 					labs.append("Obj" + str(i) + " Process")
 
@@ -383,18 +395,16 @@ class Simulation:
 				for i, out in enumerate(output):
 					if out is not None:
 						if tail > 0:
-							line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=traj_size, markersize=8, marker=',',
-											 color=colors_filter[i])
+							line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=traj_size, markersize=8, marker=',')
 						else:
-							line3, = ax.plot(out[0], out[1], lw=traj_size, markersize=8, marker=',',
-											 color=colors_filter[i])
+							line3, = ax.plot(out[0], out[1], lw=traj_size, markersize=8, marker=',')
 						lines.append(line3)
 						labs.append("Obj" + str(i) + " Filter")
 
 			# Add the measures to the plot - the colors of a measurement correspond to which track the filter thinks it belongs to
 			if len(measure.values()) != 0:
 				for key, value in measure.items():
-					linex = ax.scatter(value[0], value[1], s=measure_dot_size, marker='x', color=colors_filter[key])
+					linex = ax.scatter(value[0], value[1], s=measure_dot_size, marker='x')
 					lines.append(linex)
 					labs.append("Obj" + str(key) + " Associated Measure")
 
