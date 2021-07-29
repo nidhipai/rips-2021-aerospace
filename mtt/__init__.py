@@ -17,14 +17,14 @@ from .distances import *
 from .tracker2 import *
 
 # MHT pipeline
-#from .mht.distances_mht import *
-#from .mht.gating_mht import *
-#from .mht.hypothesis_comp import *
-#from .mht.kalmanfilter3 import *
-#from .mht.track import *
-#from .mht.track_maintenance import *
-#from .mht.pruning import *
-#from .mht.tracker3 import *
+from .mht.distances_mht import *
+from .mht.gating_mht import *
+from .mht.hypothesis_comp import *
+from .mht.kalmanfilter3 import *
+from .mht.track import *
+from .mht.track_maintenance import *
+from .mht.pruning import *
+from .mht.tracker3 import *
 
 
 # Experimentation classes
