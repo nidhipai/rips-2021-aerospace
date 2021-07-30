@@ -9,6 +9,7 @@ from copy import copy, deepcopy
 from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
 from scipy.stats import chi2
+from scipy.optimize import linear_sum_assignment
 
 from .pipeline.track_maintenance import TrackMaintenance
 from .pipeline.gating import DistanceGating
@@ -110,7 +111,7 @@ class Simulation:
 			# Obtain a set of guesses for the current location of the object given the measurements
 			self.tracker_model.predict(deepcopy(self.measures[index][i]))
 
-			if isinstance(self.tracker_model, MHTTracker) and i != len(self.processes[index]) - 1:
+			if isinstance(self.tracker_model, MHTTracker):
 				self.trajectories[len(self.trajectories.keys())-1].append(self.tracker_model.get_trajectories())
 				self.apriori_traj[len(self.apriori_traj.keys())-1].append(self.tracker_model.get_apriori_traj())
 				#self.apriori_ellipses[len(self.apriori_ellipses.keys())-1].append(self.tracker_model.get_ellipses("apriori"))
@@ -651,8 +652,11 @@ class Simulation:
 	def clean_trajectory(trajectories):
 		"""
 		Converts a single trajectory from a dictionary of lists of state vectors to a list of numpy arrays
-		representing the position at each time step for plotting
+		representing the position at each time step for plotting.
 		"""
+
+		# TO DO: None-pad the trajectories that don't start at the first time step
+
 		output = list(repeat(np.empty((4, 1)), max([key for step in trajectories for key in step.keys()]) + 1))
 		for step in trajectories: # iterate over each of the timesteps
 			for key, value in step.items(): # each timestep is a dict of object predictions
@@ -663,37 +667,6 @@ class Simulation:
 			output[i] = arr[:, 1:] if output[i] is not None else None
 		return output
 
-
-		# New algorithm pseudocode below:
-
-		# I do not believe we can use linear sum assignment.
-		# This is because if the tracker tracks a "fake" object but fails to track a "real" object,
-		# then the fake object predicted track will be allocated to the "real" object
-		# even if it is quite far away
-
-		# From https://link.springer.com/content/pdf/10.1155%2F2008%2F246309.pdf we get the following:
-
-		# For each time step:
-		#   Establish best possible correspondence between hypotheses and objects
-		#   For each correspondence compute error in position estimation
-		#   Count all objects for which no hypothesis was output as misses
-		#   Count all hypotheses for which no real object exists as FPs
-		#   Count all occurrences where wrong object is identified as mismatch errors
-
-		# How do we establish best correspondance?
-		# For each time step:
-		# For each NEW trajectory start point:
-		#   Assign trajectory object id to the id of the closest process that is...
-		#       NOT being tracked at the current time step by a closer process (bias towards prev hypothesis)
-		#       AND is NOT being tracked by a previous process that is CLOSEST to this process compared to other processes
-		#       AND is WITHIN a certain expected distance of the process (otherwise it is a false alarm)
-		#   If the trajectory cannot be assigned it is considered a false alarm at that time step
-		#
-		# After this, all hypotheses will be allocated to processes that are not already being tracked by a previous hypotheses,
-		# and whose starting positions are closest to said hypotheses compared to other possible hypotheses
-		# The advantage of this method is that it ensures ids are based on the FIRST identification of the object
-		# which we want because that is how the satellites will be identified
-		# and the hypotheses are matched to the processes in the optimal (closest) manner
 
 	@staticmethod
 	def clean_measure2(measures):
@@ -739,6 +712,99 @@ class Simulation:
 				track_output.append(Simulation.cov_ellipse(param_set[0][0:2], param_set[1][2:,2:], mode=mode))
 			output.append(track_output)
 		return output
+
+	def get_best_correspondence(self, max_dist, index=0):
+		"""
+		Restructures trajectories to assign them the best corresponding object ids from the process
+		"""
+		output = []
+		# Maintain a list of the objects : trajectory correspondences that have already been generated
+		correspondences = {}
+
+		# Iterate through each time step
+		for i, proc_step in enumerate(self.processes[index]):
+			# Set up a dictionary to represent the new time step that will be output
+			new_step = dict()
+			# Iterate through each process at the time step that has not already been tracked
+			cost = []
+			proc_ids_considering = []
+			traj_ids_considering = []
+
+			for proc_id, proc in proc_step.items():
+				dists = []
+				if proc_id not in correspondences.values():
+					proc_ids_considering.append(proc_id)
+					# Calculate the distance from the not-yet-tracked process to each trajectory
+					# that has not yet been assigned
+					for traj_id, traj in self.trajectories[index][i].items():
+						if traj_id not in correspondences.keys():
+							dists.append(np.power(proc - traj, 2).sum())
+							if traj_id not in traj_ids_considering:
+								traj_ids_considering.append(traj_id)
+					# Store the distances for this process in a cost array
+					# Thus, ROWS are processes and COLS are trajectories
+					cost.append(dists)
+			cost = np.array(cost)
+			# Ensure objects that are too far away are not assigned by making the distance infinity
+			cost[cost > max_dist] = np.inf
+
+			# Find the best combinations of trajectory and process using the cost matrix
+			while cost.size > 0 and (cost != np.inf).all():
+				# Calculate each subsequent minimum traj-proc pair and remove this from consideration
+				# (greedy algorithm)
+				best_proc, best_traj = np.unravel_index(cost.argmin(), cost.shape)
+				cost[best_proc, :] = np.inf
+				cost[:, best_traj] = np.inf
+
+				# Set the new step to be a key : value pair where...
+				# key = the id of the process
+				# value = the value of the trajectory associated with said process at this iteration
+				correspondences[traj_ids_considering[best_traj]] = proc_ids_considering[best_proc]
+
+			# Generate the output for this time step using the correspondences dictionary
+			for traj_id, traj in self.trajectories[index][i].items():
+				if traj_id in correspondences.keys():
+					new_step[correspondences[traj_id]] = traj
+				else:
+					new_step["Unassigned {}".format(traj_id)] = traj
+
+			#Add this step as the current time step in the new trajectory output
+			output.append(new_step)
+
+		return output
+
+	# New algorithm pseudocode below:
+
+	# I do not believe we can use linear sum assignment.
+	# This is because if the tracker tracks a "fake" object but fails to track a "real" object,
+	# then the fake object predicted track will be allocated to the "real" object
+	# even if it is quite far away
+
+	# From https://link.springer.com/content/pdf/10.1155%2F2008%2F246309.pdf we get the following:
+
+	# For each time step:
+	#   Establish best possible correspondence between hypotheses and objects
+	#   For each correspondence compute error in position estimation
+	#   Count all objects for which no hypothesis was output as misses
+	#   Count all hypotheses for which no real object exists as FPs
+	#   Count all occurrences where wrong object is identified as mismatch errors
+
+	# How do we establish best correspondence?
+	# For each time step:
+	# For each NEW trajectory start point:
+	#   Assign trajectory object id to the id of the closest process that is...
+	#       NOT being tracked at the current time step by a closer process (bias towards prev hypothesis)
+	#       AND is NOT being tracked by a previous process that is CLOSEST to this process compared to other processes
+	#       AND is WITHIN a certain expected distance of the process (otherwise it is a false alarm)
+	#   If the trajectory cannot be assigned it is considered a false alarm at that time step
+	#
+	# After this, all hypotheses will be allocated to processes that are not already being tracked by a previous hypotheses,
+	# and whose starting positions are closest to said hypotheses compared to other possible hypotheses
+	# The advantage of this method is that it ensures ids are based on the FIRST identification of the object
+	# which we want because that is how the satellites will be identified
+	# and the hypotheses are matched to the processes in the optimal (closest) manner
+
+
 
 	def get_true_fa_and_num_measures(self, measures, colors):
 		true_false_alarms = []
