@@ -86,7 +86,7 @@ class MHTTracker:
                 if ts in track.observations:
                     result[ts][i] = self.measurements[ts][track.observations[ts]]
                 else:
-                    result[ts][i] = list(repeat([None], 4))
+                    result[ts][i] = list(repeat([np.nan], 4))
         return result
 
     def get_best_trajectory(self):
