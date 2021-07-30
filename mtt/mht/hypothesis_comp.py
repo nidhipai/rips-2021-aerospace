@@ -6,7 +6,7 @@ import networkx.algorithms.clique as nxac
 class HypothesisComp:
 
 	def predict(self, tracks):
-        """
+		"""
         Uses maximum weight clique of a graph, where compatible tracks are connected by an edge and every
         node is a track with a specific score assigned in track maintenance to create the best hypothesis. 
 
@@ -43,16 +43,16 @@ class HypothesisComp:
 		return clique
 
 	def are_compatible(self, track1, track2):
-        """
-        Checks whether two given tracks are compatible with each other (share an observation or root node)
+		"""
+		Checks whether two given tracks are compatible with each other (share an observation or root node)
 
-        Args:
-            track1 (Track): first track.
-            track2 (Track): second track.
+		Args:
+		    track1 (Track): first track.
+		    track2 (Track): second track.
 
-        Returns:
-        	(bool): Whether they are compatible or not. 
-        """
+		Returns:
+			(bool): Whether they are compatible or not. 
+		"""
 
 		if len(track1.observations) > len(track2.observations):
 			return self.are_compatible(track2, track1)
@@ -65,9 +65,9 @@ class HypothesisComp:
 		return True
 
 	def draw_graph(self):
-        """
-        Draws the current graph
+		"""
+		Draws the current graph
 
-        """
+		"""
 
 		nx.draw(self.G)
