@@ -11,6 +11,7 @@ class DistanceGatingMHT:
             method: metric of measuring distance - see Distances class
             expand_gating: interval at which gate should be expanded (a percent of error_threshold, which is oval for mahalanobis distance)
         """
+        
         self.error_threshold = error_threshold
         switcher = {
             "euclidean": DistancesMHT.euclidean_threshold,
