@@ -11,7 +11,7 @@ class TrackMaintenanceMHT:
     """
     Scores potential new tracks and creates them if the score is above the threshold
     """
-    def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R, kFilter_model):
+    def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R, kFilter_model, n_pruning):
         """
         Args:
             threshold_old_track (numeric): score threshold for creating a new track from an existing object
@@ -31,6 +31,7 @@ class TrackMaintenanceMHT:
         self.R = R
         self.kFilter_model = kFilter_model
         self.num_objects = 0
+        self.n_pruning = n_pruning
 
     def predict(self, ts, tracks, measurements):
         """
@@ -58,8 +59,6 @@ class TrackMaintenanceMHT:
                 mm_track.observations[ts] = None
                 mm_track.possible_observations = []
                 new_tracks.append(mm_track)
-
-
             # Now, for every possible observation in a track, create a new track
             # This new tracks should be a copy of the old track, with the new possible
             # observation added to the observations
@@ -69,7 +68,7 @@ class TrackMaintenanceMHT:
                 if score >= self.threshold_old_track:
                     # print("Created New Track")
                     # Create a new track with the new observations and score
-                    po_track = deepcopy(track)
+                    po_track = deepcopy(track)  # This is kinda like Track() in that if makes a new object
                     po_track.score = score
                     po_track.observations[ts] = possible_observation
                     po_track.possible_observations = []
@@ -92,7 +91,7 @@ class TrackMaintenanceMHT:
             if score >= self.threshold_new_track:
                 # print("New Object Proposed, score: {}".format(score))
                 starting_observations = {ts: i}
-                new_tracks.append(Track(starting_observations, score, measurement, self.num_objects))
+                new_tracks.append(Track(starting_observations, score, measurement, self.num_objects, self.n_pruning))
                 self.num_objects += 1
 
         return new_tracks
