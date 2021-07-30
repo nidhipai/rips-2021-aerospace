@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 class HypothesisComp:
 
 	def predict(self, tracks):
-		print("number of tracks: ", len(tracks))
 		self.G = nx.Graph()
 
 		index = 0
