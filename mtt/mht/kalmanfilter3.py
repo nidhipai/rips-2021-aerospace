@@ -9,16 +9,6 @@ import numpy.linalg as linalg
 
 class KalmanFilter:
     def __init__(self, f, A, h, Q, W, R, H=None, u=0, dt=1):
-        """
-        Initialize the Extended Kalman Filter object
-        :param f: function representing the process
-        :param A: Jacobian matrix of the process function
-        :param h: function representing the measurement
-        :param Q: Covariance matrix of the process noise
-        :param R: Covariance matrix of the measurement noise
-        :param H: Matrix transforming the process state vector into a measurement state vector
-        :param u: Control vector
-        """
         self.Q = Q * dt  # process noise covariance
         self.W = W # rotation matrix
         self.R = R  # measurement noise covariance
@@ -34,9 +24,19 @@ class KalmanFilter:
 
         self.u = u # optional control input
 
-
-    # Update a posteriori estimate based on a priori estimate and measurement
     def time_update(self, x_hat, P):
+        """
+        Constructs a simulation environment for one-line plotting data
+        Args:
+            x_hat (ndarray): The a posteriori estimate
+            P (ndarray): The a posteriori error covariance
+            
+        Returns:
+            x_hat_minus (ndarray): The a priori estimate
+            P_minus (ndarray): The a priori error covariance matrix
+
+        """
+
         x_hat_minus = self.f(x_hat, self.u).reshape((4,1))
         P_minus = self.A(x_hat_minus, self.u) @ P @ self.A(x_hat_minus, self.u).T + \
                   (self.W(x_hat_minus) @ self.Q @ self.W(x_hat_minus).T)
@@ -49,10 +49,15 @@ class KalmanFilter:
 
         Args:
             x_hat_minus (ndarray): Current state vector a priori estimate
-            P (ndarray): Current error covariance matrix a priori estimate
+            P_minus (ndarray): Current error covariance matrix a priori estimate
             measurement (ndarray): the measurement vector
 
+        Returns:
+            x_hat (ndarray): The a posteriori estimate
+            P (ndarray): The a posteriori error covariance matrix
+
         """
+
         if measurement is None:
             print("here")
             return x_hat_minus, P_minus
