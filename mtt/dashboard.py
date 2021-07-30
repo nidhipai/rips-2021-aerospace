@@ -398,7 +398,8 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         false_alarms = sim.false_alarms[0]
         false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
 
-        trajectories = sim.clean_trajectory(sim.get_best_correspondence(np.inf))
+        correspondences = sim.get_best_correspondence(np.inf)
+        trajectories = sim.clean_trajectory(correspondences)
 
         # THIS IS NOT ROTATING ELLIPSES
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
@@ -441,7 +442,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         # Get labels for the trajectory plots
         all_keys = []
-        for step in sim.trajectories[0]:
+        for step in correspondences:
             all_keys += step.keys()
         all_keys = np.unique(np.array(all_keys))
         print(all_keys)
