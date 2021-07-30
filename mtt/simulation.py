@@ -679,7 +679,7 @@ class Simulation:
 			if all_keys[i] in first_keys:
 				output.append(trajectories[0][all_keys[i]])
 			else:
-				output.append(np.array([[None],[None],[None],[None]]))
+				output.append(np.array([[np.nan],[np.nan],[np.nan],[np.nan]]))
 			i+=1
 
 		for traj in trajectories[1:]:
@@ -687,7 +687,7 @@ class Simulation:
 				if key in traj.keys():
 					output[i] = np.append(output[i], traj[key], axis=1)
 				else:
-					output[i] = np.append(output[i], np.array([[None],[None],[None],[None]]), axis=1)
+					output[i] = np.append(output[i], np.array([[np.nan],[np.nan],[np.nan],[np.nan]]), axis=1)
 
 		"""
 		output = list(repeat(np.empty((4, 1)), max([key for step in trajectories for key in step.keys()]) + 1))
