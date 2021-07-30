@@ -188,9 +188,7 @@ class Simulation:
 		# MTTTracker stores false alarms and has a pipeline, but with MHT, we cannot do this until the end
 		# Therefore, we divide into two instances
 
-
 		# this code will throw an error if there's no track maintenance object in the pipeline
-
 
 
 		#process = self.processes[index]
@@ -206,7 +204,6 @@ class Simulation:
 		#self.RMSE = np.sqrt(np.dot(center_errors, center_errors) / len(center_errors))
 		#print(self.RMSE)
 		#self.AME = sum(center_errors) / len(center_errors)
-
 
 	def experiment(self, ts, test="data", **kwargs):
 		"""
@@ -318,7 +315,6 @@ class Simulation:
 			return lines
 		else:
 			print("Number of dimensions cannot be graphed (error plot).")
-
 
 	'''We plot our trajectory based on the predicted trajectories given by the kalman filter object. '''
 	def plot(self, var="Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0, tail = 0):

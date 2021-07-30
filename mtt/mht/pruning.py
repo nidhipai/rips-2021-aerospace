@@ -41,11 +41,3 @@ class Pruning:
             # Remove the current track if its initial sequence of measurements does not match the current best hypothesis up to n
             if not keep:
                 tracks.remove(track)
-
-
-
-
-
-
-
-
