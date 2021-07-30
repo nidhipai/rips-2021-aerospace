@@ -53,7 +53,6 @@ class MHTTracker:
 
         # Calculate the maximum weighted clique
         best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
-        print("BEST TRACKS: ", best_tracks_indexes)
         # print("Best tracks:", best_tracks_indexes)
 
         # Save the current best hypothesis to output
@@ -66,15 +65,17 @@ class MHTTracker:
             self.prev_best_hypotheses.append(best_tracks_indexes)
 
         # Remove tracks that do not lead to the best hypothesis within a certain number of time steps
-        # USING PRUNING CAUSES ERRORS ATM
         if self.ts > 0:
             self.pruning.predict(self.tracks, best_tracks_indexes)
 
         # Run the Kalman Filter measurement update for each track
         i = 0
         for track in self.tracks:
-            # print("A posteriori estimate:\n", track.x_hat)
-            print("Track {} Score:".format(i), track.score)
+            #print("A posteriori estimate:\n", track.x_hat)
+            # Printing track index
+            #print("Track {} Score:".format(i), track.score)
+            # Printing track object id
+            print("Track {} Score:".format(track.obj_id), track.score)
             track.measurement_update(self.kalman, measurements, self.ts)
             # print("A posteriori estimate:\n", track.x_hat)
             i += 1

@@ -84,7 +84,7 @@ class TrackMaintenanceMHT:
                 else:
                     score = -1
             else:
-                score = 0.5001
+                score = 0.0001
             # TODO: The below line is completely pointless as of right now.
             # Need to replace with the actual probability of a new track appearing
             # This is where the chi-square test could come in...
@@ -121,14 +121,22 @@ class TrackMaintenanceMHT:
             # Next, calculate the sum of squared differences between the measurement and the predicted value,
             # weighted by the expected meausurement noise variance
             diff = measurement - track.x_hat_minus
-            #test_stat += diff.T @ np.linalg.inv(track.P_minus) @ diff
-            test_stat += diff.T @ np.linalg.inv(self.R) @ diff
+            vel = track.x_hat_minus
+            ang = np.arctan2(vel[3][0], vel[2][0])
+            vel = np.sqrt(vel[2][0] ** 2 + vel[3][0] ** 2)
+            c = np.cos(ang)
+            s = np.sin(ang)
+            W = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, c, -s], [0, 0, s, c]])
+            #test_stat += diff.T @ np.linalg.inv(track.P_minus * (1 + vel)) @ diff
+            #test_stat += diff.T @ np.linalg.inv(self.R * (1 + vel)) @ diff
+            Q = self.kFilter_model.Q
+            test_stat += diff.T @ np.linalg.inv((self.R + W @ Q @ W.T) * (1 + vel)) @ diff
             test_stat = test_stat[0,0] # Remove numpy array wrapping
 
             # Finally, convert back to a p-value, but with an additional degree of freedom
             # representing the additional time step which has been added
-            # print("Test Stat:",test_stat)
-            # print("Deg. of free:", 4*len(track.observations) + 4)
+            #print("Test Stat:",test_stat)
+            #print("Deg. of free:", 4*len(track.observations) + 4)
             return 1 - chi2.cdf(test_stat, 4*len(track.observations) + 4)
 
     def score_no_measurement(self, track, method="distance"):
