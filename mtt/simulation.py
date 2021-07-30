@@ -663,6 +663,38 @@ class Simulation:
 			output[i] = arr[:, 1:] if output[i] is not None else None
 		return output
 
+
+		# New algorithm pseudocode below:
+
+		# I do not believe we can use linear sum assignment.
+		# This is because if the tracker tracks a "fake" object but fails to track a "real" object,
+		# then the fake object predicted track will be allocated to the "real" object
+		# even if it is quite far away
+
+		# From https://link.springer.com/content/pdf/10.1155%2F2008%2F246309.pdf we get the following:
+
+		# For each time step:
+		#   Establish best possible correspondence between hypotheses and objects
+		#   For each correspondence compute error in position estimation
+		#   Count all objects for which no hypothesis was output as misses
+		#   Count all hypotheses for which no real object exists as FPs
+		#   Count all occurrences where wrong object is identified as mismatch errors
+
+		# How do we establish best correspondance?
+		# For each time step:
+		# For each NEW trajectory start point:
+		#   Assign trajectory object id to the id of the closest process that is...
+		#       NOT being tracked at the current time step by a closer process (bias towards prev hypothesis)
+		#       AND is NOT being tracked by a previous process that is CLOSEST to this process compared to other processes
+		#       AND is WITHIN a certain expected distance of the process (otherwise it is a false alarm)
+		#   If the trajectory cannot be assigned it is considered a false alarm at that time step
+		#
+		# After this, all hypotheses will be allocated to processes that are not already being tracked by a previous hypotheses,
+		# and whose starting positions are closest to said hypotheses compared to other possible hypotheses
+		# The advantage of this method is that it ensures ids are based on the FIRST identification of the object
+		# which we want because that is how the satellites will be identified
+		# and the hypotheses are matched to the processes in the optimal (closest) manner
+
 	@staticmethod
 	def clean_measure2(measures):
 		"""
