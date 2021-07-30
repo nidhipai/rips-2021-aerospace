@@ -16,8 +16,6 @@ class HypothesisComp:
         Returns:
             clique (list): the list of the best tracks. 
         """
-
-		print("number of tracks: ", len(tracks))
 		self.G = nx.Graph()
 
 		index = 0
