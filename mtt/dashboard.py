@@ -422,7 +422,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             measure_min.append(measures_false[0].min())
             measure_min.append(measures_false[1].min())
 
-        print(trajectories)
 
         xmax = max([max([process[0].max() for process in processes]), max([trajectory[0].max() for trajectory in trajectories] + measure_max)])
         xmin = min([min([process[0].min() for process in processes]), min([trajectory[0].min() for trajectory in trajectories] + measure_min)])

@@ -73,7 +73,7 @@ class MHTTracker:
         i = 0
         for track in self.tracks:
             # print("A posteriori estimate:\n", track.x_hat)
-            print("Track {} Score:".format(i), track.score)
+            # print("Track {} Score:".format(i), track.score)
             track.measurement_update(self.kalman, measurements, self.ts)
             # print("A posteriori estimate:\n", track.x_hat)
             i += 1
@@ -91,21 +91,6 @@ class MHTTracker:
                     result[ts][i] = self.measurements[ts][track.observations[ts]]
                 else:
                     result[ts][i] = list(repeat([None], 4))
-        return result
-
-    def get_best_trajectory(self):
-        """
-        Outputs hypothesized trajectory from current best hypothesis
-        in format used by the Simulation class
-        """
-        result = []
-        # for track in self.cur_best_hypothesis:
-            # print("Number of Posteriori estimates:", len(self.tracks[track].aposteriori_estimates))
-        for t in range(self.ts):
-            step = dict()
-            for i, track in enumerate(self.cur_best_tracks):
-                step[i] = track.aposteriori_estimates[t]
-            result.append(step)
         return result
 
     def get_trajectories(self):
