@@ -64,6 +64,11 @@ class MHTTracker:
         # Run the Kalman Filter measurement update for each track
         i = 0
         for track in self.tracks:
+            #print("A posteriori estimate:\n", track.x_hat)
+            # Printing track index
+            #print("Track {} Score:".format(i), track.score)
+            # Printing track object id
+            print("Track {} Score:".format(track.obj_id), track.score)
             track.measurement_update(self.kalman, measurements, self.ts)
             i += 1
 
@@ -73,7 +78,7 @@ class MHTTracker:
     def get_all_trajectories(self):
         """
         returns the list of tracks along with their a posteriori estimates over the length of that
-        tracjectory's lifetime. 
+        tracjectory's lifetime.
 
         Returns:
             result (list): list of trajectories
@@ -131,7 +136,7 @@ class MHTTracker:
         the algorithm performs.
 
         Returns:
-            result (dict): A dictionary with the time steps as the keys and the a priori estimates as the values. 
+            result (dict): A dictionary with the time steps as the keys and the a priori estimates as the values.
         """
 
         result = dict()
@@ -149,7 +154,7 @@ class MHTTracker:
 
         Returns:
             ellipses (dict): a dictionary with the track id as the key and a list containing either
-            the a priori estimate and the a priori error covariance or the a posteriori estimate and 
+            the a priori estimate and the a priori error covariance or the a posteriori estimate and
             the a posterori error covariance.
         """
 
@@ -167,8 +172,8 @@ class MHTTracker:
         Returns the sorted measurements with their respective time step.
 
         Returns:
-            result (dict): A dictionary with the object id as the key and the sorted measurements as the 
-            values. 
+            result (dict): A dictionary with the object id as the key and the sorted measurements as the
+            values.
         """
         result = dict()
 
@@ -200,7 +205,7 @@ class MHTTracker:
 
     def clear_tracks(self, lam=None, miss_p=None):
         """
-        Resets the entire tracker object so that there are no tracks, measurements or anything of the sort. 
+        Resets the entire tracker object so that there are no tracks, measurements or anything of the sort.
         Args:
             lam (float): the frequency of the false alarms
             miss_p (float): the frequency of the missed measurements

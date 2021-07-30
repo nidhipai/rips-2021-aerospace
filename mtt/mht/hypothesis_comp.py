@@ -2,20 +2,21 @@
 
 import networkx as nx
 import networkx.algorithms.clique as nxac
+import matplotlib.pyplot as plt
 
 class HypothesisComp:
 
 	def predict(self, tracks):
 		"""
-        Uses maximum weight clique of a graph, where compatible tracks are connected by an edge and every
-        node is a track with a specific score assigned in track maintenance to create the best hypothesis. 
+		Uses maximum weight clique of a graph, where compatible tracks are connected by an edge and every
+		node is a track with a specific score assigned in track maintenance to create the best hypothesis. 
 
-        Args:
-            tracks (list): The list of all confirmed tracks. 
+		Args:
+			tracks (list): The list of all confirmed tracks. 
 
-        Returns:
-            clique (list): the list of the best tracks. 
-        """
+		Returns:
+			clique (list): the list of the best tracks. 
+		"""
 		self.G = nx.Graph()
 
 		index = 0
@@ -47,8 +48,8 @@ class HypothesisComp:
 		Checks whether two given tracks are compatible with each other (share an observation or root node)
 
 		Args:
-		    track1 (Track): first track.
-		    track2 (Track): second track.
+			track1 (Track): first track.
+			track2 (Track): second track.
 
 		Returns:
 			(bool): Whether they are compatible or not. 
