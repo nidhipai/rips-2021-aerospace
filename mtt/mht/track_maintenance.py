@@ -50,6 +50,17 @@ class TrackMaintenanceMHT:
 
         new_tracks = []
         for j, track in enumerate(tracks):
+            # consider the case of missed measurement, replicate each of these tracks as if they missed a measurement
+
+            missed_measurement_score = self.score_no_measurement(track, method=score_method)
+            if missed_measurement_score >= self.threshold_miss_measurement:
+                print("Assumed Missed Measurement")
+                mm_track = deepcopy(track)
+                mm_track.score = missed_measurement_score
+                mm_track.observations[ts] = None
+                mm_track.possible_observations = []
+                new_tracks.append(mm_track)
+
 
 
             # consider the case of missed measurement, replicate each of these tracks as if they missed a measurement
@@ -105,7 +116,7 @@ class TrackMaintenanceMHT:
 
         elif method == "distance":
             m_dis_sq = DistancesMHT.mahalanobis(measurement, track, self.kFilter_model) ** 2 # TODO fix
-            return track.score - m_dis_sq / 2
+            return ((track.score*len(track.observations)) - (m_dis_sq / 2)) / (len(track.observations)+1)
 
         # New method: Chi2
         else:
@@ -125,6 +136,7 @@ class TrackMaintenanceMHT:
             return chi2.cdf(test_stat, 4*len(track.observations) + 4)
 
     def score_no_measurement(self, track, method="distance"):
+
         """
         Scores a track given that there is no particular measurement. 
         Args:
@@ -135,8 +147,11 @@ class TrackMaintenanceMHT:
         """
 
 
-        if method == "loglikelihood" or method == "distance":
+        # scoring without measurement occurs here
+        if method == "loglikelihood":
             return track.score + np.log(1 - self.pd)
+        elif method == "distance":
+            return track.score * (1 + self.pd)
         # New method: Chi2
         else:
             # Here we simply recalculate the p-value, but with an additional degree of freedom

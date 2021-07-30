@@ -64,7 +64,6 @@ class MHTTracker:
         # Run the Kalman Filter measurement update for each track
         i = 0
         for track in self.tracks:
-            print("Track {} Score:".format(i), track.score)
             track.measurement_update(self.kalman, measurements, self.ts)
             i += 1
 
@@ -106,7 +105,6 @@ class MHTTracker:
                 step[i] = track.aposteriori_estimates[t]
             result.append(step)
         return result
-
     def get_trajectories(self):
         """
         Outputs hypothesized trajectory prediction from best hypothesis at
