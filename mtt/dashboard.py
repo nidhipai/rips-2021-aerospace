@@ -398,7 +398,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         false_alarms = sim.false_alarms[0]
         false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
 
-        trajectories = sim.clean_trajectory(sim.trajectories[0])
+        trajectories = sim.clean_trajectory(sim.get_best_correspondence(sim.trajectories[0]))
 
         # THIS IS NOT ROTATING ELLIPSES
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")

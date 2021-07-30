@@ -285,7 +285,11 @@ class Simulation:
 			index = len(self.processes.keys()) - 1
 		process = self.processes[index]
 		process = self.clean_process(process)[0]  # get first two position coordinates
-		traj = self.trajectories[index]
+		if isinstance(self.tracker_model, MHTTracker):
+			# TO DO: Implement a better distance parameter to improve our correspondence calculation
+			traj = self.get_best_correspondence(np.inf, index=index)
+		else:
+			traj = self.trajectories[index]
 		traj = self.clean_trajectory(traj)[0]
 
 		# legend should be true if the plot needs a legend (it's only one plot and the legend isn't on an outside axis)
@@ -347,7 +351,11 @@ class Simulation:
 			measure = self.clean_measure2(sorted_measures) #THIS IS CHANGED TO 2
 
 		if len(self.trajectories) > 0:
-			output = self.trajectories[index]
+			# TO DO: Need a better distance gate than inf
+			if isinstance(self.tracker_model, MHTTracker):
+				output = self.get_best_correspondence(np.inf, index)
+			else:
+				output = self.trajectories[index]
 			output = self.clean_trajectory(output)
 
 		colors_process = ['skyblue', 'seagreen', 'darkkhaki'] # DOESN"T WORK FOR MORE THAN 3 OBJECTS
@@ -657,6 +665,35 @@ class Simulation:
 
 		# TO DO: None-pad the trajectories that don't start at the first time step
 
+		output = []
+
+		# Determine how many unique trajectories are contained within the current
+		# trajectories dictionary
+		all_keys = []
+		for step in trajectories:
+			all_keys += step.keys()
+		all_keys = np.unique(np.array(all_keys))
+		num_keys = all_keys.size
+
+		# Iterate through each time step and allocate either the given xk or None
+		# to the trajectory arrays
+		i = 0
+		first_keys = list(trajectories[0].keys())
+		while i < num_keys:
+			if all_keys[i] in first_keys:
+				output.append(trajectories[0][all_keys[i]])
+			else:
+				output.append(np.array([[None],[None],[None],[None]]))
+			i+=1
+
+		for traj in trajectories[1:]:
+			for i, key in enumerate(all_keys):
+				if key in traj.keys():
+					output[i] = np.append(output[i], traj[key], axis=1)
+				else:
+					output[i] = np.append(output[i], np.array([[None],[None],[None],[None]]), axis=1)
+
+		"""
 		output = list(repeat(np.empty((4, 1)), max([key for step in trajectories for key in step.keys()]) + 1))
 		for step in trajectories: # iterate over each of the timesteps
 			for key, value in step.items(): # each timestep is a dict of object predictions
@@ -665,7 +702,9 @@ class Simulation:
 		# and only keep the values representing position
 		for i, arr in enumerate(output):
 			output[i] = arr[:, 1:] if output[i] is not None else None
+		"""
 		return output
+
 
 
 	@staticmethod
@@ -746,7 +785,9 @@ class Simulation:
 					cost.append(dists)
 			cost = np.array(cost)
 			# Ensure objects that are too far away are not assigned by making the distance infinity
-			cost[cost > max_dist] = np.inf
+			if cost.size > 0:
+				print(cost)
+				cost[cost > max_dist] = np.inf
 
 			# Find the best combinations of trajectory and process using the cost matrix
 			while cost.size > 0 and (cost != np.inf).all():
