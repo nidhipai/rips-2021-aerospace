@@ -64,6 +64,11 @@ class MHTTracker:
         # Run the Kalman Filter measurement update for each track
         i = 0
         for track in self.tracks:
+            #print("A posteriori estimate:\n", track.x_hat)
+            # Printing track index
+            #print("Track {} Score:".format(i), track.score)
+            # Printing track object id
+            print("Track {} Score:".format(track.obj_id), track.score)
             track.measurement_update(self.kalman, measurements, self.ts)
             i += 1
 
