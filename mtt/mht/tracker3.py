@@ -61,12 +61,14 @@ class MHTTracker:
         self.cur_best_tracks = np.array(self.tracks)[self.cur_best_hypothesis]
         # print("Length of best hypothesis: ", len(self.cur_best_hypothesis))
 
+
         if len(best_tracks_indexes) > 0:
             self.prev_best_hypotheses.append(best_tracks_indexes)
 
         # Remove tracks that do not lead to the best hypothesis within a certain number of time steps
         # USING PRUNING CAUSES ERRORS ATM
-        #self.pruning.predict(self.tracks, best_tracks_indexes)
+        if self.ts > 0:
+            self.pruning.predict(self.tracks, best_tracks_indexes)
 
         # Run the Kalman Filter measurement update for each track
         i = 0
