@@ -30,7 +30,7 @@ class MHTTracker:
         # measurements is an array of state vectors
         self.measurements.append(measurements)
         print("___________ Time step: {} _________________________________".format(self.ts))
-        # print("Measurements:\n", measurements)
+        #print("Measurements:\n", measurements)
 
         # 1) assign all measurements to all tracks in all children of tree, AND...
         # 2) calculate the expected next position for each track using the time update equation
@@ -53,12 +53,12 @@ class MHTTracker:
 
         # Calculate the maximum weighted clique
         best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
-        # print("Best tracks:", best_tracks_indexes)
+        #print("Best tracks:", best_tracks_indexes)
 
         # Save the current best hypothesis to output
         self.cur_best_hypothesis = best_tracks_indexes
         self.cur_best_tracks = np.array(self.tracks)[self.cur_best_hypothesis]
-        # print("Length of best hypothesis: ", len(self.cur_best_hypothesis))
+        #print("Length of best hypothesis: ", len(self.cur_best_hypothesis))
 
 
         if len(best_tracks_indexes) > 0:
@@ -93,18 +93,42 @@ class MHTTracker:
                     result[ts][i] = list(repeat([None], 4))
         return result
 
-    def get_trajectories(self):
+    def get_trajectories(self, startup_time=None):
         """
         Outputs hypothesized trajectory prediction from best hypothesis at
         current time step in format used by the Simulation class.
 
         This is used to obtain predictions over time, so we can analyze how well
         the algorithm performs.
+
+        Args:
+            startup_time: We want to discard predictions from unconfirmed objects, but if ts < startup_time,
+            then all objects are treated as confirmed and reported. Unconfirmed means less than pruning.n
+            observations.
+
+        Returns: Dict of (obj_id, prediction) for the current timestep
         """
+        #startup_time = startup_time if startup_time is not None else self.pruning.n
+        startup_time = 0
         result = dict()
         for track in self.cur_best_tracks:
-            result[track.obj_id] = track.x_hat
+            # this is a bit redundant later because all of the tracks in the best_tracks should be confirmed
+            if self.ts <= startup_time or track.confirmed():
+                result[track.obj_id] = track.x_hat
         return result
+
+    # def get_trajectories(self):
+    #     """
+    #     Outputs hypothesized trajectory prediction from best hypothesis at
+    #     current time step in format used by the Simulation class.
+    #
+    #     This is used to obtain predictions over time, so we can analyze how well
+    #     the algorithm performs.
+    #     """
+    #     result = dict()
+    #     for track in self.cur_best_tracks:
+    #         result[track.obj_id] = track.x_hat
+    #     return result
 
     def get_apriori_traj(self):
         """
@@ -133,55 +157,29 @@ class MHTTracker:
         return ellipses
 
     def get_sorted_measurements(self):
-        # OLD; NOT DONE
         result = dict()
-
+        time = self.ts - 1 # since ts is incremented at the end of the predict method
         for track in self.cur_best_tracks:
-            result[track.obj_id] = self.measurements[-1][track.observations[max(track.observations.keys())]]
-        """
-        for t, prev_hypothesis in enumerate(self.prev_best_hypotheses):
-            for i, track_id in enumerate(prev_hypothesis):
-                if t in self.tracks[track_id].observations.keys():
-                    if i not in list(result.keys()):
-                        result[i] = []
-                    # Add the measurement for this time step and track to the results for said track
-                    result[i].append(self.measurements[t][self.tracks[track_id].observations[t]])
-        """
+            if track.confirmed() and time in track.observations.keys():
+                result[track.obj_id] = self.measurements[-1][track.observations[time]]
+            # TODO in the missed measurement case, should this be None or just don't add anything??
         return result
 
     def get_false_alarms(self):
         """
         Gets a list of false alarms at each time step in the data format required by the Simulation class
         """
-        # OLD; NOT DONE
+        # false alarms are measurements that do not belong to any track in the best global hypothesis
+        # the best global hypothesis should not contain tracks that may be false alarms, but that hasn't been done yet
 
-        possible_measurements = list(range(len(self.measurements[-1])))
+        time = self.ts - 1 # since ts is incrememented at the end of predict
+        possible_measurements = list(range(len(self.measurements[-1]))) # these are indexes
         for track in self.cur_best_tracks:
-            # Remove observation assigned most recently to track
-            possible_measurements.remove(
-                    track.observations[
-                        max(track.observations.keys())
-                ]
-            )
-
-        """
-        for t, prev_hypothesis in enumerate(self.prev_best_hypotheses):
-            # Start by setting all measurements as potential false alarms
-            all_measurements = []
-            possible = list(range(len(self.measurements[t])))
-            for i, track_id in enumerate(prev_hypothesis):
-                # Check to ensure the track exists at the time step and it contains the observation
-                if t in self.tracks[track_id].observations.keys() and self.tracks[track_id].observations[t] in possible:
-                    # Remove from the list of false alarms any measurement that was actually used
-                    possible.remove(self.tracks[track_id].observations[t])
-            # Add the false alarms at this time step to results
-            for p in possible:
-                all_measurements.append(self.measurements[t][p])
-            result[t] = all_measurements
-        """
-        result = []
-        for p in possible_measurements:
-            result.append(self.measurements[-1][p])
+            if track.confirmed(): # this is redundant later because cur_best_tracks should all be confirmed
+                if time in track.observations.keys() and track.observations[time] is not None:
+                    possible_measurements[track.observations[time]] = None
+        # any measurement that is not in a "good" (confirmed and in best hyp) track is a false alarm
+        result = [self.measurements[-1][p] for p in possible_measurements if p is not None]
         return result
 
     def clear_tracks(self, lam=None, miss_p=None):
