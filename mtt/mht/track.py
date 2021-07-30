@@ -31,14 +31,27 @@ class Track:
         self.missed_measurements = 0
 
     def time_update(self, kalman_filter, ts):
-        # Run the time update of the kalman filter and store estimates for plotting
+        """
+        We use the kalman filter to do the time update.
+
+        Args:
+            kalman_filter (KalmanFilter): A kalman filter object. 
+            ts (int): the current time step. 
+        """
         self.x_hat_minus, self.P_minus = kalman_filter.time_update(self.x_hat, self.P)
         self.apriori_estimates[ts] = self.x_hat_minus
         self.apriori_P[ts] = self.P_minus
 
     def measurement_update(self, kalman_filter, measurements, ts):
+        """
+        We use the kalman filter to do the measurement update.
+
+        Args:
+            kalman_filter (KalmanFilter): A kalman filter object. 
+            ts (int): the current time step. 
+            measurements (list): list of measurements to be used in the measurement update. 
+        """
         self.x_hat_minus = np.array(self.x_hat_minus)
-        # Select the measurement to incorporate based on the next observation
         observation = measurements[self.observations[max(list(self.observations.keys()))]]
 
         # Calculate the Kalman measurement update
