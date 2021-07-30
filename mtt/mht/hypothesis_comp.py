@@ -2,38 +2,47 @@
 
 import networkx as nx
 import networkx.algorithms.clique as nxac
+from copy import deepcopy
 
 class HypothesisComp:
 
 	def predict(self, tracks):
 		self.G = nx.Graph()
-
 		index = 0
 
-		# Calculate values needed to normalize the score
-		scores = [track.score for track in tracks]
-		minimum = min(scores)
-		maximum = max(scores)
-		if max(scores) != min(scores):
-			dif = maximum - minimum
-		else:
-			dif = 1
-
+		confirmed_tracks = []
 		for track in tracks:
-			# NOTE: hacky way to turn track scores into integers.
-			# May want a better way to do this
+			if track.confirmed():
+				confirmed_tracks = []
+		tracks = confirmed_tracks
 
-			self.G.add_node(index, weight = int(((track.score - minimum) / dif)*1000))
-			index += 1
-		for i in range(len(tracks)):
-			for j in range(i):
-				# print(self.are_compatible(tracks[i], tracks[j]))
-				if self.are_compatible(tracks[i], tracks[j]):
-					self.G.add_edge(i, j)
-		result = nxac.max_weight_clique(self.G)
-		#print("NODES: ", len(G.nodes))
-		clique = result[0]
-		return clique
+		if len(tracks) > 0:
+			# Calculate values needed to normalize the score
+			scores = [track.score for track in tracks]
+			minimum = min(scores)
+			maximum = max(scores)
+			if max(scores) != min(scores):
+				dif = maximum - minimum
+			else:
+				dif = 1
+
+			for track in tracks:
+				# NOTE: hacky way to turn track scores into integers.
+				# May want a better way to do this
+
+				self.G.add_node(index, weight = int(((track.score - minimum) / dif)*1000))
+				index += 1
+			for i in range(len(tracks)):
+				for j in range(i):
+					# print(self.are_compatible(tracks[i], tracks[j]))
+					if self.are_compatible(tracks[i], tracks[j]):
+						self.G.add_edge(i, j)
+			result = nxac.max_weight_clique(self.G)
+			#print("NODES: ", len(G.nodes))
+			clique = result[0]
+			return clique
+		else:
+			return []
 
 	def are_compatible(self, track1, track2):
 		if len(track1.observations) > len(track2.observations):
