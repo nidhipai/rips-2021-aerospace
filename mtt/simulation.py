@@ -130,7 +130,7 @@ class Simulation:
 						self.aposteriori_ellipses[len(self.aposteriori_ellipses)-1][key] = []
 					self.aposteriori_ellipses[len(self.aposteriori_ellipses)-1][key].append(value)
 
-				sort = self.tracker_model.get_sorted_measurements() # only gets it for the time step
+				sort = self.tracker_model.get_sorted_measurements()
 				for key, value in sort.items():
 					if key not in self.sorted_measurements[len(self.sorted_measurements)-1].keys():
 						self.sorted_measurements[len(self.sorted_measurements)-1][key] = []
@@ -467,7 +467,7 @@ class Simulation:
 					ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
 
 			if legend is True:
-				ax.legend(handles=lines, labels=labs, fontsize=legend_size, loc='center left', bbox_to_anchor=(1.05, 1))
+				ax.legend(handles=lines, labels=labs, fontsize=legend_size)
 			# Plot labels
 			if isinstance(self.tracker_model, MTTTracker):
 				true_noises = "true ep_at = " + str(self.generator.ep_tangent) + ", true ep_ct = " + str(self.generator.ep_normal)
@@ -883,7 +883,7 @@ class Simulation:
 		if len(self.measure_colors) > 0:
 			true_false_alarms = self.get_true_fa_and_num_measures(self.measures[index], self.measure_colors[index])
 		else:
-			print("ERROR COLORS LENGTH 0")
+			print("ERROR COLLORS LENGTH 0")
 			return
 		if len(self.false_alarms) > 0:
 			false_alarms = self.false_alarms[index]

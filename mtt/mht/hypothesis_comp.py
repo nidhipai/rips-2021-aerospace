@@ -17,27 +17,12 @@ class HypothesisComp:
 			clique (list): the list of the best tracks.
 		"""
 		self.G = nx.Graph()
-		index = 0
-		#
-		# only use tracks that are confirmed - COMPLETELY UNTESTED
-		confirmed_tracks = []
-		for track in tracks:
-			if track.confirmed():
-				confirmed_tracks = []
-		tracks = confirmed_tracks
 
-		if len(tracks) > 0:
-			# Calculate values needed to normalize the score
-			scores = [track.score for track in tracks]
-			minimum = min(scores)
-			maximum = max(scores)
-			if max(scores) != min(scores):
-				dif = maximum - minimum
-			else:
-				dif = 1
-			# Calculate values needed to normalize the score
-			scores = [track.score for track in tracks]
-			#if len(scores) > 0:
+		index = 0
+
+		# Calculate values needed to normalize the score
+		scores = [track.score for track in tracks]
+		if len(scores) > 0:
 			minimum = min(scores)
 			maximum = max(scores)
 			if max(scores) != min(scores):
@@ -46,7 +31,8 @@ class HypothesisComp:
 				dif = 1
 
 			for track in tracks:
-				self.G.add_node(index, weight=int(((track.score - minimum) / dif) * 1000))
+
+				self.G.add_node(index, weight = int(((track.score - minimum) / dif)*1000))
 				index += 1
 			for i in range(len(tracks)):
 				for j in range(i):
