@@ -10,16 +10,16 @@ class MHTTracker:
         self.tracks = [] #list of tracks
         self.kalman = global_kalman #holds the global kalman for all tracks
         self.measurements = [] # 2D array of state vectors - each row is a time step
-        self.ts = 0 #time steps
+        self.ts = 0 # time steps
 
         # all the methods
-        self.gating = gating #holds the Gating object
-        self.track_maintenance = track_maintenance #holds the track maintenance object
-        self.hypothesis_comp = hypothesis_comp #holds the hypothesis comp object
-        self.pruning = pruning #holds the pruning object
-        self.gating.kalman = global_kalman #set the gating object's kalman to the global kalman
-        self.cur_best_hypothesis = [] #holds the current best hypothesis
-        self.prev_best_hypotheses = [] #holds the previous best hypothesis
+        self.gating = gating # holds the Gating object
+        self.track_maintenance = track_maintenance # holds the track maintenance object
+        self.hypothesis_comp = hypothesis_comp # holds the hypothesis comp object
+        self.pruning = pruning # holds the pruning object
+        self.gating.kalman = global_kalman # set the gating object's kalman to the global kalman
+        self.cur_best_hypothesis = [] # holds the current best hypothesis
+        self.prev_best_hypotheses = [] # holds the previous best hypothesis
 
     def predict(self, measurements):
         """
@@ -128,8 +128,7 @@ class MHTTracker:
 
         result = dict()
         for track in self.cur_best_tracks:
-            if track.confirmed():
-                result[track.obj_id] = track.x_hat
+            result[track.obj_id] = track.x_hat
         return result
 
     def get_apriori_traj(self):
@@ -198,7 +197,7 @@ class MHTTracker:
         # false alarms are measurements that do not belong to any track in the best global hypothesis
         # the best global hypothesis should not contain tracks that may be false alarms, but that hasn't been done yet
 
-        time = self.ts - 1 # since ts is incrememented at the end of predict
+        time = self.ts - 1 # since ts is incremented at the end of predict
         possible_measurements = list(range(len(self.measurements[-1]))) # these are indexes
         for track in self.cur_best_tracks:
             if track.confirmed(): # this is redundant later because cur_best_tracks should all be confirmed
