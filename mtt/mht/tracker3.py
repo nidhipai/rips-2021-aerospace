@@ -32,7 +32,6 @@ class MHTTracker:
 
         self.measurements.append(measurements)
         print("___________ Time step: {} _________________________________".format(self.ts))
-        #print("Measurements:\n", measurements)
 
         # 1) assign all measurements to all tracks in all children of tree, AND...
         # 2) calculate the expected next position for each track using the time update equation
@@ -111,7 +110,6 @@ class MHTTracker:
                 step[i] = track.aposteriori_estimates[t]
             result.append(step)
         return result
-
     def get_trajectories(self):
         """
         Outputs hypothesized trajectory prediction from best hypothesis at
@@ -120,16 +118,13 @@ class MHTTracker:
         This is used to obtain predictions over time, so we can analyze how well
         the algorithm performs.
 
-        Returns: Dict of (obj_id, prediction) for the current timestep
-
         Returns:
             result (dict): A dictionary containing time steps as the keys and the trajectories as the values.
         """
 
         result = dict()
         for track in self.cur_best_tracks:
-            if track.confirmed():
-                result[track.obj_id] = track.x_hat
+            result[track.obj_id] = track.x_hat
         return result
 
     def get_apriori_traj(self):
@@ -181,11 +176,9 @@ class MHTTracker:
             values.
         """
         result = dict()
-        time = self.ts - 1 # since ts is incremented at the end of the predict method
+
         for track in self.cur_best_tracks:
-            if track.confirmed() and time in track.observations.keys():
-                result[track.obj_id] = self.measurements[-1][track.observations[time]]
-            # TODO in the missed measurement case, should this be None or just don't add anything??
+            result[track.obj_id] = self.measurements[-1][track.observations[max(track.observations.keys())]]
         return result
 
     def get_false_alarms(self):
@@ -195,18 +188,19 @@ class MHTTracker:
         Returns:
             result (list): list of all false alarms for the current time step.
         """
-        # false alarms are measurements that do not belong to any track in the best global hypothesis
-        # the best global hypothesis should not contain tracks that may be false alarms, but that hasn't been done yet
 
-        time = self.ts - 1 # since ts is incrememented at the end of predict
-        possible_measurements = list(range(len(self.measurements[-1]))) # these are indexes
+        possible_measurements = list(range(len(self.measurements[-1])))
         for track in self.cur_best_tracks:
-            if track.confirmed(): # this is redundant later because cur_best_tracks should all be confirmed
-                if time in track.observations.keys() and track.observations[time] is not None:
-                    possible_measurements[track.observations[time]] = None
-        # any measurement that is not in a "good" (confirmed and in best hyp) track is a false alarm
-        result = [self.measurements[-1][p] for p in possible_measurements if p is not None]
-        print("false alarms ", result)
+            # Remove observation assigned most recently to track
+            possible_measurements.remove(
+                    track.observations[
+                        max(track.observations.keys())
+                ]
+            )
+
+        result = []
+        for p in possible_measurements:
+            result.append(self.measurements[-1][p])
         return result
 
     def clear_tracks(self, lam=None, miss_p=None):

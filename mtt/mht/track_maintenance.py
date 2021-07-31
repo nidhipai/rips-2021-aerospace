@@ -7,10 +7,8 @@ from copy import deepcopy
 from mtt.mht.distances_mht import DistancesMHT
 
 class TrackMaintenanceMHT:
-    """
-    Scores potential new tracks and creates them if the score is above the threshold
-    """
-    def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R, kFilter_model, n_pruning):
+
+    def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R, kFilter_model):
         """
         Args:
             threshold_old_track (numeric): score threshold for creating a new track from an existing object
@@ -31,9 +29,10 @@ class TrackMaintenanceMHT:
         self.R = R
         self.kFilter_model = kFilter_model
         self.num_objects = 0
-        self.n_pruning = n_pruning
 
     def predict(self, ts, tracks, measurements):
+
+
         """
         Scores potential tracks, scores them, immediately deletes tracks with too low a score
         Args:
@@ -42,7 +41,7 @@ class TrackMaintenanceMHT:
             measurements (list) : array of measurements, the values, from Tracker
             num_obj (int) : number of objects we've been keeping track of, used for creating object IDs
 
-        Returns:
+        Returns: 
             new_tracks (list): list of new tracks for this ts, number of objects
 
         """
@@ -71,7 +70,7 @@ class TrackMaintenanceMHT:
                 score = self.score_measurement(measurements[possible_observation], track, method=score_method)
                 if score >= self.threshold_old_track:
                     # Create a new track with the new observations and score
-                    po_track = deepcopy(track)  # This is kinda like Track() in that if makes a new object
+                    po_track = deepcopy(track)
                     po_track.score = score
                     po_track.observations[ts] = possible_observation
                     po_track.possible_observations = []
@@ -92,20 +91,20 @@ class TrackMaintenanceMHT:
             # Is this parameter necessary?
             if score >= self.threshold_new_track:
                 starting_observations = {ts: i}
-                new_tracks.append(Track(starting_observations, score, measurement, self.num_objects, self.n_pruning))
+                new_tracks.append(Track(starting_observations, score, measurement, self.num_objects))
                 self.num_objects += 1
 
         return new_tracks
 
     def score_measurement(self, measurement, track, method="distance"):
         """
-        Scores a track given a particular measurement.
+        Scores a track given a particular measurement. 
         Args:
-            measurement (ndarray): A measurement vector.
-            track (Track): A track object.
+            measurement (ndarray): A measurement vector. 
+            track (Track): A track object. 
             method (str): A string which tells the function which scoring method we prefer.
         Returns:
-            (float): a score using the chi square values.
+            (float): a score using the chi square values. 
         """
 
         if method == "loglikelihood":
@@ -149,12 +148,12 @@ class TrackMaintenanceMHT:
     def score_no_measurement(self, track, method="distance"):
 
         """
-        Scores a track given that there is no particular measurement.
+        Scores a track given that there is no particular measurement. 
         Args:
-            track (Track): A track object.
+            track (Track): A track object. 
             method (str): A string which tells the function which scoring method we prefer.
         Returns:
-            (float): a score using the chi square values.
+            (float): a score using the chi square values. 
         """
 
 

@@ -3,17 +3,13 @@
 import numpy as np
 
 class Track:
-    def __init__(self, starting_observations, score, x_hat, obj_id, pruning_n, P=None):
+    def __init__(self, starting_observations, score, x_hat, obj_id, P = None):
         self.obj_id = obj_id
         self.score = score
         self.x_hat = x_hat
         self.n = self.x_hat.shape[0]
         self.x_hat_minus = self.x_hat
-        self.observations = starting_observations  # dict of (ts, k), where ts is the timestep and k is the number of the measurement
-        # TODO if a measurement is missed, then there is a None entry for the ts, but should we make it so there is no entry?
-
-        # we need this to check if a track is confirmed
-        self.pruning_n = pruning_n
+        self.observations = starting_observations  # list of (ts, k), where ts is the timestep and k is the number of the measurement
 
         # Storage for plotting output
         # Each key is a time step
@@ -24,7 +20,7 @@ class Track:
 
         # essentially this is the index in tracker.observations
         self.possible_observations = []  # lists possible observations for this timestep, indexes
-        #self.status = 0
+        self.status = 0
 
         # set a priori and a posteriori estimate error covariances to all ones (not all zeros)
         if P is None:
@@ -56,11 +52,7 @@ class Track:
             measurements (list): list of measurements to be used in the measurement update. 
         """
         self.x_hat_minus = np.array(self.x_hat_minus)
-        if self.observations[max(list(self.observations.keys()))] is not None:
-            observation = self.observations[max(list(self.observations.keys()))]
-        else:
-            observation = None
-
+        observation = measurements[self.observations[max(list(self.observations.keys()))]]
 
         # Calculate the Kalman measurement update
         self.x_hat, self.P = kalman_filter.measurement_update(self.x_hat_minus, self.P_minus, observation)
@@ -68,7 +60,3 @@ class Track:
         # Store the new values for plotting
         self.aposteriori_estimates[ts] = self.x_hat
         self.aposteriori_P[ts] = self.P
-
-    def confirmed(self):
-        num_observations = sum(x is not None for x in list(self.observations.values()))
-        return num_observations > self.pruning_n
