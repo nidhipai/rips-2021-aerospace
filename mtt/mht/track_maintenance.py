@@ -46,7 +46,7 @@ class TrackMaintenanceMHT:
             new_tracks (list): list of new tracks for this ts, number of objects
 
         """
-        score_method = "wheeeee"
+        score_method = "chi2"
 
         new_tracks = []
         for j, track in enumerate(tracks):
@@ -85,7 +85,7 @@ class TrackMaintenanceMHT:
                 else:
                     score = -1
             else:
-                score = 0.0001
+                score = 0.001
             # TODO: The below line is completely pointless as of right now.
             # Need to replace with the actual probability of a new track appearing
             # This is where the chi-square test could come in...
