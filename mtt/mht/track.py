@@ -53,7 +53,11 @@ class Track:
             measurements (list): list of measurements to be used in the measurement update. 
         """
         self.x_hat_minus = np.array(self.x_hat_minus)
-        observation = measurements[self.observations[max(list(self.observations.keys()))]]
+
+        if self.observations[max(list(self.observations.keys()))] is not None:
+            observation = measurements[self.observations[max(list(self.observations.keys()))]]
+        else:
+            observation = None
 
         # Calculate the Kalman measurement update
         self.x_hat, self.P = kalman_filter.measurement_update(self.x_hat_minus, self.P_minus, observation)
