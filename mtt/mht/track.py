@@ -3,7 +3,7 @@
 import numpy as np
 
 class Track:
-    def __init__(self, starting_observations, score, x_hat, obj_id, P = None):
+    def __init__(self, starting_observations, score, x_hat, obj_id, pruning_n, P = None):
         self.obj_id = obj_id
         self.score = score
         self.x_hat = x_hat
@@ -21,6 +21,7 @@ class Track:
         # essentially this is the index in tracker.observations
         self.possible_observations = []  # lists possible observations for this timestep, indexes
         self.status = 0
+        self.pruning_n = pruning_n
 
         # set a priori and a posteriori estimate error covariances to all ones (not all zeros)
         if P is None:
@@ -60,3 +61,8 @@ class Track:
         # Store the new values for plotting
         self.aposteriori_estimates[ts] = self.x_hat
         self.aposteriori_P[ts] = self.P
+
+    def confirmed(self):
+        num_observations = len(self.observations.values())
+        return num_observations > self.pruning_n
+

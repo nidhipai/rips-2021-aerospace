@@ -124,7 +124,8 @@ class MHTTracker:
 
         result = dict()
         for track in self.cur_best_tracks:
-            result[track.obj_id] = track.x_hat
+            if track.confirmed():
+                result[track.obj_id] = track.x_hat
         return result
 
     def get_apriori_traj(self):
@@ -141,7 +142,8 @@ class MHTTracker:
 
         result = dict()
         for track in self.cur_best_tracks:
-            result[track.obj_id] = track.x_hat_minus
+            if track.confirmed():
+                result[track.obj_id] = track.x_hat_minus
         return result
 
     def get_ellipses(self, mode="apriori"):
@@ -161,10 +163,11 @@ class MHTTracker:
         ellipses = dict()
 
         for track in self.cur_best_tracks:
-            if mode == "apriori":
-                ellipses[track.obj_id] = [track.x_hat_minus, track.P_minus]
-            else:
-                ellipses[track.obj_id] = [track.x_hat, track.P]
+            if track.confirmed():
+                if mode == "apriori":
+                    ellipses[track.obj_id] = [track.x_hat_minus, track.P_minus]
+                else:
+                    ellipses[track.obj_id] = [track.x_hat, track.P]
         return ellipses
 
     def get_sorted_measurements(self):
@@ -178,16 +181,19 @@ class MHTTracker:
         result = dict()
 
         for track in self.cur_best_tracks:
-            result[track.obj_id] = self.measurements[-1][track.observations[max(track.observations.keys())]]
+            if track.confirmed():
+                result[track.obj_id] = self.measurements[-1][track.observations[max(track.observations.keys())]]
         return result
-
+    """
     def get_false_alarms(self):
-        """
+        
         Gets a list of false alarms at each time step in the data format required by the Simulation class
 
         Returns:
             result (list): list of all false alarms for the current time step.
-        """
+        
+
+        # TODO: This was previously changed by Nidhi
 
         possible_measurements = list(range(len(self.measurements[-1])))
         for track in self.cur_best_tracks:
@@ -202,6 +208,29 @@ class MHTTracker:
         for p in possible_measurements:
             result.append(self.measurements[-1][p])
         return result
+    """
+
+    def get_false_alarms(self):
+        """
+        Gets a list of false alarms at each time step in the data format required by the Simulation class
+
+        Returns:
+            result (list): list of all false alarms for the current time step.
+        """
+        # false alarms are measurements that do not belong to any track in the best global hypothesis
+        # the best global hypothesis should not contain tracks that may be false alarms, but that hasn't been done yet
+
+        time = self.ts - 1  # since ts is incrememented at the end of predict
+        possible_measurements = list(range(len(self.measurements[-1])))  # these are indexes
+        for track in self.cur_best_tracks:
+            if track.confirmed():  # this is redundant later because cur_best_tracks should all be confirmed
+                if time in track.observations.keys() and track.observations[time] is not None:
+                    possible_measurements[track.observations[time]] = None
+        # any measurement that is not in a "good" (confirmed and in best hyp) track is a false alarm
+        result = [self.measurements[-1][p] for p in possible_measurements if p is not None]
+        print("false alarms ", result)
+        return result
+
 
     def clear_tracks(self, lam=None, miss_p=None):
         """
