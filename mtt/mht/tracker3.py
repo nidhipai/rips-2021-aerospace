@@ -58,7 +58,7 @@ class MHTTracker:
             self.prev_best_hypotheses.append(best_tracks_indexes)
 
         # Remove tracks that do not lead to the best hypothesis within a certain number of time steps
-        if self.ts > 0:
+        if self.ts > self.pruning.n:
             self.pruning.predict(self.tracks, best_tracks_indexes)
 
         # Run the Kalman Filter measurement update for each track
@@ -68,7 +68,7 @@ class MHTTracker:
             # Printing track index
             #print("Track {} Score:".format(i), track.score)
             # Printing track object id
-            print("Track {} Score:".format(track.obj_id), track.score)
+            #print("Track {} Score:".format(track.obj_id), track.score)
             track.measurement_update(self.kalman, measurements, self.ts)
             i += 1
 
@@ -110,6 +110,7 @@ class MHTTracker:
                 step[i] = track.aposteriori_estimates[t]
             result.append(step)
         return result
+
     def get_trajectories(self):
         """
         Outputs hypothesized trajectory prediction from best hypothesis at
@@ -228,7 +229,7 @@ class MHTTracker:
                     possible_measurements[track.observations[time]] = None
         # any measurement that is not in a "good" (confirmed and in best hyp) track is a false alarm
         result = [self.measurements[-1][p] for p in possible_measurements if p is not None]
-        print("false alarms ", result)
+        #print("false alarms ", result)
         return result
 
 

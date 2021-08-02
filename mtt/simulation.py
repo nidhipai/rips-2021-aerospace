@@ -354,10 +354,11 @@ class Simulation:
 				output = self.trajectories[index]
 			output = self.clean_trajectory(output)
 
-		colors_process = ['skyblue', 'seagreen', 'darkkhaki'] # DOESN"T WORK FOR MORE THAN 3 OBJECTS
+
+		colors_process = ['skyblue', 'seagreen', 'darkkhaki']  # DOESN"T WORK FOR MORE THAN 3 OBJECTS
 		colors_filter = ['orange', 'violet', 'hotpink','red']
 		false_alarm_color = 'red'
-		proc_size = 3
+		proc_size = 1
 		traj_size = 1.5
 		measure_dot_size = 20
 
@@ -467,7 +468,7 @@ class Simulation:
 					ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
 
 			if legend is True:
-				ax.legend(handles=lines, labels=labs, fontsize=legend_size)
+				ax.legend(handles=lines, labels=labs, fontsize=legend_size, loc='center left', bbox_to_anchor=(1.05, 1))
 			# Plot labels
 			if isinstance(self.tracker_model, MTTTracker):
 				true_noises = "true ep_at = " + str(self.generator.ep_tangent) + ", true ep_ct = " + str(self.generator.ep_normal)
@@ -897,7 +898,7 @@ class Simulation:
 		if m == 'rmse':
 			return [Metrics.RMSE_euclidean(process, output1, cut), Metrics.RMSE_euclidean(process, output2, cut)]
 		if m == 'atct':
-			return Metrics.atct_signed(process, output, cut)
+			return Metrics.atct_signed(process, output, cut) #TODO should this be output1 or output2 or output?
 		if m == 'fa':
 			return Metrics.false_id_rate(true_false_alarms, false_alarms)
 		print("ERROR INVALID METRIC")

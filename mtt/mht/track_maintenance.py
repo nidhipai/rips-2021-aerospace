@@ -54,7 +54,7 @@ class TrackMaintenanceMHT:
 
             missed_measurement_score = self.score_no_measurement(track, method=score_method)
             if missed_measurement_score >= self.threshold_miss_measurement:
-                print("Assumed Missed Measurement")
+                #print("Assumed Missed Measurement")
                 mm_track = deepcopy(track)
                 mm_track.score = missed_measurement_score
                 mm_track.observations[ts] = None
