@@ -469,9 +469,10 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 data.append(go.Scatter(x=process[0], y=process[1], mode='lines', name='Obj {} Process'.format(i), text=time, line=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
         if 'measure' in options:
             for i, key in enumerate(all_keys):
-                # NOTE: no time step added
-                data.append(go.Scatter(x=measures[key][0], y=measures[key][1], mode='markers', name="Measures Assigned Obj {}".format(key),
-                                     marker=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
+                if key in measures.keys():
+                    # NOTE: no time step added
+                    data.append(go.Scatter(x=measures[key][0], y=measures[key][1], mode='markers', name="Measures Assigned Obj {}".format(key),
+                                         marker=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
 
             data.append(go.Scatter(x=false_alarms[0], y=false_alarms[1], mode='markers', name="False Alarms",
                                 marker=dict(color="black", symbol="x")))
@@ -545,9 +546,10 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
             if 'measure' in options:
                 for i, key in enumerate(all_keys):
-                    # NOTE: no time step added
-                    scatters.append(go.Scatter(x=measures[key][0][:(t+1)], y=measures[key][1][:(t+1)], mode='markers', name="Measures Assigned Obj {}".format(key),
-                                   marker=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
+                    if key in measures.keys():
+                        # NOTE: no time step added
+                        scatters.append(go.Scatter(x=measures[key][0][:(t+1)], y=measures[key][1][:(t+1)], mode='markers', name="Measures Assigned Obj {}".format(key),
+                                       marker=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
                 scatters.append(go.Scatter(x=false_alarms[0][:(t+1)], y=false_alarms[1][:(t+1)], mode='markers', name="False Alarms",
                                        marker=dict(color="black", symbol="x")))
 
