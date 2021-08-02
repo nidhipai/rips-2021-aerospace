@@ -404,8 +404,8 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         false_alarms = sim.false_alarms[0]
         false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
 
-        correspondences = sim.get_best_correspondence(np.inf)
-        trajectories = sim.clean_trajectory(correspondences)
+        best_trajs = sim.get_best_correspondence(np.inf)
+        trajectories = sim.clean_trajectory(best_trajs)
 
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
@@ -445,12 +445,15 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         """
         data = []
 
-        # Get labels for the trajectory plots
+        # Get labels for the trajectory
+        # Need a mapping from trajectory list index to process list index
+        potential_keys = []
+        for step in best_trajs:
+            potential_keys += list(step.keys())
         all_keys = []
-        for step in correspondences:
-            all_keys += step.keys()
-        all_keys = np.unique(np.array(all_keys))
-        print(all_keys)
+        for key in potential_keys:
+            if key not in all_keys:
+                all_keys.append(key)
 
         if 'process' in options:
             for i, process in enumerate(processes):
@@ -585,8 +588,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                            )
 
         #rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
-        mota = 0
-        motp = 0
+        mota, motp = mtt.MTTMetrics.mota_motp(processes, trajectories, all_keys)
         fig = go.Figure(data=data, layout=layout, frames=frames)
         fig.update_xaxes(tickfont_size=fontsize)
         fig.update_yaxes(tickfont_size=fontsize)
