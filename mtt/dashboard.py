@@ -397,15 +397,15 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         # Generate all variables to plot
         processes = sim.clean_process(sim.processes[0])
 
+        best_trajs, correspondences = sim.get_best_correspondence(np.inf)
+        trajectories = sim.clean_trajectory(best_trajs)
+
         colors = sim.clean_measure(sim.measure_colors[0])
         measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
         measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
-        measures = sim.clean_measure2(sim.sorted_measurements[0])
+        measures = sim.clean_measure2(sim.sorted_measurements[0], correspondences)
         false_alarms = sim.false_alarms[0]
         false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
-
-        best_trajs = sim.get_best_correspondence(np.inf)
-        trajectories = sim.clean_trajectory(best_trajs)
 
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
@@ -460,10 +460,12 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 # Otherwise "time" will be incorrect
                 data.append(go.Scatter(x=process[0], y=process[1], mode='lines', name='Obj {} Process'.format(i), text=time, line=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
         if 'measure' in options:
+            k = 0
             for key, value in measures.items():
                 # NOTE: no time step added
                 data.append(go.Scatter(x=value[0], y=value[1], mode='markers', name="Measures Assigned Obj {}".format(key),
-                                     marker=dict(color=DEFAULT_COLORS[key % len(DEFAULT_COLORS)])))
+                                     marker=dict(color=DEFAULT_COLORS[k % len(DEFAULT_COLORS)])))
+                k += 1
             data.append(go.Scatter(x=false_alarms[0], y=false_alarms[1], mode='markers', name="False Alarms",
                                 marker=dict(color="black", symbol="x")))
         if 'trajectory' in options:
@@ -535,10 +537,12 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                                    text=time))
 
             if 'measure' in options:
+                k = 0
                 for key, value in measures.items():
                     # NOTE: no time step added
                     scatters.append(go.Scatter(x=value[0][:(t+1)], y=value[1][:(t+1)], mode='markers', name="Measures Assigned Obj {}".format(key),
-                                   marker=dict(color=DEFAULT_COLORS[key % len(DEFAULT_COLORS)])))
+                                   marker=dict(color=DEFAULT_COLORS[k % len(DEFAULT_COLORS)])))
+                    k += 1
                 scatters.append(go.Scatter(x=false_alarms[0][:(t+1)], y=false_alarms[1][:(t+1)], mode='markers', name="False Alarms",
                                        marker=dict(color="black", symbol="x")))
 

@@ -284,7 +284,7 @@ class Simulation:
 		process = self.clean_process(process)[0]  # get first two position coordinates
 		if isinstance(self.tracker_model, MHTTracker):
 			# TO DO: Implement a better distance parameter to improve our correspondence calculation
-			traj = self.get_best_correspondence(np.inf, index=index)
+			traj, correspondences = self.get_best_correspondence(np.inf, index=index)
 		else:
 			traj = self.trajectories[index]
 		traj = self.clean_trajectory(traj)[0]
@@ -342,17 +342,19 @@ class Simulation:
 			process = self.processes[index]
 			process = self.clean_process(process)
 
-		if len(self.measures) > 0:
-			sorted_measures = self.sorted_measurements[index]
-			measure = self.clean_measure2(sorted_measures) #THIS IS CHANGED TO 2
-
+		correspondences = None
 		if len(self.trajectories) > 0:
 			# TO DO: Need a better distance gate than inf
 			if isinstance(self.tracker_model, MHTTracker):
-				output = self.get_best_correspondence(np.inf, index)
+				output, correspondences = self.get_best_correspondence(np.inf, index)
 			else:
 				output = self.trajectories[index]
 			output = self.clean_trajectory(output)
+
+		if len(self.measures) > 0:
+			sorted_measures = self.sorted_measurements[index]
+			measure = self.clean_measure2(sorted_measures, correspondences)
+
 
 		colors_process = ['skyblue', 'seagreen', 'darkkhaki'] # DOESN"T WORK FOR MORE THAN 3 OBJECTS
 		colors_filter = ['orange', 'violet', 'hotpink','red']
@@ -716,9 +718,13 @@ class Simulation:
 
 
 	@staticmethod
-	def clean_measure2(measures):
+	def clean_measure2(measures, correspondences=None):
 		"""
-		Converts a dict of key: track, value: measures -> the measures array becomes a array of two arrays
+		Converts a dict of key: track, value: measures -> the measures list becomes a list of two list
+
+		Args:
+			measures: a dictionary of measurements received at each time step. Requires same data structure as output of DataGenerator class
+			correspondences: a dictionary mapping the keys in the "measures" parameter dictionary to the desired key for the output. Output from "get_best_correspondences" method
 		"""
 		output = dict()
 		for key, track in measures.items():
@@ -729,7 +735,17 @@ class Simulation:
 				y = None if measure is None else measure[1][0]
 				track_x.append(x)
 				track_y.append(y)
-			output[key] = [track_x, track_y]
+
+			# If a dictionary of correspondence keys has been provided, map measurements to the appropriate keys
+			# Otherwise, just use the default key
+			if correspondences is not None:
+				if key in correspondences.keys():
+					output[correspondences[key]] = [track_x, track_y]
+				else:
+					print("Key {} not found in correspondences table".format(key))
+					output["Unassigned {}".format(key)] = [track_x, track_y]
+			else:
+				output[key] = [track_x, track_y]
 		return output
 
 	@staticmethod
@@ -819,7 +835,7 @@ class Simulation:
 			#Add this step as the current time step in the new trajectory output
 			output.append(new_step)
 
-		return output
+		return output, correspondences
 
 	# New algorithm pseudocode below:
 
