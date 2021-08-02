@@ -409,8 +409,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
-        #atct_errors = mtt.MTTMetrics.atct_signed(processes, trajectories)
-        atct_errors =  [[[0],[0],[0],[0]]]
+        atct_errors = mtt.MTTMetrics.atct_signed(processes, trajectories)
         time = ["time = {}".format(t) for t in range(processes[0][0].size)]
 
         # Set the range manually to prevent the animation from dynamically changing the range
