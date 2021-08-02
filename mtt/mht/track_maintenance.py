@@ -55,8 +55,8 @@ class TrackMaintenanceMHT:
             # consider the case of missed measurement, replicate each of these tracks as if they missed a measurement
 
             missed_measurement_score = self.score_no_measurement(track, method=score_method)
+            #print("TEST: ", missed_measurement_score)
             if missed_measurement_score >= self.threshold_miss_measurement:
-                # print("Assumed Missed Measurement")
                 mm_track = deepcopy(track)
                 mm_track.score = missed_measurement_score
                 if self.record_scores:
@@ -67,6 +67,7 @@ class TrackMaintenanceMHT:
                 mm_track.observations[ts] = None
                 mm_track.possible_observations = []
                 new_tracks.append(mm_track)
+                print("MM", track.obj_id, "OBS: ", track.observations)
 
 
 
@@ -90,6 +91,7 @@ class TrackMaintenanceMHT:
                     po_track.observations[ts] = possible_observation
                     po_track.possible_observations = []
                     new_tracks.append(po_track)
+                    print("ID, OBS: ", track.obj_id, possible_observation, "OBS: ", track.observations, "SCORE: ", track.score)
 
         # finally, for every measurement, make a new track (assume it is a new object)
         for i, measurement in enumerate(measurements):

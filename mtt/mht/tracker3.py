@@ -173,6 +173,8 @@ class MHTTracker:
     def get_sorted_measurements(self):
         """
         Returns the sorted measurements with their respective time step.
+        Dictionary entries represent the measurements for an object at a given time step.
+        Each key represents the object id of the track as it is stored (no correspondence is calculated)
 
         Returns:
             result (dict): A dictionary with the object id as the key and the sorted measurements as the
@@ -180,6 +182,8 @@ class MHTTracker:
         """
         result = dict()
 
+        # Test whether each track in the best hypothesis is confirmed.
+        # If it is, then add it to the output
         for track in self.cur_best_tracks:
             if track.confirmed():
                 obs = track.observations[max(track.observations.keys())]
