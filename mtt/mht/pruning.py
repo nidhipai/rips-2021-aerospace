@@ -23,17 +23,10 @@ class Pruning:
 		required_obs = []
 		for index in best_tracks:
 			prev_obs = np.array(list(tracks[index].observations.values()))
-<<<<<<< HEAD
-			# print("P", index, prev_obs)
-			required_obs.append(prev_obs[:(prev_obs.size - 1 - self.n)])
-		required_obs = np.array(required_obs)
-		# print("R", required_obs)
-=======
 			#print("P", index, prev_obs)
 			required_obs.append(prev_obs[:(prev_obs.size - 0 - self.n)])
 		#required_obs = np.array(required_obs)
 		#print("R", required_obs)
->>>>>>> f4cb76fda84dcc604d7d8c14f0cafa2b6780a38e
 
 		# Test each track to see whether its initial sequence leads to a valid part of the tree
 		for track in tracks:
@@ -53,9 +46,4 @@ class Pruning:
 
 			# Remove the current track if its initial sequence of measurements does not match the current best hypothesis up to n
 			if not keep:
-<<<<<<< HEAD
-				# print("THROWN: ", track.obj_id)
-=======
-				print("THROWN: ", track.obj_id, "OBS: ", track.observations)
->>>>>>> f4cb76fda84dcc604d7d8c14f0cafa2b6780a38e
 				tracks.remove(track)
