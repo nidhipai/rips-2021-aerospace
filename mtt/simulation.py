@@ -668,10 +668,19 @@ class Simulation:
 		potential_keys = []
 		for step in trajectories:
 			potential_keys += list(step.keys())
+
 		all_keys = []
 		for key in potential_keys:
 			if key not in all_keys:
 				all_keys.append(key)
+
+		# Need to ensure all_keys is sorted with integers first
+		# so that trajectories are plotted correctly
+		true_keys = [key for key in all_keys if type(key) is int]
+		true_keys.sort()
+		false_keys = [key for key in all_keys if type(key) is not int]
+		all_keys = true_keys + false_keys
+
 		num_keys = len(all_keys)
 
 		# Iterate through each time step and allocate either the given xk or None
@@ -785,7 +794,6 @@ class Simulation:
 			cost = np.array(cost)
 			# Ensure objects that are too far away are not assigned by making the distance infinity
 			if cost.size > 0:
-				print(cost)
 				cost[cost > max_dist] = np.inf
 
 			# Find the best combinations of trajectory and process using the cost matrix
