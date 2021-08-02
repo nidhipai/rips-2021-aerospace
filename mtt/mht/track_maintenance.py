@@ -4,6 +4,7 @@ import numpy as np
 from scipy.stats import chi2
 from .track import Track
 from copy import deepcopy
+import matplotlib.pyplot as plt
 from mtt.mht.distances_mht import DistancesMHT
 
 class TrackMaintenanceMHT:
@@ -30,6 +31,7 @@ class TrackMaintenanceMHT:
         self.kFilter_model = kFilter_model
         self.num_objects = 0
         self.pruning_n = pruning_n
+        self.record_scores = False
 
     def predict(self, ts, tracks, measurements):
 
@@ -46,7 +48,7 @@ class TrackMaintenanceMHT:
             new_tracks (list): list of new tracks for this ts, number of objects
 
         """
-        score_method = "wheeeee"
+        score_method = "chi"
 
         new_tracks = []
         for j, track in enumerate(tracks):
@@ -54,9 +56,14 @@ class TrackMaintenanceMHT:
 
             missed_measurement_score = self.score_no_measurement(track, method=score_method)
             if missed_measurement_score >= self.threshold_miss_measurement:
-                print("Assumed Missed Measurement")
+                # print("Assumed Missed Measurement")
                 mm_track = deepcopy(track)
                 mm_track.score = missed_measurement_score
+                if self.record_scores:
+                    track.all_scores[ts] = []
+                    track.all_scores[ts].append(self.score_no_measurement(track, method= "loglikelihood"))
+                    track.all_scores[ts].append(self.score_no_measurement(track, method= "distance"))
+                    track.all_scores[ts].append(self.score_no_measurement(track, method= "chi"))
                 mm_track.observations[ts] = None
                 mm_track.possible_observations = []
                 new_tracks.append(mm_track)
@@ -69,16 +76,24 @@ class TrackMaintenanceMHT:
             # observation added to the observations
             for possible_observation in track.possible_observations:
                 score = self.score_measurement(measurements[possible_observation], track, method=score_method)
+
                 if score >= self.threshold_old_track:
                     # Create a new track with the new observations and score
+
                     po_track = deepcopy(track)
                     po_track.score = score
+                    if self.record_scores:
+                        track.all_scores[ts] = []
+                        track.all_scores[ts].append(self.score_measurement(measurements[possible_observation], track, method= "loglikelihood"))
+                        track.all_scores[ts].append(self.score_measurement(measurements[possible_observation], track, method= "distance"))
+                        track.all_scores[ts].append(self.score_measurement(measurements[possible_observation], track, method= "chi"))
                     po_track.observations[ts] = possible_observation
                     po_track.possible_observations = []
                     new_tracks.append(po_track)
 
         # finally, for every measurement, make a new track (assume it is a new object)
         for i, measurement in enumerate(measurements):
+            new_scores = [0,0,0]
             if score_method == "distance":
                 if len(new_tracks) > 0:
                     score = min([track.score for track in new_tracks]) - 1
@@ -86,13 +101,23 @@ class TrackMaintenanceMHT:
                     score = -1
             else:
                 score = 0.0001
+            new_scores[0] = 0.001
+            new_scores[2] = 0.001
+
+            if len(new_tracks) > 0:
+                new_scores[1]= min([track.score for track in new_tracks]) - 1
+            else:
+                new_scores[1] = -1
             # TODO: The below line is completely pointless as of right now.
             # Need to replace with the actual probability of a new track appearing
             # This is where the chi-square test could come in...
             # Is this parameter necessary?
             if score >= self.threshold_new_track:
                 starting_observations = {ts: i}
-                new_tracks.append(Track(starting_observations, score, measurement, self.num_objects, self.pruning_n))
+                new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n)
+                if self.record_scores:
+                    new_track.all_scores[ts] = new_scores
+                new_tracks.append(new_track)
                 self.num_objects += 1
 
         return new_tracks
@@ -169,3 +194,11 @@ class TrackMaintenanceMHT:
             # which represents the time step that passed without a new measurement
             test_stat = chi2.ppf(track.score, 4*len(track.observations))
             return chi2.cdf(test_stat, 4*len(track.observations) + 4)
+
+    # def graph_scores(self):
+    #     x_vals =  list(range(0, len(self.scores["distance"])))
+    #     # print(self.scores["distance"])
+    #     plt.plot(x_vals,self.scores["distance"], color = "red")
+    #     plt.plot(x_vals, self.scores["chi"], color = "blue")
+    #     plt.show()
+
