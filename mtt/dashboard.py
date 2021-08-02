@@ -103,8 +103,13 @@ app.layout = html.Div(children=[
         ], style=output_style),
 
         html.Div(children=[
-            html.H6(children='Root Mean Squared Error'),
-            html.Div(id='rmse-output', style={'whiteSpace': 'pre-line'})
+            html.H6(children='Multi-Object Tracking Precision'),
+            html.Div(id='motp-output', style={'whiteSpace': 'pre-line'})
+        ], style=output_style),
+
+        html.Div(children=[
+            html.H6(children='Multi-Object Tracking Accuracy'),
+            html.Div(id='mota-output', style={'whiteSpace': 'pre-line'})
         ], style=output_style),
     ]),
 
@@ -263,7 +268,8 @@ app.layout = html.Div(children=[
     Output('example-graph', 'figure'), # Outputs are the graphs
     Output('error-graph', 'figure'),
     Output('seed-output', 'children'),
-    Output('rmse-output', 'children'),
+    Output('motp-output', 'children'),
+    Output('mota-output', 'children'),
     Input('example-graph', 'figure'), # Inputs are the graphs, the button being clicked, and the check box
     Input('error-graph', 'figure'),
     Input('run', 'n_clicks'),
@@ -288,9 +294,10 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
     global sim
     fig = prev_fig
     err = prev_err
-    rmse = 0
+    mota = 0
+    motp = 0
     if ts is None:
-        ts = 10
+        ts = 15
     if prev_clicks < n_clicks:
         prev_clicks = n_clicks
         # Set default parameters
@@ -386,7 +393,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam))
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly")
-
     if n_clicks != 0:
         # Generate all variables to plot
         processes = sim.clean_process(sim.processes[0])
@@ -401,7 +407,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         correspondences = sim.get_best_correspondence(np.inf)
         trajectories = sim.clean_trajectory(correspondences)
 
-        # THIS IS NOT ROTATING ELLIPSES
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
         #atct_errors = mtt.MTTMetrics.atct_signed(processes, trajectories)
@@ -580,7 +585,8 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                            )
 
         #rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
-        rmse = 0
+        mota = 0
+        motp = 0
         fig = go.Figure(data=data, layout=layout, frames=frames)
         fig.update_xaxes(tickfont_size=fontsize)
         fig.update_yaxes(tickfont_size=fontsize)
@@ -593,6 +599,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         ))
 
 
-    return fig, err, sim.cur_seed, str(rmse)
+    return fig, err, sim.cur_seed, str(mota), str(motp)
 
 app.run_server(debug=True)

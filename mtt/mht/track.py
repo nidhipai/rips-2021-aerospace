@@ -53,9 +53,9 @@ class Track:
             measurements (list): list of measurements to be used in the measurement update. 
         """
         self.x_hat_minus = np.array(self.x_hat_minus)
-
-        if self.observations[max(list(self.observations.keys()))] is not None:
-            observation = measurements[self.observations[max(list(self.observations.keys()))]]
+        obs = self.observations[max(list(self.observations.keys()))]
+        if obs is not None:
+            observation = measurements[obs]
         else:
             observation = None
 

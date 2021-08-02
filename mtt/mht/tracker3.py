@@ -183,7 +183,10 @@ class MHTTracker:
 
         for track in self.cur_best_tracks:
             if track.confirmed():
-                result[track.obj_id] = self.measurements[-1][track.observations[max(track.observations.keys())]]
+                obs = track.observations[max(track.observations.keys())]
+                if obs is not None:
+                    result[track.obj_id] = self.measurements[-1][obs]
+
         return result
     """
     def get_false_alarms(self):
