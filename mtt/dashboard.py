@@ -397,20 +397,20 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         # Generate all variables to plot
         processes = sim.clean_process(sim.processes[0])
 
+        best_trajs, correspondences = sim.get_best_correspondence(np.inf)
+        trajectories = sim.clean_trajectory(best_trajs)
+
         colors = sim.clean_measure(sim.measure_colors[0])
         measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
         measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
-        measures = sim.clean_measure2(sim.sorted_measurements[0])
+        measures = sim.clean_measure2(sim.sorted_measurements[0], correspondences)
+
         false_alarms = sim.false_alarms[0]
         false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
 
-        correspondences = sim.get_best_correspondence(np.inf)
-        trajectories = sim.clean_trajectory(correspondences)
-
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
-        #atct_errors = mtt.MTTMetrics.atct_signed(processes, trajectories)
-        atct_errors =  [[[0],[0],[0],[0]]]
+        atct_errors = mtt.MTTMetrics.atct_signed(processes, trajectories)
         time = ["time = {}".format(t) for t in range(processes[0][0].size)]
 
         # Set the range manually to prevent the animation from dynamically changing the range
@@ -445,12 +445,22 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         """
         data = []
 
-        # Get labels for the trajectory plots
+        # Get labels for the trajectory
+        # Need a mapping from trajectory list index to process list index
+        potential_keys = []
+        for step in best_trajs:
+            potential_keys += list(step.keys())
         all_keys = []
-        for step in correspondences:
-            all_keys += step.keys()
-        all_keys = np.unique(np.array(all_keys))
-        print(all_keys)
+        for key in potential_keys:
+            if key not in all_keys:
+                all_keys.append(key)
+
+        # Need to ensure all_keys is sorted with integers first
+        # so that trajectories are plotted correctly
+        true_keys = [key for key in all_keys if type(key) is int]
+        true_keys.sort()
+        false_keys = [key for key in all_keys if type(key) is not int]
+        all_keys = true_keys + false_keys
 
         if 'process' in options:
             for i, process in enumerate(processes):
@@ -458,16 +468,17 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 # Otherwise "time" will be incorrect
                 data.append(go.Scatter(x=process[0], y=process[1], mode='lines', name='Obj {} Process'.format(i), text=time, line=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
         if 'measure' in options:
-            for key, value in measures.items():
+            for i, key in enumerate(all_keys):
                 # NOTE: no time step added
-                data.append(go.Scatter(x=value[0], y=value[1], mode='markers', name="Measures Assigned Obj {}".format(key),
-                                     marker=dict(color=DEFAULT_COLORS[key % len(DEFAULT_COLORS)])))
+                data.append(go.Scatter(x=measures[key][0], y=measures[key][1], mode='markers', name="Measures Assigned Obj {}".format(key),
+                                     marker=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
+
             data.append(go.Scatter(x=false_alarms[0], y=false_alarms[1], mode='markers', name="False Alarms",
                                 marker=dict(color="black", symbol="x")))
         if 'trajectory' in options:
-            for i, trajectory in enumerate(trajectories):
-                data.append(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines',
-                                         name='Obj {} Prediction'.format(all_keys[i]), text=time, line=dict(width=3, dash='dot', color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
+            for i, key in enumerate(all_keys):
+                data.append(go.Scatter(x=trajectories[i][0], y=trajectories[i][1], mode='lines',
+                                         name='Obj {} Prediction'.format(key), text=time, line=dict(width=3, dash='dot', color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
         if 'apriori-covariance' in options:
             xs = []
             ys = []
@@ -533,17 +544,17 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                                    text=time))
 
             if 'measure' in options:
-                for key, value in measures.items():
+                for i, key in enumerate(all_keys):
                     # NOTE: no time step added
-                    scatters.append(go.Scatter(x=value[0][:(t+1)], y=value[1][:(t+1)], mode='markers', name="Measures Assigned Obj {}".format(key),
-                                   marker=dict(color=DEFAULT_COLORS[key % len(DEFAULT_COLORS)])))
+                    scatters.append(go.Scatter(x=measures[key][0][:(t+1)], y=measures[key][1][:(t+1)], mode='markers', name="Measures Assigned Obj {}".format(key),
+                                   marker=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
                 scatters.append(go.Scatter(x=false_alarms[0][:(t+1)], y=false_alarms[1][:(t+1)], mode='markers', name="False Alarms",
                                        marker=dict(color="black", symbol="x")))
 
             if 'trajectory' in options:
-                for i, trajectory in enumerate(trajectories):
-                    scatters.append(go.Scatter(x=trajectory[0, :(t+1)], y=trajectory[1, :(t+1)], mode='lines',
-                                             name='Object {} Prediction'.format(all_keys[i]), text=time, line=dict(width=3, dash='dash')))
+                for i, key in enumerate(all_keys):
+                    scatters.append(go.Scatter(x=trajectories[i][0, :(t+1)], y=trajectories[i][1, :(t+1)], mode='lines',
+                                             name='Object {} Prediction'.format(key), text=time, line=dict(width=3, dash='dash')))
 
             frames.append(go.Frame(data=scatters))
 
@@ -585,8 +596,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                            )
 
         #rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
-        mota = 0
-        motp = 0
+        mota, motp = mtt.MTTMetrics.mota_motp(processes, trajectories, all_keys)
         fig = go.Figure(data=data, layout=layout, frames=frames)
         fig.update_xaxes(tickfont_size=fontsize)
         fig.update_yaxes(tickfont_size=fontsize)
