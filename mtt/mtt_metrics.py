@@ -96,3 +96,27 @@ class MTTMetrics:
 		errors.append(TN / (TN + FN))
 		return errors
 
+	@staticmethod
+	def mota_motp(processes, trajectories, traj_keys):
+		"""
+		Calculates the Multi-Object Tracking Precision and Accuracy
+		"""
+		motp = 0
+		mota = 0
+
+		true_keys = []
+		false_keys = []
+		for key in traj_keys:
+			if type(key) is int:
+				true_keys.append(key)
+			else:
+				false_keys.append(key)
+
+		for key in true_keys:
+			motp += np.sqrt(np.nan_to_num(np.power(processes[key] - trajectories[key],2)).sum(axis=0)).sum()
+
+		motp = motp / len(true_keys)
+		return motp, mota
+
+
+

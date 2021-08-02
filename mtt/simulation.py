@@ -665,11 +665,14 @@ class Simulation:
 
 		# Determine how many unique trajectories are contained within the current
 		# trajectories dictionary
-		all_keys = []
+		potential_keys = []
 		for step in trajectories:
-			all_keys += step.keys()
-		all_keys = np.unique(np.array(all_keys))
-		num_keys = all_keys.size
+			potential_keys += list(step.keys())
+		all_keys = []
+		for key in potential_keys:
+			if key not in all_keys:
+				all_keys.append(key)
+		num_keys = len(all_keys)
 
 		# Iterate through each time step and allocate either the given xk or None
 		# to the trajectory arrays
