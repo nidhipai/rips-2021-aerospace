@@ -25,8 +25,9 @@ class Pruning:
 			# prev_obs is the measurement indexes of the object
 			prev_obs = np.array(list(tracks[index].observations.values()))
 			#print("P", index, prev_obs)
-			# prev_obs.size - 1 - self.n gets us the first measurements up to n (+1?) steps ago
-			required_obs.append(prev_obs[:(prev_obs.size - self.n - 0)])
+			required_obs.append(prev_obs[:(prev_obs.size - 0 - self.n)])
+		#required_obs = np.array(required_obs)
+		#print("R", required_obs)
 
 		# Test each track to see whether its initial sequence leads to a valid part of the tree
 		for track in tracks:

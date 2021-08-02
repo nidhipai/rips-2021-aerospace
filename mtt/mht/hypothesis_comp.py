@@ -20,7 +20,10 @@ class HypothesisComp:
 
 		index = 0
 
-		#Only use confirmed tracks
+		# Calculate values needed to normalize the score
+		# Only use confirmed tracks
+		# scores = [track.score for track in tracks if track.confirmed()]
+
 		confirmed_tracks = []
 		for track in tracks:
 			if track.confirmed():
@@ -29,6 +32,7 @@ class HypothesisComp:
 
 		if len(tracks) > 0:
 			# Calculate values needed to normalize the score
+			#scores = [track.score for track in tracks if track.confirmed()]
 			scores = [track.score for track in tracks]
 			minimum = min(scores)
 			maximum = max(scores)
@@ -38,8 +42,7 @@ class HypothesisComp:
 				dif = 1
 
 			for track in tracks:
-				print("weight: ", 1+int(((track.score - minimum) / dif)*1000))
-				self.G.add_node(index, weight=1 + int(((track.score - minimum) / dif)*1000))
+				self.G.add_node(index, weight = 1 + int(((track.score - minimum) / dif)*1000))
 				index += 1
 			for i in range(len(tracks)):
 				for j in range(i):
