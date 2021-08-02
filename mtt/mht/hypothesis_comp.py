@@ -20,12 +20,16 @@ class HypothesisComp:
 
 		index = 0
 
-		# Calculate values needed to normalize the score
-		# Only use confirmed tracks
-		#scores = [track.score for track in tracks if track.confirmed()]
-		scores = [track.score for track in tracks]
+		# # Only use confirmed tracks
+		# confirmed_tracks = []
+		# for track in tracks:
+		# 	if track.confirmed():
+		# 		confirmed_tracks.append(track)
+		# tracks = confirmed_tracks
 
-		if len(scores) > 0:
+		if len(tracks) > 0:
+			# Calculate values needed to normalize the score
+			scores = [track.score for track in tracks]
 			minimum = min(scores)
 			maximum = max(scores)
 			if max(scores) != min(scores):
