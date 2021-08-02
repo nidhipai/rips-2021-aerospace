@@ -21,6 +21,9 @@ class MHTTracker:
         self.cur_best_hypothesis = [] #holds the current best hypothesis
         self.prev_best_hypotheses = [] #holds the previous best hypothesis
 
+        # for testing
+        self.num_tracks_at_each_timestep = []
+
     def predict(self, measurements):
         """
         Takes in a list of measurements and performs gating, track maintenance (adding and deleting tracks), hypothesis
@@ -53,12 +56,17 @@ class MHTTracker:
         self.cur_best_hypothesis = best_tracks_indexes
         self.cur_best_tracks = np.array(self.tracks)[self.cur_best_hypothesis]
 
-
         if len(best_tracks_indexes) > 0:
             self.prev_best_hypotheses.append(best_tracks_indexes)
 
+        print("==========")
+        print("BEST HYP: ")
+        for track in self.cur_best_tracks:
+            print("TRACK ID: ", track.obj_id, "OBS: ", track.observations)
+        print("==========")
+
         # Remove tracks that do not lead to the best hypothesis within a certain number of time steps
-        if self.ts > self.pruning.n:
+        if self.ts > self.pruning.n: # might be >=
             self.pruning.predict(self.tracks, best_tracks_indexes)
 
         # Run the Kalman Filter measurement update for each track
@@ -71,6 +79,9 @@ class MHTTracker:
             #print("Track {} Score:".format(track.obj_id), track.score)
             track.measurement_update(self.kalman, measurements, self.ts)
             i += 1
+
+        # for testing, save how many tracks there are at each time step
+        self.num_tracks_at_each_timestep.append(len(self.tracks))
 
         # Indicate that one time step has passed
         self.ts += 1
