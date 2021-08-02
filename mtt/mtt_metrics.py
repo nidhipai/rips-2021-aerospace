@@ -99,23 +99,59 @@ class MTTMetrics:
 	@staticmethod
 	def mota_motp(processes, trajectories, traj_keys):
 		"""
-		Calculates the Multi-Object Tracking Precision and Accuracy
+		Calculates the Multi-Object Tracking Precision and Accuracy using formulas from
+		Bernardin, Keni and Stiefelhagen, Rainer. "Evaluating Multiple Object Tracking Performance:
+		The CLEAR MOT Metrics," Hindawi, 2008. doi:10.1155/2008/246309
+
+		Note: This method assumes processes and trajectories have been cleaned by their
+		respective methods in the Simulation class
 		"""
 		motp = 0
 		mota = 0
 
+		#TODO: Simplify use of traj_keys in this algorithm
+
 		true_keys = []
 		false_keys = []
+		# Record the number of true and false keys
 		for key in traj_keys:
 			if type(key) is int:
 				true_keys.append(key)
 			else:
 				false_keys.append(key)
+		true_keys = np.array(true_keys)
+		# Determine which time steps are marked correctly and calculate error based on RMSE
+		print(true_keys)
+		for i in range(len(true_keys)):
+			marked_dist = np.linalg.norm(trajectories[i] - processes[i], axis=0)
+			print("_________")
+			print(marked_dist)
+			# Test each process to see if a point at a given time step is closer
+			# If a point from a different process is closer, mark this as a swap by setting to NaN
+			for j in range(len(true_keys)):
+				if i != j:
+					cur_dist = np.linalg.norm(trajectories[i] - processes[j], axis=0)
+					print(cur_dist)
+					better = cur_dist < marked_dist
+					marked_dist[better] = np.nan
+			# Calculate the error for each time step when object is correctly identified (NaN)
+			motp += marked_dist[~np.isnan(marked_dist)].sum()
 
-		for key in true_keys:
-			motp += np.sqrt(np.nan_to_num(np.power(processes[key] - trajectories[key],2)).sum(axis=0)).sum()
+			# Add the number of swaps and misses to the MOTA (misses start at NaN, swaps are added as NaN previously)
+			mota += np.isnan(marked_dist).sum()
 
-		motp = motp / len(true_keys)
+		# Count all of the times that the algorithm detected a false object and add to the MOTA
+		for i in range(len(false_keys)):
+			traj = trajectories[len(true_keys) + i]
+			# Count how many time steps an entry is actually added
+			mota += traj[~np.isnan(traj)].size
+
+		# Divide by number of matches
+		motp = motp / true_keys.size
+
+		# Divide by the sum of the number of objects present over all time steps
+		total_obj = sum([proc[~np.isnan(proc)].size for proc in processes])
+		mota = 1 - (mota / total_obj)
 		return motp, mota
 
 
