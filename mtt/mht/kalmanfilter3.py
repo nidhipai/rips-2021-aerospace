@@ -59,7 +59,6 @@ class KalmanFilter:
         """
 
         if measurement is None:
-            print("here")
             return x_hat_minus, P_minus
         else:
             K = P_minus @ self.H.T @ linalg.inv(self.H @ P_minus @ self.H.T + self.R)
