@@ -153,10 +153,11 @@ class MTTMetrics:
 					marked_dist[better] = np.nan
 			# Calculate the error for each time step when object is correctly identified (NaN)
 			# Note that NaNs at the beginning and end represent areas where the object was only partially tracked correctly
-			# This incorporates misses for objects we do identified at some point, but not perfectly
+			# This incorporates misses for objects we do identify at some point, but not perfectly
 			motp += marked_dist[~np.isnan(marked_dist)].sum()
 
 			# Calculate number of times object swaps
+			print("Test: {}".format(np.isnan(marked_dist).sum()))
 			mota += np.isnan(marked_dist).sum()
 
 			# Add to the tally of total objects and hypotheses at each time step
