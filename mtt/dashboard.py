@@ -78,7 +78,7 @@ app.layout = html.Div(children=[
             {'label': 'A Priori Error Covariance', 'value': 'apriori-covariance'},
             {'label': 'A Posteriori Error Covariance', 'value': 'aposteriori-covariance'}
         ],
-        value=['process', 'measure'],
+        value=['process', 'measure', 'trajectory'],
         labelStyle={'display': 'inline-block'},
         style={"margin-top": 10, "margin-left":20}
     ),
