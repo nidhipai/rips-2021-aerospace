@@ -32,6 +32,7 @@ class MHTTracker:
 
         self.measurements.append(measurements)
         print("___________ Time step: {} _________________________________".format(self.ts))
+        print("Number of Tracks: {}".format(len(self.tracks)))
 
         # 1) assign all measurements to all tracks in all children of tree, AND...
         # 2) calculate the expected next position for each track using the time update equation
@@ -64,11 +65,7 @@ class MHTTracker:
         # Run the Kalman Filter measurement update for each track
         i = 0
         for track in self.tracks:
-            #print("A posteriori estimate:\n", track.x_hat)
-            # Printing track index
-            #print("Track {} Score:".format(i), track.score)
-            # Printing track object id
-            print("Track {} Score:".format(track.obj_id), track.score)
+            # print("Track {} Score:".format(track.obj_id), track.score)
             track.measurement_update(self.kalman, measurements, self.ts)
             i += 1
 
@@ -235,7 +232,6 @@ class MHTTracker:
                     possible_measurements[track.observations[time]] = None
         # any measurement that is not in a "good" (confirmed and in best hyp) track is a false alarm
         result = [self.measurements[-1][p] for p in possible_measurements if p is not None]
-        print("false alarms ", result)
         return result
 
 

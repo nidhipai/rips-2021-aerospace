@@ -61,7 +61,7 @@ class TrackMaintenanceMHT:
                 mm_track.observations[ts] = None
                 mm_track.possible_observations = []
                 new_tracks.append(mm_track)
-                print("MM", track.obj_id, "OBS: ", track.observations)
+                # print("MM", track.obj_id, "OBS: ", track.observations)
 
 
 
@@ -78,7 +78,7 @@ class TrackMaintenanceMHT:
                     po_track.observations[ts] = possible_observation
                     po_track.possible_observations = []
                     new_tracks.append(po_track)
-                    print("ID, OBS: ", track.obj_id, possible_observation, "OBS: ", track.observations, "SCORE: ", track.score)
+                    # print("ID, OBS: ", track.obj_id, possible_observation, "OBS: ", track.observations, "SCORE: ", track.score)
 
         # finally, for every measurement, make a new track (assume it is a new object)
         for i, measurement in enumerate(measurements):
@@ -96,7 +96,7 @@ class TrackMaintenanceMHT:
             if score >= self.threshold_new_track:
                 starting_observations = {ts: i}
                 new_tracks.append(Track(starting_observations, score, measurement, self.num_objects, self.pruning_n))
-                print("NEW TRACK (ID, M ID):", self.num_objects, i)
+                # print("NEW TRACK (ID, M ID):", self.num_objects, i)
                 self.num_objects += 1
 
         return new_tracks

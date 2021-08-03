@@ -111,6 +111,11 @@ app.layout = html.Div(children=[
             html.H6(children='Multi-Object Tracking Accuracy'),
             html.Div(id='mota-output', style={'whiteSpace': 'pre-line'})
         ], style=output_style),
+
+        html.Div(children=[
+            html.H6(children='Time Taken (s)'),
+            html.Div(id='time-taken', style={'whiteSpace': 'pre-line'})
+        ], style=output_style),
     ]),
 
     html.Div(children=[
@@ -123,7 +128,7 @@ app.layout = html.Div(children=[
                 min=1,
                 max=1000,
                 step=1,
-                placeholder=10
+                placeholder=15
             )
         ], style=input_style),
 
@@ -270,6 +275,7 @@ app.layout = html.Div(children=[
     Output('seed-output', 'children'),
     Output('motp-output', 'children'),
     Output('mota-output', 'children'),
+    Output('time-taken', 'children'),
     Input('example-graph', 'figure'), # Inputs are the graphs, the button being clicked, and the check box
     Input('error-graph', 'figure'),
     Input('run', 'n_clicks'),
@@ -296,6 +302,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
     err = prev_err
     mota = 0
     motp = 0
+    time_taken = 0
     if ts is None:
         ts = 15
     if prev_clicks < n_clicks:
@@ -598,6 +605,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                            )
 
         #rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
+        #num_measures = sum([len(time_step) for time_step in sim.measures[0]])
         mota, motp = mtt.MTTMetrics.mota_motp(processes, trajectories, all_keys)
         fig = go.Figure(data=data, layout=layout, frames=frames)
         fig.update_xaxes(tickfont_size=fontsize)
@@ -609,8 +617,9 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 color="black"
             )
         ))
+        time_taken = sim.time_taken[0]
 
 
-    return fig, err, sim.cur_seed, str(mota), str(motp)
+    return fig, err, sim.cur_seed, str(mota), str(motp), time_taken
 
 app.run_server(debug=True)
