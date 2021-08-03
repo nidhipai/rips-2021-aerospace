@@ -9,7 +9,7 @@ from mtt.mht.distances_mht import DistancesMHT
 
 class TrackMaintenanceMHT:
 
-    def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R, kFilter_model, pruning_n, scoring_method):
+    def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R, P, kFilter_model, pruning_n, scoring_method):
         """
         Args:
             threshold_old_track (numeric): score threshold for creating a new track from an existing object
@@ -33,6 +33,7 @@ class TrackMaintenanceMHT:
         self.pruning_n = pruning_n
         self.record_scores = False
         self.scoring_method = scoring_method
+        self.P = P
 
     def predict(self, ts, tracks, measurements):
 
@@ -115,7 +116,7 @@ class TrackMaintenanceMHT:
             # Is this parameter necessary?
             if score >= self.threshold_new_track:
                 starting_observations = {ts: i}
-                new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n)
+                new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n, P=self.P)
                 if self.record_scores:
                     new_track.all_scores[ts] = new_scores
                 new_tracks.append(new_track)
