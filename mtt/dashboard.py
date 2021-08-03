@@ -111,6 +111,11 @@ app.layout = html.Div(children=[
             html.H6(children='Multi-Object Tracking Accuracy'),
             html.Div(id='mota-output', style={'whiteSpace': 'pre-line'})
         ], style=output_style),
+
+        html.Div(children=[
+            html.H6(children='Time Taken (s)'),
+            html.Div(id='time-taken', style={'whiteSpace': 'pre-line'})
+        ], style=output_style),
     ]),
 
     html.Div(children=[
@@ -123,9 +128,22 @@ app.layout = html.Div(children=[
                 min=1,
                 max=1000,
                 step=1,
-                placeholder=10
+                placeholder=15
             )
         ], style=input_style),
+
+    html.H6(children="Scoring Method"),
+
+    dcc.RadioItems(
+        options=[
+            {'label': 'Log Likelihood', 'value': 'loglikelihood'},
+            {'label': 'Distance', 'value': 'distance'},
+            {'label': 'Chi Squared', 'value': 'chi2'}
+        ],
+    value='chi2',
+    id = 'scoring_method',
+    labelStyle={'display': 'inline-block'}
+    ),
 
         html.Div(children=[
             html.H6(children='Measure Noise'),
@@ -270,6 +288,7 @@ app.layout = html.Div(children=[
     Output('seed-output', 'children'),
     Output('motp-output', 'children'),
     Output('mota-output', 'children'),
+    Output('time-taken', 'children'),
     Input('example-graph', 'figure'), # Inputs are the graphs, the button being clicked, and the check box
     Input('error-graph', 'figure'),
     Input('run', 'n_clicks'),
@@ -287,15 +306,17 @@ app.layout = html.Div(children=[
     State('R', 'value'),
     State('P', 'value'),
     State('gate_size', 'value'),
-    State('gate_expand_size', 'value')
+    State('gate_expand_size', 'value'),
+    State('scoring_method', 'value')
 )
-def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size):
+def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, scoring_method):
     global prev_clicks
     global sim
     fig = prev_fig
     err = prev_err
     mota = 0
     motp = 0
+    time_taken = 0
     if ts is None:
         ts = 15
     if prev_clicks < n_clicks:
@@ -321,6 +342,8 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             gate_size = 0.95
         if gate_expand_size is None:
             gate_expand_size = 0.5
+        if scoring_method is None:
+            scoring = scoring_method
 
         # Parse the Object Starting Positions
         x0_split = x0.split("|")
@@ -390,7 +413,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             "P": P_parse
         }
 
-        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam))
+        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, scoring_method = scoring_method))
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly")
     if n_clicks != 0:
@@ -469,9 +492,10 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 data.append(go.Scatter(x=process[0], y=process[1], mode='lines', name='Obj {} Process'.format(i), text=time, line=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
         if 'measure' in options:
             for i, key in enumerate(all_keys):
-                # NOTE: no time step added
-                data.append(go.Scatter(x=measures[key][0], y=measures[key][1], mode='markers', name="Measures Assigned Obj {}".format(key),
-                                     marker=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
+                if key in measures.keys():
+                    # NOTE: no time step added
+                    data.append(go.Scatter(x=measures[key][0], y=measures[key][1], mode='markers', name="Measures Assigned Obj {}".format(key),
+                                         marker=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
 
             data.append(go.Scatter(x=false_alarms[0], y=false_alarms[1], mode='markers', name="False Alarms",
                                 marker=dict(color="black", symbol="x")))
@@ -545,9 +569,10 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
             if 'measure' in options:
                 for i, key in enumerate(all_keys):
-                    # NOTE: no time step added
-                    scatters.append(go.Scatter(x=measures[key][0][:(t+1)], y=measures[key][1][:(t+1)], mode='markers', name="Measures Assigned Obj {}".format(key),
-                                   marker=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
+                    if key in measures.keys():
+                        # NOTE: no time step added
+                        scatters.append(go.Scatter(x=measures[key][0][:(t+1)], y=measures[key][1][:(t+1)], mode='markers', name="Measures Assigned Obj {}".format(key),
+                                       marker=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
                 scatters.append(go.Scatter(x=false_alarms[0][:(t+1)], y=false_alarms[1][:(t+1)], mode='markers', name="False Alarms",
                                        marker=dict(color="black", symbol="x")))
 
@@ -596,6 +621,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                            )
 
         #rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
+        #num_measures = sum([len(time_step) for time_step in sim.measures[0]])
         mota, motp = mtt.MTTMetrics.mota_motp(processes, trajectories, all_keys)
         fig = go.Figure(data=data, layout=layout, frames=frames)
         fig.update_xaxes(tickfont_size=fontsize)
@@ -607,8 +633,9 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 color="black"
             )
         ))
+        time_taken = sim.time_taken[0]
 
 
-    return fig, err, sim.cur_seed, str(mota), str(motp)
+    return fig, err, sim.cur_seed, str(mota), str(motp), time_taken
 
 app.run_server(debug=True)
