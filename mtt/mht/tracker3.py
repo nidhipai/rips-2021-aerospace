@@ -53,6 +53,11 @@ class MHTTracker:
         # Save the current best hypothesis to output
         self.cur_best_hypothesis = best_tracks_indexes
         self.cur_best_tracks = np.array(self.tracks)[self.cur_best_hypothesis]
+        print("==========")
+        print("BEST HYP: ")
+        for track in self.cur_best_tracks:
+            print("TRACK: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
+        print("==========")
 
 
         if len(best_tracks_indexes) > 0:
@@ -240,7 +245,6 @@ class MHTTracker:
                     possible_measurements.remove(track.observations[time])
         # any measurement that is not in a "good" (confirmed and in best hyp) track is a false alarm
         result = [self.measurements[-1][p] for p in possible_measurements if p is not None]
-        print(result)
         return result
 
 
