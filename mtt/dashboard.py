@@ -484,20 +484,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         # Get labels for the trajectory
         # Need a mapping from trajectory list index to process list index
-        potential_keys = []
-        for step in best_trajs:
-            potential_keys += list(step.keys())
-        all_keys = []
-        for key in potential_keys:
-            if key not in all_keys:
-                all_keys.append(key)
-
-        # Need to ensure all_keys is sorted with integers first
-        # so that trajectories are plotted correctly
-        true_keys = [key for key in all_keys if type(key) is int]
-        true_keys.sort()
-        false_keys = [key for key in all_keys if type(key) is not int]
-        all_keys = true_keys + false_keys
+        all_keys = sim.get_traj_keys(best_trajs)
 
         if 'process' in options:
             for i, process in enumerate(processes):
