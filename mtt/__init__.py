@@ -25,6 +25,7 @@ from .mht.track import *
 from .mht.track_maintenance import *
 from .mht.pruning import *
 from .mht.tracker3 import *
+from .mht.track_merging import *
 
 
 # Experimentation classes

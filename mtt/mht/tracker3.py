@@ -6,20 +6,21 @@ from copy import deepcopy
 import numpy as np
 
 class MHTTracker:
-    def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning):
-        self.tracks = [] #list of tracks
-        self.kalman = global_kalman #holds the global kalman for all tracks
+    def __init__(self, global_kalman, gating, track_maintenance, track_merging, hypothesis_comp, pruning):
+        self.tracks = [] # list of tracks
+        self.kalman = global_kalman # holds the global kalman for all tracks
         self.measurements = [] # 2D array of state vectors - each row is a time step
-        self.ts = 0 #time steps
+        self.ts = 0 # time steps
 
         # all the methods
-        self.gating = gating #holds the Gating object
-        self.track_maintenance = track_maintenance #holds the track maintenance object
-        self.hypothesis_comp = hypothesis_comp #holds the hypothesis comp object
-        self.pruning = pruning #holds the pruning object
-        self.gating.kalman = global_kalman #set the gating object's kalman to the global kalman
-        self.cur_best_hypothesis = [] #holds the current best hypothesis
-        self.prev_best_hypotheses = [] #holds the previous best hypothesis
+        self.gating = gating # holds the Gating object
+        self.track_maintenance = track_maintenance # holds the track maintenance object
+        self.track_merging = track_merging # holds the track merging object
+        self.hypothesis_comp = hypothesis_comp # holds the hypothesis comp object
+        self.pruning = pruning # holds the pruning object
+        self.gating.kalman = global_kalman # set the gating object's kalman to the global kalman
+        self.cur_best_hypothesis = [] # holds the current best hypothesis
+        self.prev_best_hypotheses = [] # holds the previous best hypothesis
 
         # for testing
         self.num_tracks_at_each_timestep = []
@@ -35,6 +36,7 @@ class MHTTracker:
 
         self.measurements.append(measurements)
         print("___________ Time step: {} _________________________________".format(self.ts))
+        print("Number of Tracks: {}".format(len(self.tracks)))
 
         # 1) assign all measurements to all tracks in all children of tree, AND...
         # 2) calculate the expected next position for each track using the time update equation
@@ -49,8 +51,11 @@ class MHTTracker:
         # Next, calculate track scores and create new potential tracks
         self.tracks = self.track_maintenance.predict(self.ts, self.tracks, measurements)
 
+        # Combine tracks that are likely tracking the same object, for efficiency
+        self.track_merging.predict(self.ts, self.tracks)
+
         # Calculate the maximum weighted clique
-        best_tracks_indexes = self.hypothesis_comp.predict(self.ts, self.tracks)
+        best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
 
         # Save the current best hypothesis to output
         self.cur_best_hypothesis = best_tracks_indexes
@@ -76,7 +81,7 @@ class MHTTracker:
             # Printing track index
             #print("Track {} Score:".format(i), track.score)
             # Printing track object id
-            #print("Track {} Score:".format(track.obj_id), track.score)
+            # print("Track {} Score:".format(track.obj_id), track.score)
             track.measurement_update(self.kalman, measurements, self.ts)
             i += 1
 
@@ -240,13 +245,18 @@ class MHTTracker:
         # the best global hypothesis should not contain tracks that may be false alarms, but that hasn't been done yet
 
         time = self.ts - 1  # since ts is incrememented at the end of predict
-        possible_measurements = list(range(len(self.measurements[-1])))  # these are indexes
+        possible_measurements = list(range(len(self.measurements[-1])))  # get indices of all possible measurements
+
+        # Iterate through our best hypothesis to find which measurements should not be included as false alarms
         for track in self.cur_best_tracks:
+            # Test if the track is confirmed yet; if not, it is considered a false alarm
             if track.confirmed():  # this is redundant later because cur_best_tracks should all be confirmed
+                # If the track records the time step, set the observation in the track as not a false alarm
                 if time in track.observations.keys() and track.observations[time] is not None:
-                    possible_measurements[track.observations[time]] = None
+                    possible_measurements.remove(track.observations[time])
         # any measurement that is not in a "good" (confirmed and in best hyp) track is a false alarm
         result = [self.measurements[-1][p] for p in possible_measurements if p is not None]
+        print(result)
         #print("false alarms ", result)
         return result
 
@@ -269,4 +279,3 @@ class MHTTracker:
             self.track_maintenance.lambda_fa = lam
         if miss_p is not None:
             self.track_maintenance.pd = miss_p
-

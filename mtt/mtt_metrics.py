@@ -96,6 +96,7 @@ class MTTMetrics:
 		errors.append(TN / (TN + FN))
 		return errors
 
+
 	@staticmethod
 	def mota_motp(processes, trajectories, traj_keys):
 		"""
@@ -106,52 +107,90 @@ class MTTMetrics:
 		Note: This method assumes processes and trajectories have been cleaned by their
 		respective methods in the Simulation class
 		"""
+
+		# Pseudocode:
+		# For each matching object-hypothesis pair:
+		# Calculate the distance between the object and hypothesized track
+		# Calculate the distance between the object and all other tracks
+		# For each time step where the hypothesized track is closest, calculate RMSE (L2 norm) and add to MOTP
+		# For each time step where the hypothesized track is NOT closest, add 1 to the MOTA (count swaps)
+		# For each hypothesis without a matching object, add time steps where this hypothesis appears to MOTA
+		# For each object without a matching hypothesis, add time steps where this object appears to MOTA
+		# Divide MOTP by number of object-hypothesis matches
+		# Divide MOTA by (number of objects + number of hypotheses)* time steps (max is no hypotheses overlap with any objects)
+
+		# MOTP simply measures the error at the "correct" matches
 		motp = 0
+
+		# MOTA measures how frequently an object is misidentified or missed, including false alarms
 		mota = 0
+		total_possibilities = 0
+
 
 		#TODO: Simplify use of traj_keys in this algorithm
 
-		true_keys = []
-		false_keys = []
 		# Record the number of true and false keys
-		for key in traj_keys:
-			if type(key) is int:
-				true_keys.append(key)
-			else:
-				false_keys.append(key)
-		true_keys = np.array(true_keys)
+		true_keys = [key for key in traj_keys if type(key) is int]
+		true_keys.sort()
+		false_keys = [key for key in traj_keys if type(key) is not int]
 		# Determine which time steps are marked correctly and calculate error based on RMSE
-		print(true_keys)
-		for i in range(len(true_keys)):
-			marked_dist = np.linalg.norm(trajectories[i] - processes[i], axis=0)
-			print("_________")
-			print(marked_dist)
+		for key in true_keys:
+			# Filter out observations before or after the process begins
+			proc = processes[key]
+			period_alive = (~np.isnan(proc))[0]
+			proc = proc[:, period_alive]
+			traj = trajectories[key][:,period_alive]
+			# Calculate the errors
+			marked_dist = np.linalg.norm(traj - proc, axis=0)
+
 			# Test each process to see if a point at a given time step is closer
 			# If a point from a different process is closer, mark this as a swap by setting to NaN
-			for j in range(len(true_keys)):
-				if i != j:
-					cur_dist = np.linalg.norm(trajectories[i] - processes[j], axis=0)
-					print(cur_dist)
+			for key2 in true_keys:
+				if key != key2:
+					proc2 = processes[key][:,period_alive]
+					cur_dist = np.linalg.norm(traj - proc2, axis=0)
 					better = cur_dist < marked_dist
 					marked_dist[better] = np.nan
 			# Calculate the error for each time step when object is correctly identified (NaN)
+			# Note that NaNs at the beginning and end represent areas where the object was only partially tracked correctly
+			# This incorporates misses for objects we do identified at some point, but not perfectly
 			motp += marked_dist[~np.isnan(marked_dist)].sum()
 
-			# Add the number of swaps and misses to the MOTA (misses start at NaN, swaps are added as NaN previously)
+			# Calculate number of times object swaps
 			mota += np.isnan(marked_dist).sum()
+
+			# Add to the tally of total objects and hypotheses at each time step
+			total_possibilities += proc.shape[1] + traj.shape[1]
+
 
 		# Count all of the times that the algorithm detected a false object and add to the MOTA
 		for i in range(len(false_keys)):
 			traj = trajectories[len(true_keys) + i]
+
 			# Count how many time steps an entry is actually added
-			mota += traj[~np.isnan(traj)].size
+			false_objs = np.sum(~np.isnan(traj)[0])
+
+			# Add to MOTA and to the tally of total objects and hypotheses at each time step
+			mota += false_objs
+			total_possibilities += false_objs
+
+		# Count all of the times that the algorithm failed to detect a true process (not counting swaps) and add to the MOTA
+		for proc in range(len(true_keys), len(processes)):
+			undetected_objs = np.sum(~np.isnan(proc)[0])
+			mota += undetected_objs
+			total_possibilities += undetected_objs
+
+
+		# Add all the measurements that could be potentially identified incorrectly as objects instead of false alarms,
+		# minus the ones associated with objects
 
 		# Divide by number of matches
-		motp = motp / true_keys.size
+		motp = motp / len(true_keys)
 
-		# Divide by the sum of the number of objects present over all time steps
-		total_obj = sum([proc[~np.isnan(proc)].size for proc in processes])
-		mota = 1 - (mota / total_obj)
+		# Tally number of objects and hypotheses at each time step
+		print(mota)
+		print(total_possibilities)
+		mota = 1 - (mota / total_possibilities)
 		return motp, mota
 
 

@@ -6,6 +6,9 @@ Simulation
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy, deepcopy
+import time
+
+import mtt
 from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
 from scipy.stats import chi2
@@ -59,6 +62,7 @@ class Simulation:
 		self.aposteriori_ellipses = dict()
 		self.false_alarms = dict()
 		self.sorted_measurements = dict()
+		self.time_taken = dict()
 
 	# the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
 	# data generator object to create the dictionary of processes and measures.
@@ -107,9 +111,13 @@ class Simulation:
 		self.false_alarms[len(self.false_alarms.keys())] = dict()
 		self.sorted_measurements[len(self.sorted_measurements)] = dict()
 
+		time_at_each_step = []
 		for i in range(len(self.processes[index])):
 			# Obtain a set of guesses for the current location of the object given the measurements
-			self.tracker_model.predict(deepcopy(self.measures[index][i]))
+			next_measurement = deepcopy(self.measures[index][i])
+			start_time = time.process_time()
+			self.tracker_model.predict(next_measurement)
+			time_at_each_step.append(time.process_time() - start_time)
 
 			if isinstance(self.tracker_model, MHTTracker):
 				self.trajectories[len(self.trajectories.keys())-1].append(self.tracker_model.get_trajectories())
@@ -135,6 +143,21 @@ class Simulation:
 					if key not in self.sorted_measurements[len(self.sorted_measurements)-1].keys():
 						self.sorted_measurements[len(self.sorted_measurements)-1][key] = []
 					self.sorted_measurements[len(self.sorted_measurements)-1][key].append(value)
+
+				self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
+					"Q": str(self.tracker_model.kalman.Q),
+					"R": str(self.tracker_model.kalman.R),
+					"Gate Size": str(self.tracker_model.gating.error_threshold),
+					"Gate Expansion %": str(self.tracker_model.gating.expand_gating),
+					"Pruning": str(self.tracker_model.pruning.n),
+					"fep_at": str(self.tracker_model.kalman.Q[2][2]),
+					"fep_ct": str(self.tracker_model.kalman.Q[3][3]),
+					"fnu": str(self.tracker_model.kalman.R[0][0]),
+					"P": str(self.tracker_model.track_maintenance.P[0][0]),
+				}}
+
+		# Store the time at each time step taken by the predict method of the tracker
+		self.time_taken[len(self.time_taken.keys())] = time_at_each_step
 
 		# Store our output as an experiment
 		if isinstance(self.tracker_model, MTTTracker):
@@ -566,6 +589,7 @@ class Simulation:
 		self.aposteriori_ellipses = dict()
 		self.measure_colors = dict()
 		self.false_alarms = dict()
+		self.time_taken = dict()
 
 		# Clear stored tracks from the tracker
 		self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
@@ -742,7 +766,6 @@ class Simulation:
 				if key in correspondences.keys():
 					output[correspondences[key]] = [track_x, track_y]
 				else:
-					print("Key {} not found in correspondences table".format(key))
 					output["Unassigned {}".format(key)] = [track_x, track_y]
 			else:
 				output[key] = [track_x, track_y]
@@ -928,3 +951,31 @@ class Simulation:
 		if m == 'fa':
 			return Metrics.false_id_rate(true_false_alarms, false_alarms)
 		print("ERROR INVALID METRIC")
+
+	# NIDHI'S TESTING
+	def evaluate(self):
+		# Return mota, motp
+		processes = self.clean_process(self.processes[0])
+		best_trajs, correspondences = self.get_best_correspondence(np.inf)
+		trajectories = self.clean_trajectory(best_trajs)
+
+		# Get labels for the trajectory
+		# Need a mapping from trajectory list index to process list index
+		potential_keys = []
+		for step in best_trajs:
+			potential_keys += list(step.keys())
+		all_keys = []
+		for key in potential_keys:
+			if key not in all_keys:
+				all_keys.append(key)
+
+		# Need to ensure all_keys is sorted with integers first
+		# so that trajectories are plotted correctly
+		true_keys = [key for key in all_keys if type(key) is int]
+		true_keys.sort()
+		false_keys = [key for key in all_keys if type(key) is not int]
+		all_keys = true_keys + false_keys
+
+		mota, motp = mtt.MTTMetrics.mota_motp(processes, trajectories, all_keys)
+		return mota, motp
+
