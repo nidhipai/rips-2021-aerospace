@@ -10,6 +10,7 @@ class Track:
         self.n = self.x_hat.shape[0]
         self.x_hat_minus = self.x_hat
         self.observations = starting_observations  # list of (ts, k), where ts is the timestep and k is the number of the measurement
+        self.all_scores = dict()
 
         # Storage for plotting output
         # Each key is a time step
