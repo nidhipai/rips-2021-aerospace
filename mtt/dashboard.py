@@ -127,6 +127,19 @@ app.layout = html.Div(children=[
             )
         ], style=input_style),
 
+    html.H6(children="Scoring Method"),
+
+    dcc.RadioItems(
+        options=[
+            {'label': 'Log Likelihood', 'value': 'loglikelihood'},
+            {'label': 'Distance', 'value': 'distance'},
+            {'label': 'Chi Squared', 'value': 'chi2'}
+        ],
+    value='chi2',
+    id = 'scoring_method',
+    labelStyle={'display': 'inline-block'}
+    ),
+
         html.Div(children=[
             html.H6(children='Measure Noise'),
             dcc.Input(
@@ -287,9 +300,10 @@ app.layout = html.Div(children=[
     State('R', 'value'),
     State('P', 'value'),
     State('gate_size', 'value'),
-    State('gate_expand_size', 'value')
+    State('gate_expand_size', 'value'),
+    State('scoring_method', 'value')
 )
-def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size):
+def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, scoring_method):
     global prev_clicks
     global sim
     fig = prev_fig
@@ -321,6 +335,8 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             gate_size = 0.95
         if gate_expand_size is None:
             gate_expand_size = 0.5
+        if scoring_method is None:
+            scoring = scoring_method
 
         # Parse the Object Starting Positions
         x0_split = x0.split("|")
@@ -390,7 +406,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             "P": P_parse
         }
 
-        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam))
+        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, scoring_method = scoring_method))
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly")
     if n_clicks != 0:

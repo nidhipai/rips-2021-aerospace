@@ -9,7 +9,7 @@ from mtt.mht.distances_mht import DistancesMHT
 
 class TrackMaintenanceMHT:
 
-    def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R, kFilter_model, pruning_n):
+    def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R, kFilter_model, pruning_n, scoring_method):
         """
         Args:
             threshold_old_track (numeric): score threshold for creating a new track from an existing object
@@ -32,6 +32,7 @@ class TrackMaintenanceMHT:
         self.num_objects = 0
         self.pruning_n = pruning_n
         self.record_scores = False
+        self.scoring_method = scoring_method
 
     def predict(self, ts, tracks, measurements):
 
@@ -48,13 +49,11 @@ class TrackMaintenanceMHT:
             new_tracks (list): list of new tracks for this ts, number of objects
 
         """
-        score_method = "chi"
-
         new_tracks = []
         for j, track in enumerate(tracks):
             # consider the case of missed measurement, replicate each of these tracks as if they missed a measurement
 
-            missed_measurement_score = self.score_no_measurement(track, method=score_method)
+            missed_measurement_score = self.score_no_measurement(track, method=self.scoring_method)
             #print("TEST: ", missed_measurement_score)
             if missed_measurement_score >= self.threshold_miss_measurement:
                 mm_track = deepcopy(track)
@@ -76,7 +75,7 @@ class TrackMaintenanceMHT:
             # This new tracks should be a copy of the old track, with the new possible
             # observation added to the observations
             for possible_observation in track.possible_observations:
-                score = self.score_measurement(measurements[possible_observation], track, method=score_method)
+                score = self.score_measurement(measurements[possible_observation], track, self.scoring_method)
 
                 if score >= self.threshold_old_track:
                     # Create a new track with the new observations and score
@@ -96,7 +95,7 @@ class TrackMaintenanceMHT:
         # finally, for every measurement, make a new track (assume it is a new object)
         for i, measurement in enumerate(measurements):
             new_scores = [0,0,0]
-            if score_method == "distance":
+            if self.scoring_method == "distance":
                 if len(new_tracks) > 0:
                     score = min([track.score for track in new_tracks]) - 1
                 else:
@@ -124,7 +123,7 @@ class TrackMaintenanceMHT:
 
         return new_tracks
 
-    def score_measurement(self, measurement, track, method="distance"):
+    def score_measurement(self, measurement, track, method = "chi2"):
         """
         Scores a track given a particular measurement. 
         Args:
