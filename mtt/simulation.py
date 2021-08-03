@@ -857,11 +857,18 @@ class Simulation:
 			output.append(new_step)
 
 		return output, correspondences
+
 	@staticmethod
 	def get_traj_keys(best_trajectories):
 		"""
-		Returns a list of keys from the result of get_best_correspondences to allow correct plotting
+		Returns a list of keys from the result of get_best_correspondences to allow correct plotting.
+		Used in the dashboard.
 
+		Args:
+			best_trajectories (dict): dict storing the measurements associated with each trajectory as output from Simulation.get_best_correspondences
+
+		Returns:
+			all_keys (list): list of keys representing the order in which each trajectory should be plotted; aligned with process keys
 		"""
 		potential_keys = []
 		for step in best_trajectories:
