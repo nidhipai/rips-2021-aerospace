@@ -147,7 +147,7 @@ class MTTMetrics:
 			# If a point from a different process is closer, mark this as a swap by setting to NaN
 			for key2 in true_keys:
 				if key != key2:
-					proc2 = processes[key][:,period_alive]
+					proc2 = processes[key2][:,period_alive]
 					cur_dist = np.linalg.norm(traj - proc2, axis=0)
 					better = cur_dist < marked_dist
 					marked_dist[better] = np.nan
