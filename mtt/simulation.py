@@ -845,7 +845,7 @@ class Simulation:
 				# key = the id of the process
 				# value = the value of the trajectory associated with said process at this iteration
 				correspondences[traj_ids_considering[best_traj]] = proc_ids_considering[best_proc]
-
+			print(correspondences)
 			# Generate the output for this time step using the correspondences dictionary
 			for traj_id, traj in self.trajectories[index][i].items():
 				if traj_id in correspondences.keys():
@@ -857,6 +857,28 @@ class Simulation:
 			output.append(new_step)
 
 		return output, correspondences
+	@staticmethod
+	def get_traj_keys(best_trajectories):
+		"""
+		Returns a list of keys from the result of get_best_correspondences to allow correct plotting
+
+		"""
+		potential_keys = []
+		for step in best_trajectories:
+			potential_keys += list(step.keys())
+		all_keys = []
+		for key in potential_keys:
+			if key not in all_keys:
+				all_keys.append(key)
+
+		# Need to ensure all_keys is sorted with integers first
+		# so that trajectories are plotted correctly
+		true_keys = [key for key in all_keys if type(key) is int]
+		true_keys.sort()
+		false_keys = [key for key in all_keys if type(key) is not int]
+		all_keys = true_keys + false_keys
+
+		return all_keys
 
 	# New algorithm pseudocode below:
 
