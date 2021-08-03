@@ -27,7 +27,6 @@ class Pruning:
 		required_obs = np.array(required_obs)
 
 		# Test each track to see whether its initial sequence leads to a valid part of the tree
-		#for track in tracks:
 		for i in reversed(range(len(tracks))):
 			track = tracks[i]
 			keep = False
