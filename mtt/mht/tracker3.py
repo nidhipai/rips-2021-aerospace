@@ -7,19 +7,19 @@ import numpy as np
 
 class MHTTracker:
     def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning):
-        self.tracks = [] #list of tracks
-        self.kalman = global_kalman #holds the global kalman for all tracks
+        self.tracks = [] # list of tracks
+        self.kalman = global_kalman # holds the global kalman for all tracks
         self.measurements = [] # 2D array of state vectors - each row is a time step
-        self.ts = 0 #time steps
+        self.ts = 0 # time steps
 
         # all the methods
-        self.gating = gating #holds the Gating object
-        self.track_maintenance = track_maintenance #holds the track maintenance object
-        self.hypothesis_comp = hypothesis_comp #holds the hypothesis comp object
-        self.pruning = pruning #holds the pruning object
-        self.gating.kalman = global_kalman #set the gating object's kalman to the global kalman
-        self.cur_best_hypothesis = [] #holds the current best hypothesis
-        self.prev_best_hypotheses = [] #holds the previous best hypothesis
+        self.gating = gating # holds the Gating object
+        self.track_maintenance = track_maintenance # holds the track maintenance object
+        self.hypothesis_comp = hypothesis_comp # holds the hypothesis comp object
+        self.pruning = pruning # holds the pruning object
+        self.gating.kalman = global_kalman # set the gating object's kalman to the global kalman
+        self.cur_best_hypothesis = [] # holds the current best hypothesis
+        self.prev_best_hypotheses = [] # holds the previous best hypothesis
 
     def predict(self, measurements):
         """
@@ -234,13 +234,18 @@ class MHTTracker:
         # the best global hypothesis should not contain tracks that may be false alarms, but that hasn't been done yet
 
         time = self.ts - 1  # since ts is incrememented at the end of predict
-        possible_measurements = list(range(len(self.measurements[-1])))  # these are indexes
+        possible_measurements = list(range(len(self.measurements[-1])))  # get indices of all possible measurements
+
+        # Iterate through our best hypothesis to find which measurements should not be included as false alarms
         for track in self.cur_best_tracks:
+            # Test if the track is confirmed yet; if not, it is considered a false alarm
             if track.confirmed():  # this is redundant later because cur_best_tracks should all be confirmed
+                # If the track records the time step, set the observation in the track as not a false alarm
                 if time in track.observations.keys() and track.observations[time] is not None:
-                    possible_measurements[track.observations[time]] = None
+                    possible_measurements.remove(track.observations[time])
         # any measurement that is not in a "good" (confirmed and in best hyp) track is a false alarm
         result = [self.measurements[-1][p] for p in possible_measurements if p is not None]
+        print(result)
         return result
 
 

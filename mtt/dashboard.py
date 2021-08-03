@@ -278,6 +278,17 @@ app.layout = html.Div(children=[
                 placeholder=0.5
             )
         ], style=input_style),
+
+        html.Div(children=[
+            html.H6(children='Prune Time'),
+            dcc.Input(
+                id="prune_time",
+                type="number",
+                min=1,
+                max=100,
+                placeholder=4
+            )
+        ], style=input_style),
     ])
 ])
 
@@ -307,9 +318,10 @@ app.layout = html.Div(children=[
     State('P', 'value'),
     State('gate_size', 'value'),
     State('gate_expand_size', 'value'),
+    State('prune_time', 'value'),
     State('scoring_method', 'value')
 )
-def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, scoring_method):
+def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, prune_time, scoring_method):
     global prev_clicks
     global sim
     fig = prev_fig
@@ -342,8 +354,10 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             gate_size = 0.95
         if gate_expand_size is None:
             gate_expand_size = 0.5
+        if prune_time is None:
+            prune_time = 4
         if scoring_method is None:
-            scoring = scoring_method
+            scoring_method = "chi2"
 
         # Parse the Object Starting Positions
         x0_split = x0.split("|")
@@ -413,7 +427,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             "P": P_parse
         }
 
-        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, scoring_method = scoring_method))
+        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, prune_time=prune_time, scoring_method=scoring_method))
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly")
     if n_clicks != 0:
@@ -461,11 +475,11 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         desc = ''
         # Print out the parameters on the plot
-        """
+
         for key, value in sim.descs[0].items():
-            if key not in ["fep_at", "fep_ct", "fnu", "P", "Time Steps", "Gate Size", "Gate Expansion %", "FA Rate", "FA Scale"]:
+            if key not in ["Q", "R", "fep_at", "fep_ct", "fnu", "P", "Time Steps"]:
                 desc += key + " = " + value.replace("\n", "<br>").replace("[[", "<br> [").replace("]]","]") + "<br>"
-        """
+
         data = []
 
         # Get labels for the trajectory

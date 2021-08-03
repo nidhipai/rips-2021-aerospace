@@ -142,6 +142,18 @@ class Simulation:
 						self.sorted_measurements[len(self.sorted_measurements)-1][key] = []
 					self.sorted_measurements[len(self.sorted_measurements)-1][key].append(value)
 
+				self.descs[len(self.descs.keys()) - 1] = {**self.descs[len(self.descs.keys()) - 1], **{
+					"Q": str(self.tracker_model.kalman.Q),
+					"R": str(self.tracker_model.kalman.R),
+					"Gate Size": str(self.tracker_model.gating.error_threshold),
+					"Gate Expansion %": str(self.tracker_model.gating.expand_gating),
+					"Pruning": str(self.tracker_model.pruning.n),
+					"fep_at": str(self.tracker_model.kalman.Q[2][2]),
+					"fep_ct": str(self.tracker_model.kalman.Q[3][3]),
+					"fnu": str(self.tracker_model.kalman.R[0][0]),
+					"P": str(self.tracker_model.track_maintenance.P[0][0]),
+				}}
+
 		# Store the total time taken by the predict method of the tracker
 		self.time_taken[len(self.time_taken.keys())] = total_time
 
