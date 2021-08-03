@@ -78,7 +78,7 @@ app.layout = html.Div(children=[
             {'label': 'A Priori Error Covariance', 'value': 'apriori-covariance'},
             {'label': 'A Posteriori Error Covariance', 'value': 'aposteriori-covariance'}
         ],
-        value=['process', 'measure'],
+        value=['process', 'measure', 'trajectory'],
         labelStyle={'display': 'inline-block'},
         style={"margin-top": 10, "margin-left":20}
     ),
@@ -284,7 +284,7 @@ app.layout = html.Div(children=[
             dcc.Input(
                 id="prune_time",
                 type="number",
-                min=1,
+                min=0,
                 max=100,
                 placeholder=4
             )
@@ -334,29 +334,29 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
     if prev_clicks < n_clicks:
         prev_clicks = n_clicks
         # Set default parameters
-        if nu is None:
+        if nu is None or nu == "":
             nu = 1
-        if ep_tangent is None:
+        if ep_tangent is None or ep_tangent == "":
             ep_tangent = 1
-        if ep_normal is None:
+        if ep_normal is None or ep_normal == "":
             ep_normal = 1
-        if miss_p is None:
+        if miss_p is None or miss_p == "":
             miss_p = 0
-        if lam is None:
+        if lam is None or lam == "":
             lam = 0
-        if fa_scale is None:
+        if fa_scale is None or fa_scale == "":
             fa_scale = 10
-        if x0 is None:
+        if x0 is None or x0 == "":
             x0 = "0 0 1 1"
-        if seed is None:
+        if seed is None or seed == "":
             seed = "0"
-        if gate_size is None:
+        if gate_size is None or gate_size == "":
             gate_size = 0.95
-        if gate_expand_size is None:
+        if gate_expand_size is None or gate_expand_size == "":
             gate_expand_size = 0.5
-        if prune_time is None:
+        if prune_time is None or prune_time == "":
             prune_time = 4
-        if scoring_method is None:
+        if scoring_method is None or scoring_method == "chi2":
             scoring_method = "chi2"
 
         # Parse the Object Starting Positions

@@ -33,7 +33,10 @@ class TrackMaintenanceMHT:
         self.pruning_n = pruning_n
         self.record_scores = False
         self.scoring_method = scoring_method
-        self.P = P
+        if P is None:
+            self.P = np.eye(4)
+        else:
+            self.P = P
 
     def predict(self, ts, tracks, measurements):
 

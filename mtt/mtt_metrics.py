@@ -147,16 +147,17 @@ class MTTMetrics:
 			# If a point from a different process is closer, mark this as a swap by setting to NaN
 			for key2 in true_keys:
 				if key != key2:
-					proc2 = processes[key][:,period_alive]
+					proc2 = processes[key2][:,period_alive]
 					cur_dist = np.linalg.norm(traj - proc2, axis=0)
 					better = cur_dist < marked_dist
 					marked_dist[better] = np.nan
 			# Calculate the error for each time step when object is correctly identified (NaN)
 			# Note that NaNs at the beginning and end represent areas where the object was only partially tracked correctly
-			# This incorporates misses for objects we do identified at some point, but not perfectly
+			# This incorporates misses for objects we do identify at some point, but not perfectly
 			motp += marked_dist[~np.isnan(marked_dist)].sum()
 
 			# Calculate number of times object swaps
+			print("Test: {}".format(np.isnan(marked_dist).sum()))
 			mota += np.isnan(marked_dist).sum()
 
 			# Add to the tally of total objects and hypotheses at each time step
