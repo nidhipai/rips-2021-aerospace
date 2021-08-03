@@ -6,6 +6,7 @@ Simulation
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy, deepcopy
+import time
 from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
 from scipy.stats import chi2
@@ -59,6 +60,7 @@ class Simulation:
 		self.aposteriori_ellipses = dict()
 		self.false_alarms = dict()
 		self.sorted_measurements = dict()
+		self.time_taken = dict()
 
 	# the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
 	# data generator object to create the dictionary of processes and measures.
@@ -107,9 +109,13 @@ class Simulation:
 		self.false_alarms[len(self.false_alarms.keys())] = dict()
 		self.sorted_measurements[len(self.sorted_measurements)] = dict()
 
+		total_time = 0
 		for i in range(len(self.processes[index])):
 			# Obtain a set of guesses for the current location of the object given the measurements
-			self.tracker_model.predict(deepcopy(self.measures[index][i]))
+			next_measurement = deepcopy(self.measures[index][i])
+			start_time = time.process_time()
+			self.tracker_model.predict(next_measurement)
+			total_time += time.process_time() - start_time
 
 			if isinstance(self.tracker_model, MHTTracker):
 				self.trajectories[len(self.trajectories.keys())-1].append(self.tracker_model.get_trajectories())
@@ -135,6 +141,9 @@ class Simulation:
 					if key not in self.sorted_measurements[len(self.sorted_measurements)-1].keys():
 						self.sorted_measurements[len(self.sorted_measurements)-1][key] = []
 					self.sorted_measurements[len(self.sorted_measurements)-1][key].append(value)
+
+		# Store the total time taken by the predict method of the tracker
+		self.time_taken[len(self.time_taken.keys())] = total_time
 
 		# Store our output as an experiment
 		if isinstance(self.tracker_model, MTTTracker):
@@ -566,6 +575,7 @@ class Simulation:
 		self.aposteriori_ellipses = dict()
 		self.measure_colors = dict()
 		self.false_alarms = dict()
+		self.time_taken = dict()
 
 		# Clear stored tracks from the tracker
 		self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
@@ -742,7 +752,6 @@ class Simulation:
 				if key in correspondences.keys():
 					output[correspondences[key]] = [track_x, track_y]
 				else:
-					print("Key {} not found in correspondences table".format(key))
 					output["Unassigned {}".format(key)] = [track_x, track_y]
 			else:
 				output[key] = [track_x, track_y]
