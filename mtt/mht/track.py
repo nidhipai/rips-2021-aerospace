@@ -32,6 +32,9 @@ class Track:
         self.P_minus = self.P
         self.missed_measurements = 0
 
+    def __str__(self):
+        return "[OBJ ID: " + str(self.obj_id) + "   OBSERVATIONS: " + str(self.observations) + "   SCORE: " + str(self.score) + "]"
+
     def time_update(self, kalman_filter, ts):
         """
         We use the kalman filter to do the time update.
