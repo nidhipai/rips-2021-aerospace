@@ -37,6 +37,7 @@ class MHTTracker:
         self.measurements.append(measurements)
         print("___________ Time step: {} _________________________________".format(self.ts))
         print("Number of Tracks: {}".format(len(self.tracks)))
+        print("Measurements: ", measurements)
 
         # 1) assign all measurements to all tracks in all children of tree, AND...
         # 2) calculate the expected next position for each track using the time update equation
@@ -67,7 +68,7 @@ class MHTTracker:
         print("==========")
         print("BEST HYP: ")
         for track in self.cur_best_tracks:
-            print("TRACK ID: ", track.obj_id, "OBS: ", track.observations)
+            print("TRACK ID: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
         print("==========")
 
         # Remove tracks that do not lead to the best hypothesis within a certain number of time steps

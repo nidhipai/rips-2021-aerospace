@@ -30,13 +30,15 @@ class Pruning:
 		#print("R", required_obs)
 
 		# Test each track to see whether its initial sequence leads to a valid part of the tree
-		for track in tracks:
+
+		for i in reversed(range(len(tracks))):
+			track = tracks[i]
 			keep = False
 			# Extract the first part of the sequence of measurements, up to n
 			prev_ob = np.array(list(track.observations.values()))
 			# TODO: I'm not actually sure if this inequality is quite right.
 			# NOTE: The -1 might/might not be appropriate, and the strictness of the inequality might/might not be appropriate
-			if prev_ob.size - 0 - self.n <= 0:
+			if prev_ob.size - self.n - 0 <= 0:
 				continue
 			prev_ob = prev_ob[:(prev_ob.size - 0 - self.n)]
 
@@ -47,5 +49,5 @@ class Pruning:
 
 			# Remove the current track if its initial sequence of measurements does not match the current best hypothesis up to n
 			if not keep:
-				# print("THROWN: ", track.obj_id, "OBS: ", track.observations)
+				print("THROWN: ", track.obj_id, "OBS: ", track.observations)
 				tracks.remove(track)
