@@ -63,6 +63,7 @@ class Simulation:
 		self.atct_error = dict()
 		self.mota = dict()
 		self.motp = dict()
+		self.track_count = dict()
 		self.DEFAULT_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 	# the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
@@ -208,7 +209,7 @@ class Simulation:
 		self.atct_error[len(self.atct_error)] = MTTMetrics.atct_signed(process, trajectory)
 		all_keys = self.get_traj_keys(best_trajs)
 		self.motp[len(self.motp)], self.mota[len(self.mota)] = MTTMetrics.mota_motp(process, trajectory, all_keys)
-
+		self.track_count[len(self.track_count.keys())] = len(self.tracker_model.tracks)
 
 	def experiment(self, ts, test="data", **kwargs):
 		"""
@@ -280,7 +281,7 @@ class Simulation:
 			self.experiment(ts, test, **kwargs)
 
 		file = open(name, "w")
-		output = "Parameter\tValue\tMOTP\tMOTA\tTime\n"
+		output = "Parameter\tValue\tMOTP\tMOTA\tTime\tTrackCount\n"
 		file.write(output)
 
 		i = 0
@@ -291,16 +292,19 @@ class Simulation:
 				motp = 0
 				mota = 0
 				time_taken = 0
+				track_count = 0
 				for j in range(iter):
 					motp += self.motp[i + j*rows]
 					mota += self.mota[i + j*rows]
 					time_taken += self.time_taken[i + j*rows]
+					track_count += self.track_count[i + j*rows]
 				motp /= iter
 				mota /= iter
 				time_taken /= iter
+				track_count /= iter
 
 				# Format data and output to file
-				data = "{}\t{}\t{}\t{}\t{}\n".format(key, param, motp, mota, time_taken)
+				data = "{}\t{}\t{}\t{}\t{}\t{}\n".format(key, param, motp, mota, time_taken, track_count)
 				file.write(data)
 				output += data
 				i += 1
@@ -598,6 +602,7 @@ class Simulation:
 		self.atct_error = dict()
 		self.mota = dict()
 		self.motp = dict()
+		self.track_count = dict()
 
 		# Clear stored tracks from the tracker
 		self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
