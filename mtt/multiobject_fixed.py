@@ -40,8 +40,8 @@ class MultiObjFixed(DataGenerator):
 		self.x_lim = x_lim					# half-width of frame
 		self.y_lim = y_lim					# half-height of frame
 
-		self.new_obj_prop = new_obj_prop	# prob of new object spawning
-		self.num_objs = len(xt0) - 1
+		self.new_obj_prop = 0.2	# prob of new object spawning	TODO
+		self.num_objs = len(xt0) - 1		#								TODO
 
 		# We require our initial state vector to have all 4 needed components:
 		# x,y, velocity in the x direction, velocity in the y direction
@@ -50,12 +50,13 @@ class MultiObjFixed(DataGenerator):
 
 		# We set the process noise covariance matrix to
 		self.Q = np.diag(np.append(np.zeros(self.dim), np.append(np.array([ep_tangent]), np.array(ep_normal))))
-		self.R = np.eye(self.dim) * nu
+		self.R = np.eye(self.n) * nu
 
 		super().__init__(xt0, dt, self.Q, self.R)
 
 		# Jacobian matrices for the h function and the f function.
-		self.H = np.append(np.eye(self.dim), np.zeros((self.dim, self.dim)), axis=1)
+		#self.H = np.append(np.eye(self.dim), np.zeros((self.dim, self.dim)), axis=1)
+		self.H = np.eye(self.n)
 		self.A = np.append(np.append(np.eye(self.dim), np.eye(self.dim) * self.dt, axis=1),
 						   np.append(np.zeros((self.dim, self.dim)), np.eye(self.dim), axis=1), axis=0)
 		self.nu = nu  # measurement noise variance
@@ -71,13 +72,15 @@ class MultiObjFixed(DataGenerator):
 		output = dict()
 		# Iterate through each state in the list of previous object states
 		for xt_key, xt_prev in xt_prevs.items():
-			#if abs(xt_prev[0]) > self.x_lim or abs(xt_prev[1]) > self.y_lim:
-				#continue
+			if abs(xt_prev[0]) > self.x_lim or abs(xt_prev[1]) > self.y_lim:
+				continue
 			# calculate the next state and add to output
 			output[xt_key] = self.A @ xt_prev + self.dt*self.process_noise(xt_prev, rng)
 
 		# With probability self.new_obj_prop, create new object on side of frame
+		print("ALMOST NEW OBJECT", self.new_obj_prop)
 		if rng.random() < self.new_obj_prop:
+			print("NEW OBJECT")
 			self.num_objs += 1
 			side = rng.random()
 			c = rng.random() - 0.5
@@ -115,8 +118,7 @@ class MultiObjFixed(DataGenerator):
 		colors = []
 		for xt in xts.values():
 			# Calculate whether the measurement is missed
-			# NOTE TODO: Should this be rng.random() instead of np.random.rand()?
-			if np.random.rand() > self.miss_p:
+			if rng.random() > self.miss_p:
 				output.append(self.H @ xt + self.measure_noise(rng))
 				colors.append("black")
 
@@ -130,7 +132,10 @@ class MultiObjFixed(DataGenerator):
 		"""
 		Generate measure noise
 		"""
-		return rng.normal(scale=self.nu, size=(self.dim, 1))
+		#return rng.normal(scale=self.nu, size=(self.dim, 1))
+		output = rng.normal(0, np.sqrt(self.nu), self.n)
+		output.shape = (4, 1)
+		return output
 
 	def process_noise(self, xt, rng):
 
@@ -146,7 +151,6 @@ class MultiObjFixed(DataGenerator):
 		pad = np.array([0, 0])
 		rotation = self.W(xt)[2:4, 2:4]
 		noise = rng.multivariate_normal((0, 0), rotation @ self.Q[2:4, 2:4] @ rotation.T)
-		#print(noise, xt)
 		output = np.append(pad, noise)
 		output.shape = (4, 1)
 		return output
