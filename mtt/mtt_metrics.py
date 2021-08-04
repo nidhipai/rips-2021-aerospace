@@ -128,8 +128,9 @@ class MTTMetrics:
 		mota = 0
 		total_possibilities = 0
 
-
-		#TODO: Simplify use of traj_keys in this algorithm
+		# Handle case for when there are no trajectories or processes
+		if len(trajectories) == 0 or len(processes) == 0:
+			return 0, 0
 
 		# Record the number of true and false keys
 		true_keys = [key for key in traj_keys if type(key) is int]
@@ -159,7 +160,6 @@ class MTTMetrics:
 			motp += marked_dist[~np.isnan(marked_dist)].sum()
 
 			# Calculate number of times object swaps
-			#print("Test: {}".format(np.isnan(marked_dist).sum()))
 			mota += np.isnan(marked_dist).sum()
 
 			# Add to the tally of total objects and hypotheses at each time step
@@ -172,15 +172,14 @@ class MTTMetrics:
 
 			# Count how many time steps an entry is actually added
 			false_objs = np.sum(~np.isnan(traj)[0])
+			print(false_objs)
 
 			# Add to MOTA and to the tally of total objects and hypotheses at each time step
-			mota += false_objs
 			total_possibilities += false_objs
 
 		# Count all of the times that the algorithm failed to detect a true process (not counting swaps) and add to the MOTA
 		for proc in range(len(true_keys), len(processes)):
-			undetected_objs = np.sum(~np.isnan(proc)[0])
-			mota += undetected_objs
+			undetected_objs = np.sum(~np.isnan(processes[proc])[0])
 			total_possibilities += undetected_objs
 
 
@@ -191,8 +190,6 @@ class MTTMetrics:
 		motp = motp / len(true_keys)
 
 		# Tally number of objects and hypotheses at each time step
-		#print(mota)
-		#print(total_possibilities)
 		mota = 1 - (mota / total_possibilities)
 		return motp, mota
 
