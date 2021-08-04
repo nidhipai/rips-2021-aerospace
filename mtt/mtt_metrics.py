@@ -126,8 +126,9 @@ class MTTMetrics:
 		mota = 0
 		total_possibilities = 0
 
-
-		#TODO: Simplify use of traj_keys in this algorithm
+		# Handle case for when there are no trajectories or processes
+		if len(trajectories) == 0 or len(processes) == 0:
+			return 0, 0
 
 		# Record the number of true and false keys
 		true_keys = [key for key in traj_keys if type(key) is int]
