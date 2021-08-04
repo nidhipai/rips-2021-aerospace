@@ -170,7 +170,6 @@ class MTTMetrics:
 
 			# Count how many time steps an entry is actually added
 			false_objs = np.sum(~np.isnan(traj)[0])
-			print(false_objs)
 
 			# Add to MOTA and to the tally of total objects and hypotheses at each time step
 			total_possibilities += false_objs
