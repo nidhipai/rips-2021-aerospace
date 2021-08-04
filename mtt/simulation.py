@@ -3,7 +3,6 @@ Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
 Aerospace Team
 Simulation
 """
-import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy, deepcopy
 import time
@@ -15,7 +14,6 @@ from .pipeline.track_maintenance import TrackMaintenance
 from .pipeline.gating import DistanceGating
 from .tracker2 import MTTTracker
 from .mht.tracker3 import MHTTracker
-
 
 from .metrics import *
 
@@ -60,6 +58,7 @@ class Simulation:
 		self.false_alarms = dict()
 		self.sorted_measurements = dict()
 		self.time_taken = dict()
+		self.DEFAULT_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 	# the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
 	# data generator object to create the dictionary of processes and measures.
@@ -336,7 +335,6 @@ class Simulation:
 		else:
 			print("Number of dimensions cannot be graphed (error plot).")
 
-	'''We plot our trajectory based on the predicted trajectories given by the kalman filter object. '''
 	def plot(self, var="Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0, tail = 0):
 		"""
 		Plot our trajectory based on the predicted trajectories given by the kalman filter object.
@@ -359,17 +357,18 @@ class Simulation:
 		# Convert stored experiments into numpy matrices for plotting
 		# (or list for measures)
 		if len(self.processes) > 0:
-			process = self.processes[index]
-			process = self.clean_process(process)
+			process = self.clean_process(self.processes[index])
 
 		correspondences = None
 		if len(self.trajectories) > 0:
 			# TO DO: Need a better distance gate than inf
 			if isinstance(self.tracker_model, MHTTracker):
-				output, correspondences = self.get_best_correspondence(np.inf, index)
+				best_trajs, correspondences = self.get_best_correspondence(np.inf, index)
 			else:
-				output = self.trajectories[index]
-			output = self.clean_trajectory(output)
+				best_trajs = self.trajectories[index]
+
+			output = self.clean_trajectory(best_trajs)
+			all_keys = self.get_traj_keys(best_trajs)
 
 		if len(self.measures) > 0:
 			sorted_measures = self.sorted_measurements[index]
@@ -390,8 +389,7 @@ class Simulation:
 		# Select proper ellipses to plot
 		ellipses = None
 		if len(self.apriori_ellipses) > index:
-			ellipses = self.apriori_ellipses[index]
-			ellipses = self.clean_ellipses(ellipses)
+			ellipses = self.clean_ellipses(self.apriori_ellipses[index])
 
 		# Modify the legend
 		legend_size = 14
@@ -411,29 +409,30 @@ class Simulation:
 			if len(self.processes) > 0:
 				for i, obj in enumerate(process):
 					if tail > 0:
-						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=proc_size, markersize=8, marker=',')
+						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=proc_size, markersize=8, marker=',', color=self.DEFAULT_COLORS[i % len(self.DEFAULT_COLORS)])
 					else:
-						line1, = ax.plot(obj[0], obj[1], lw=proc_size, markersize=8, marker=',')
+						line1, = ax.plot(obj[0], obj[1], lw=proc_size, markersize=8, marker=',', color=self.DEFAULT_COLORS[i % len(self.DEFAULT_COLORS)])
 					lines.append(line1)
-					labs.append("Obj" + str(i) + " Process")
+					labs.append("Obj " + str(i) + " Process")
 
 			# Add the predicted trajectories to the plot
 			if len(self.trajectories) > 0:
 				for i, out in enumerate(output):
 					if out is not None:
 						if tail > 0:
-							line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=traj_size, markersize=8, marker=',')
+							line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=traj_size, markersize=8, marker=',', linestyle='--', color=self.DEFAULT_COLORS[i % len(self.DEFAULT_COLORS)])
 						else:
-							line3, = ax.plot(out[0], out[1], lw=traj_size, markersize=8, marker=',')
+							line3, = ax.plot(out[0], out[1], lw=traj_size, markersize=8, marker=',', linestyle='--', color=self.DEFAULT_COLORS[i % len(self.DEFAULT_COLORS)])
 						lines.append(line3)
-						labs.append("Obj" + str(i) + " Filter")
+						labs.append("Obj " + str(all_keys[i]) + " Filter")
 
 			# Add the measures to the plot - the colors of a measurement correspond to which track the filter thinks it belongs to
 			if len(measure.values()) != 0:
-				for key, value in measure.items():
-					linex = ax.scatter(value[0], value[1], s=measure_dot_size, marker='x')
-					lines.append(linex)
-					labs.append("Obj" + str(key) + " Associated Measure")
+				for i, key in enumerate(all_keys):
+					if key in measure.keys():
+						linex = ax.scatter(measure[key][0], measure[key][1], s=measure_dot_size, marker='o', color=self.DEFAULT_COLORS[i % len(self.DEFAULT_COLORS)])
+						lines.append(linex)
+						labs.append("Obj " + str(key) + " Associated Measure")
 
 			# plot what we think are false_alarms
 			if len(false_alarms) > 0:
@@ -523,8 +522,6 @@ class Simulation:
 		else:
 			print("Number of dimensions cannot be graphed.")
 
-	'''the plot_all function takes in a variable name, and an ellipse frequency between 0 and 1. Then, all stored experiments
-	are plotted in one single figure with subplots'''
 	def plot_all(self, var="Time Steps", error=False, test="data", labs=("Process", "Filter", "Measure"), ellipse_freq = 0):
 		"""
 		This function takes in a variable name, and an ellipse frequency between 0 and 1.
@@ -844,7 +841,7 @@ class Simulation:
 				# key = the id of the process
 				# value = the value of the trajectory associated with said process at this iteration
 				correspondences[traj_ids_considering[best_traj]] = proc_ids_considering[best_proc]
-			print(correspondences)
+
 			# Generate the output for this time step using the correspondences dictionary
 			for traj_id, traj in self.trajectories[index][i].items():
 				if traj_id in correspondences.keys():
