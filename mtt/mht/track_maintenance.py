@@ -125,9 +125,9 @@ class TrackMaintenanceMHT:
                 new_tracks.append(new_track)
                 self.num_objects += 1
 
-        print("Number of new tracks: ", len(new_tracks))
-        for track in new_tracks:
-            print(track)
+        #print("Number of new tracks: ", len(new_tracks))
+        #for track in new_tracks:
+            #print(track)
 
         return new_tracks
 
@@ -172,7 +172,9 @@ class TrackMaintenanceMHT:
             #test_stat += diff.T @ np.linalg.inv(self.R * (1 + vel)) @ diff
             #test_stat += diff.T @ np.linalg.inv(self.R) @ diff
             Q = self.kFilter_model.Q
-            test_stat += diff.T @ np.linalg.inv((self.R + W @ Q @ W.T) * (1 + vel)) @ diff
+            #test_stat += diff.T @ np.linalg.inv((self.R + W @ Q @ W.T) * (1 + vel)) @ diff
+            test_stat += diff.T @ np.linalg.inv(self.R + track.P_minus) @ diff
+            #test_stat += diff.T @ np.linalg.inv(self.R + track.P_minus + W @ Q @ W.T) @ diff
             test_stat = test_stat[0,0] # Remove numpy array wrapping
 
             # Finally, convert back to a p-value, but with an additional degree of freedom

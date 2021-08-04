@@ -845,7 +845,7 @@ class Simulation:
 				# key = the id of the process
 				# value = the value of the trajectory associated with said process at this iteration
 				correspondences[traj_ids_considering[best_traj]] = proc_ids_considering[best_proc]
-			print(correspondences)
+			#print(correspondences)
 			# Generate the output for this time step using the correspondences dictionary
 			for traj_id, traj in self.trajectories[index][i].items():
 				if traj_id in correspondences.keys():
