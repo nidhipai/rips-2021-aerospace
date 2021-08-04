@@ -32,6 +32,9 @@ class Track:
         self.P_minus = self.P
         self.missed_measurements = 0
 
+        #testing
+        self.test_stat = 20
+
     def time_update(self, kalman_filter, ts):
         """
         We use the kalman filter to do the time update.
@@ -68,6 +71,13 @@ class Track:
         self.aposteriori_P[ts] = self.P
 
     def confirmed(self):
-        num_observations = len(self.observations.values())
-        return num_observations > self.pruning_n
+        num_observation = len(self.observations.values())
+        return num_observation > self.pruning_n
+
+    # def confirmed(self):
+    #     num_observations = (self.num_observations() + len(self.observations.values()))
+    #     return num_observations > self.pruning_n
+
+    def num_observations(self):
+        return sum(x is not None for x in list(self.observations.values()))
 
