@@ -10,7 +10,6 @@ import time
 from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
 from scipy.stats import chi2
-from scipy.optimize import linear_sum_assignment
 
 from .pipeline.track_maintenance import TrackMaintenance
 from .pipeline.gating import DistanceGating
