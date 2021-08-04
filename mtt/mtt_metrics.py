@@ -173,13 +173,11 @@ class MTTMetrics:
 			false_objs = np.sum(~np.isnan(traj)[0])
 
 			# Add to MOTA and to the tally of total objects and hypotheses at each time step
-			mota += false_objs
 			total_possibilities += false_objs
 
 		# Count all of the times that the algorithm failed to detect a true process (not counting swaps) and add to the MOTA
 		for proc in range(len(true_keys), len(processes)):
-			undetected_objs = np.sum(~np.isnan(proc)[0])
-			mota += undetected_objs
+			undetected_objs = np.sum(~np.isnan(processes[proc])[0])
 			total_possibilities += undetected_objs
 
 
@@ -190,8 +188,6 @@ class MTTMetrics:
 		motp = motp / len(true_keys)
 
 		# Tally number of objects and hypotheses at each time step
-		print(mota)
-		print(total_possibilities)
 		mota = 1 - (mota / total_possibilities)
 		return motp, mota
 
