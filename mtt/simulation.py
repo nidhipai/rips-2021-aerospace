@@ -18,6 +18,9 @@ from .mht.tracker3 import MHTTracker
 
 from .mtt_metrics import MTTMetrics
 
+import sys, os
+
+
 from matplotlib.patches import Ellipse
 plt.rcParams["figure.figsize"] = (12, 8)
 
@@ -204,9 +207,7 @@ class Simulation:
 		trajectory = self.clean_trajectory(best_trajs)
 		self.atct_error[len(self.atct_error)] = MTTMetrics.atct_signed(process, trajectory)
 		all_keys = self.get_traj_keys(best_trajs)
-		print(trajectory)
 		self.motp[len(self.motp)], self.mota[len(self.mota)] = MTTMetrics.mota_motp(process, trajectory, all_keys)
-
 
 
 	def experiment(self, ts, test="data", **kwargs):
@@ -232,6 +233,8 @@ class Simulation:
 				for arg in kwargs.items():
 					for value in arg[1]:
 						self.generator = self.generator.mutate(**{arg[0]: value})
+						# Reset rng value so we can run the same experiment but with different parameters
+						self.rng = np.random.default_rng(self.cur_seed)
 						self.generate(ts_item)
 						self.predict()
 		# If we are testing multiple potential values of parameters for the filter, we generate one set of data and for
@@ -247,7 +250,7 @@ class Simulation:
 							self.descs[len(self.descs)] = self.descs[len(self.descs)-1]
 						self.predict(index = i, **{arg[0]: value})
 		else:
-			print("Not a valid test type. Choose either data or filter")
+			raise Exception("Not a valid test type. Choose either \"data\" or \"filter\"")
 
 	def experiment_plot(self, ts, var, plot_error_q=False, test="data", **kwargs):
 		"""
@@ -267,6 +270,43 @@ class Simulation:
 		self.plot_all(var)
 		if plot_error_q:
 			self.plot_all(error=True, var=var)
+
+	def test_tracker_model(self, ts, name, iter=3, test="data", **kwargs):
+		self.clear()
+		metrics = dict()
+		for k in range(iter):
+			if self.seed_value == 0:
+				self.cur_seed = np.random.randint(10 ** 7)
+			self.experiment(ts, test, **kwargs)
+
+		file = open(name, "w")
+		output = "Parameter\tValue\tMOTP\tMOTA\tTime\n"
+		file.write(output)
+
+		i = 0
+		rows = sum([len(kwargs[key]) for key in kwargs.keys()])
+		for key in kwargs.keys():
+			for param in kwargs[key]:
+				# Calculate the average values for MOTP, MOTA, and Time
+				motp = 0
+				mota = 0
+				time_taken = 0
+				for j in range(iter):
+					motp += self.motp[i + j*rows]
+					mota += self.mota[i + j*rows]
+					time_taken += self.time_taken[i + j*rows]
+				motp /= iter
+				mota /= iter
+				time_taken /= iter
+
+				# Format data and output to file
+				data = "{}\t{}\t{}\t{}\t{}\n".format(key, param, motp, mota, time_taken)
+				file.write(data)
+				output += data
+				i += 1
+
+		file.close()
+		return output
 
 	def plot_error(self, index=None, ax=None, title="Error", var="Seed"):
 		"""
