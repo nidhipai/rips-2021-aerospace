@@ -44,13 +44,14 @@ class MTTMetrics:
 		i = 0
 		errors = []
 		for process in processes:
-			l = len(process[0])
-			diff_x = process[0] - trajectos[i][0][:l]
-			diff_y = process[1] - trajectos[i][1][:l]
+			if i >= len(trajectos):
+				break
+			diff_x = process[0] - trajectos[i][0]
+			diff_y = process[1] - trajectos[i][1]
 			vx = process[2]
 			vy = process[3]
-			diff_vx = vx - trajectos[i][2][:l]
-			diff_vy = vy - trajectos[i][3][:l]
+			diff_vx = vx - trajectos[i][2]
+			diff_vy = vy - trajectos[i][3]
 			angles = np.arctan2(vy, vx)
 			j = 0
 			diff_at = []

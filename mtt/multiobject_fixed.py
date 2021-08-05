@@ -40,9 +40,7 @@ class MultiObjFixed(DataGenerator):
 		self.x_lim = x_lim					# half-width of frame
 		self.y_lim = y_lim					# half-height of frame
 
-		print("NOP", new_obj_prop)
 		self.new_obj_prop = new_obj_prop	# prob of new object spawning	TODO
-		print("NOP2", self.new_obj_prop)
 		self.num_objs = len(xt0) - 1		#								TODO
 
 		# We require our initial state vector to have all 4 needed components:
