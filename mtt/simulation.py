@@ -677,22 +677,6 @@ class Simulation:
 			return ellipse
 
 	@staticmethod
-	def clean_process(processes):
-		"""
-		Converts a single process from a dictionary of lists of state vectors to a list of numpy arrays
-		representing the position at each time step for plotting
-		"""
-		output = list(repeat(np.empty((4, 1)), max([key for step in processes for key in step.keys()]) + 1))
-		for step in processes:
-			for key, value in step.items():
-				output[key] = np.append(output[key], value, axis=1)
-		# Remove the filler values from the start of each array
-		# and only keep the values representing position
-		for i, arr in enumerate(output):
-			output[i] = arr[:, 1:]
-		return output
-
-	@staticmethod
 	def clean_measure(measure):
 		output = [point for sublist in measure for point in sublist]
 		output = np.array(output).squeeze().T
@@ -701,12 +685,9 @@ class Simulation:
 	@staticmethod
 	def clean_trajectory(trajectories):
 		"""
-		Converts a single trajectory from a dictionary of lists of state vectors to a list of numpy arrays
+		Converts a single trajectory or process from a dictionary of lists of state vectors to a list of numpy arrays
 		representing the position at each time step for plotting.
 		"""
-
-		# TO DO: None-pad the trajectories that don't start at the first time step
-
 		output = []
 
 		# Determine how many unique trajectories are contained within the current
@@ -747,16 +728,6 @@ class Simulation:
 				else:
 					output[i] = np.append(output[i], np.array([[np.nan],[np.nan],[np.nan],[np.nan]]), axis=1)
 
-		"""
-		output = list(repeat(np.empty((4, 1)), max([key for step in trajectories for key in step.keys()]) + 1))
-		for step in trajectories: # iterate over each of the timesteps
-			for key, value in step.items(): # each timestep is a dict of object predictions
-				output[key] = np.append(output[key], value, axis=1) if value is not None else None
-		# Remove the filler values from the start of each array
-		# and only keep the values representing position
-		for i, arr in enumerate(output):
-			output[i] = arr[:, 1:] if output[i] is not None else None
-		"""
 		return output
 
 
