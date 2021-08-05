@@ -32,7 +32,7 @@ class MultiObjSimple(DataGenerator):
 
 		self.ep_tangent = ep_tangent    # variance of the process noise tangent to the velocity vector
 		self.ep_normal = ep_normal		# variance of the process noise normal to the velocity vector
-		self.nu = nu					# variance of the measuremet noise.
+		self.nu = nu					# variance of the measurement noise.
 		self.miss_p = miss_p			# proportion of missed measurements in the generation of the data.
 		self.lam = lam
 		self.fa_scale = fa_scale
@@ -114,7 +114,7 @@ class MultiObjSimple(DataGenerator):
 		Returns:
 			ndarray: Random changes in state vector
 		"""
-		output = rng.normal(0, self.nu, self.n)
+		output = rng.normal(0, np.sqrt(self.nu), self.n)
 		output.shape = (4,1)
 		return output
 

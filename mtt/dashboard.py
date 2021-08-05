@@ -11,7 +11,6 @@ from copy import copy
 #Declare these as global variables to be used by all callbacks
 global sim
 global prev_clicks
-global num_objects
 prev_clicks = 0
 num_objects = 1
 
@@ -50,7 +49,10 @@ gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa
 
 
 #Set up a default tracker and simulation
-tracker = mtt.MTTTracker(mtt.Presets.standardSHT(num_objects, gen.get_params()))
+# Old SHT tracker
+# tracker = mtt.Presets.standardSHT(num_objects, gen.get_params())
+# New MHT tracker
+tracker = mtt.Presets.standardMHT(gen.get_params(), miss_p, lam)
 sim = mtt.Simulation(gen, tracker, seed_value = 0)
 
 #Create blank figures to display at start
@@ -75,9 +77,16 @@ app.layout = html.Div(children=[
             {'label': 'A Priori Error Covariance', 'value': 'apriori-covariance'},
             {'label': 'A Posteriori Error Covariance', 'value': 'aposteriori-covariance'}
         ],
-        value=['process', 'measure'],
+        value=['process', 'measure', 'trajectory'],
         labelStyle={'display': 'inline-block'},
         style={"margin-top": 10, "margin-left":20}
+    ),
+    dcc.Checklist(id='display_params',
+        options=[
+            {'label': 'Display Parameters on Graph?', 'value': 'True'}
+        ],
+        value=['True'],
+        style={"margin-left":20}
     ),
     html.Div(children=[
         dcc.Graph(
@@ -100,8 +109,18 @@ app.layout = html.Div(children=[
         ], style=output_style),
 
         html.Div(children=[
-            html.H6(children='Root Mean Squared Error'),
-            html.Div(id='rmse-output', style={'whiteSpace': 'pre-line'})
+            html.H6(children='Multi-Object Tracking Precision'),
+            html.Div(id='motp-output', style={'whiteSpace': 'pre-line'})
+        ], style=output_style),
+
+        html.Div(children=[
+            html.H6(children='Multi-Object Tracking Accuracy'),
+            html.Div(id='mota-output', style={'whiteSpace': 'pre-line'})
+        ], style=output_style),
+
+        html.Div(children=[
+            html.H6(children='Time Taken (s)'),
+            html.Div(id='time-taken', style={'whiteSpace': 'pre-line'})
         ], style=output_style),
     ]),
 
@@ -115,9 +134,22 @@ app.layout = html.Div(children=[
                 min=1,
                 max=1000,
                 step=1,
-                placeholder=10
+                placeholder=15
             )
         ], style=input_style),
+
+    html.H6(children="Scoring Method"),
+
+    dcc.RadioItems(
+        options=[
+            {'label': 'Log Likelihood', 'value': 'loglikelihood'},
+            {'label': 'Distance', 'value': 'distance'},
+            {'label': 'Chi Squared', 'value': 'chi2'}
+        ],
+    value='chi2',
+    id = 'scoring_method',
+    labelStyle={'display': 'inline-block'}
+    ),
 
         html.Div(children=[
             html.H6(children='Measure Noise'),
@@ -252,6 +284,17 @@ app.layout = html.Div(children=[
                 placeholder=0.5
             )
         ], style=input_style),
+
+        html.Div(children=[
+            html.H6(children='Prune Time'),
+            dcc.Input(
+                id="prune_time",
+                type="number",
+                min=0,
+                max=100,
+                placeholder=4
+            )
+        ], style=input_style),
     ])
 ])
 
@@ -260,7 +303,9 @@ app.layout = html.Div(children=[
     Output('example-graph', 'figure'), # Outputs are the graphs
     Output('error-graph', 'figure'),
     Output('seed-output', 'children'),
-    Output('rmse-output', 'children'),
+    Output('motp-output', 'children'),
+    Output('mota-output', 'children'),
+    Output('time-taken', 'children'),
     Input('example-graph', 'figure'), # Inputs are the graphs, the button being clicked, and the check box
     Input('error-graph', 'figure'),
     Input('run', 'n_clicks'),
@@ -278,39 +323,48 @@ app.layout = html.Div(children=[
     State('R', 'value'),
     State('P', 'value'),
     State('gate_size', 'value'),
-    State('gate_expand_size', 'value')
+    State('gate_expand_size', 'value'),
+    State('prune_time', 'value'),
+    State('scoring_method', 'value'),
+    State('display_params', 'value')
 )
-def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size):
+def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, prune_time, scoring_method, display_params):
     global prev_clicks
     global sim
     fig = prev_fig
     err = prev_err
-    rmse = 0
+    mota = 0
+    motp = 0
+    time_taken = 0
     if ts is None:
-        ts = 10
+        ts = 15
     if prev_clicks < n_clicks:
         prev_clicks = n_clicks
         # Set default parameters
-        if nu is None:
+        if nu is None or nu == "":
             nu = 1
-        if ep_tangent is None:
+        if ep_tangent is None or ep_tangent == "":
             ep_tangent = 1
-        if ep_normal is None:
+        if ep_normal is None or ep_normal == "":
             ep_normal = 1
-        if miss_p is None:
+        if miss_p is None or miss_p == "":
             miss_p = 0
-        if lam is None:
+        if lam is None or lam == "":
             lam = 0
-        if fa_scale is None:
+        if fa_scale is None or fa_scale == "":
             fa_scale = 10
-        if x0 is None:
+        if x0 is None or x0 == "":
             x0 = "0 0 1 1"
-        if seed is None:
+        if seed is None or seed == "":
             seed = "0"
-        if gate_size is None:
+        if gate_size is None or gate_size == "":
             gate_size = 0.95
-        if gate_expand_size is None:
+        if gate_expand_size is None or gate_expand_size == "":
             gate_expand_size = 0.5
+        if prune_time is None or prune_time == "":
+            prune_time = 4
+        if scoring_method is None or scoring_method == "chi2":
+            scoring_method = "chi2"
 
         # Parse the Object Starting Positions
         x0_split = x0.split("|")
@@ -319,8 +373,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         for i, item in enumerate(x0_split):
             x0_parse[i] = np.array(item.strip().split(" ")).astype(float)
             x0_parse[i].shape = (4,1)
-
-        num_objects = len(x0_parse.items())
 
         """
         if x0_filter is not None:
@@ -366,7 +418,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         #Set up the simulation with the newly specified parameters
         sim.seed_value = int(seed)
-        sim.clear()
+        sim.clear(lam, miss_p)
         sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale)
 
         params = {
@@ -380,13 +432,17 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             "P": P_parse
         }
 
-        sim.reset_tracker(mtt.MTTTracker(mtt.Presets.standardSHT(num_objects, params, gate_size=gate_size, gate_expand_size=gate_expand_size)))
+        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, prune_time=prune_time, scoring_method=scoring_method))
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly")
-
     if n_clicks != 0:
         # Generate all variables to plot
         processes = sim.clean_process(sim.processes[0])
+
+        best_trajs, correspondences = sim.get_best_correspondence(np.inf)
+        trajectories = sim.clean_trajectory(best_trajs)
+        skip_traj = trajectories[-1] is None
+
 
         colors = sim.clean_measure(sim.measure_colors[0])
         # If there are no measures, we must skip plotting them
@@ -394,16 +450,13 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         if(colors.size > 0):
             measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
             measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
-            measures = sim.clean_measure2(sim.sorted_measurements[0])
+            measures = sim.clean_measure2(sim.sorted_measurements[0], correspondences)
         else:
             skip_measures = True
             measures_true = np.array([])
             measures_false = np.array([])
         false_alarms = sim.false_alarms[0]
         false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
-
-        trajectories = sim.clean_trajectory(sim.trajectories[0])
-        skip_traj = trajectories[-1] is None
 
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
@@ -443,29 +496,36 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         desc = ''
         # Print out the parameters on the plot
-        """
-        for key, value in sim.descs[0].items():
-            if key not in ["fep_at", "fep_ct", "fnu", "P", "Time Steps", "Gate Size", "Gate Expansion %", "FA Rate", "FA Scale"]:
-                desc += key + " = " + value.replace("\n", "<br>").replace("[[", "<br> [").replace("]]","]") + "<br>"
-        """
+
+        if "True" in display_params:
+            for key, value in sim.descs[0].items():
+                if key not in ["Q", "R", "fep_at", "fep_ct", "fnu", "P", "Time Steps"]:
+                    desc += key + " = " + value.replace("\n", "<br>").replace("[[", "<br> [").replace("]]","]") + "<br>"
+
         data = []
+
+        # Get labels for the trajectory
+        # Need a mapping from trajectory list index to process list index
+        all_keys = sim.get_traj_keys(best_trajs)
 
         if 'process' in options:
             for i, process in enumerate(processes):
                 # NOTE: the "time" text here assumes all objects are on-screen for an equal number of time steps;
                 # Otherwise "time" will be incorrect
-                data.append(go.Scatter(x=process[0], y=process[1], mode='lines', name='Obj {} Process'.format(i), text=time, line=dict(color=DEFAULT_COLORS[i])))
+                data.append(go.Scatter(x=process[0], y=process[1], mode='lines', name='Obj {} Process'.format(i), text=time, line=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
         if 'measure' in options and not skip_measures:
-            for key, value in measures.items():
-                # NOTE: no time step added
-                data.append(go.Scatter(x=value[0], y=value[1], mode='markers', name="Measures Assigned Obj {}".format(key),
-                                     marker=dict(color=DEFAULT_COLORS[key])))
+            for i, key in enumerate(all_keys):
+                if key in measures.keys():
+                    # NOTE: no time step added
+                    data.append(go.Scatter(x=measures[key][0], y=measures[key][1], mode='markers', name="Measures Assigned Obj {}".format(key),
+                                         marker=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
+
             data.append(go.Scatter(x=false_alarms[0], y=false_alarms[1], mode='markers', name="False Alarms",
                                 marker=dict(color="black", symbol="x")))
-        if 'trajectory' in options and not skip_traj:
-            for i, trajectory in enumerate(trajectories):
-                data.append(go.Scatter(x=trajectory[0], y=trajectory[1], mode='lines',
-                                         name='Obj {} Prediction'.format(i), text=time, line=dict(width=3, dash='dot', color=DEFAULT_COLORS[i])))
+        if 'trajectory' in options:
+            for i, key in enumerate(all_keys):
+                data.append(go.Scatter(x=trajectories[i][0], y=trajectories[i][1], mode='lines',
+                                         name='Obj {} Prediction'.format(key), text=time, line=dict(width=3, dash='dot', color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
         if 'apriori-covariance' in options:
             xs = []
             ys = []
@@ -519,6 +579,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
             err.add_trace(go.Scatter(y=obj_error[3], x=list(range(len(obj_error[3]))), mode='lines', name="Obj {} Cross-track Velocity Error".format(i)))
 
         frames = []
+
         for t in range(ts):
             scatters = []
             if 'process' in options:
@@ -530,17 +591,18 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                                    text=time))
 
             if 'measure' in options and not skip_measures:
-                for key, value in measures.items():
-                    # NOTE: no time step added
-                    scatters.append(go.Scatter(x=value[0][:(t+1)], y=value[1][:(t+1)], mode='markers', name="Measures Assigned Obj {}".format(key),
-                                   marker=dict(color=DEFAULT_COLORS[key])))
+                for i, key in enumerate(all_keys):
+                    if key in measures.keys():
+                        # NOTE: no time step added
+                        scatters.append(go.Scatter(x=measures[key][0][:(t+1)], y=measures[key][1][:(t+1)], mode='markers', name="Measures Assigned Obj {}".format(key),
+                                       marker=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
                 scatters.append(go.Scatter(x=false_alarms[0][:(t+1)], y=false_alarms[1][:(t+1)], mode='markers', name="False Alarms",
                                        marker=dict(color="black", symbol="x")))
 
             if 'trajectory' in options and not skip_traj:
-                for i, trajectory in enumerate(trajectories):
-                    scatters.append(go.Scatter(x=trajectory[0, :(t+1)], y=trajectory[1, :(t+1)], mode='lines',
-                                             name='Object {} Prediction'.format(i), text=time, line=dict(width=3, dash='dash')))
+                for i, key in enumerate(all_keys):
+                    scatters.append(go.Scatter(x=trajectories[i][0, :(t+1)], y=trajectories[i][1, :(t+1)], mode='lines',
+                                             name='Object {} Prediction'.format(key), text=time, line=dict(width=3, dash='dash')))
 
             frames.append(go.Frame(data=scatters))
 
@@ -581,11 +643,10 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                                ],"pad": {"r": 30, "t": 30}}]
                            )
 
+        #rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
+        #num_measures = sum([len(time_step) for time_step in sim.measures[0]])
         if not skip_traj:
-            rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
-        else:
-            rmse = -1
-        #print(rmse)
+            mota, motp = mtt.MTTMetrics.mota_motp(processes, trajectories, all_keys)
         fig = go.Figure(data=data, layout=layout, frames=frames)
         fig.update_xaxes(tickfont_size=fontsize)
         fig.update_yaxes(tickfont_size=fontsize)
@@ -596,8 +657,9 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 color="black"
             )
         ))
+        time_taken = sim.time_taken[0]
 
 
-    return fig, err, sim.cur_seed, str(rmse)
+    return fig, err, sim.cur_seed, str(mota), str(motp), time_taken
 
-app.run_server(port=8050, debug=True)
+app.run_server(debug=True)

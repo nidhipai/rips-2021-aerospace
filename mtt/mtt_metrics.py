@@ -1,7 +1,6 @@
 import numpy as np
 
 
-
 class MTTMetrics:
 	# in this whole class, processes and trajectos are the ones that have been cleaned in sim
 
@@ -145,61 +144,99 @@ class MTTMetrics:
 			cuts.append(cut)
 		return cuts
 
-	@staticmethod
-	def motp(processes, trajectories):
-		"""
-		Multi-Object Tracking Precision. Calculates how well the filter performs (RMSE) on time steps in
-		which the correct object was tracked
-
-		Args:
-			processes (list): a list of ndarray representing true state vector over time for each object
-			trajectories (list): a list of ndarray representing predicted state vector over time for each object
-
-		Returns:
-			error (numeric): a numeric value representing the root-mean-squared-error over all objects
-		"""
-		error = 0
-		n = 0 # number of objects
-		for i, estimate in enumerate(trajectories):  # estimate is the trajectory of an object, seperated by coordinate, iterating over trajectories
-			for j in range(estimate[0].size):  # estimate[0] is an array of x-coordinates, iterating over time steps
-				if estimate[0, j] != None:  # if it has a prediction for that time step
-					dist = np.power((np.array(processes)[:, :, j] - estimate[:, j]), 2).sum(axis=1)
-					#  [:, :, j] gets the jth timestep's state for each object
-					# [:, j] gets the state for the jth timestep
-					if dist.argmin() == i:
-						error += dist[i]
-						n += 1
-		error = np.sqrt(error) / n
-		return error
 
 	@staticmethod
-	def mota(processes, trajectories):
+	def mota_motp(processes, trajectories, traj_keys):
 		"""
-		Multi-Object Tracking Accuracy. Calculates how often the correct object was tracked.
+		Calculates the Multi-Object Tracking Precision and Accuracy using formulas from
+		Bernardin, Keni and Stiefelhagen, Rainer. "Evaluating Multiple Object Tracking Performance:
+		The CLEAR MOT Metrics," Hindawi, 2008. doi:10.1155/2008/246309
 
-		NOTE: This method currently only calculates the number of "swaps" when the incorrect object is tracked.
-		Ideally, this method should also count the number of times that an object was tracked when it really died,
-		and how many times an object was not tracked by the algorithm (when it was considered "dead" even though
-		it was still alive. However, our data generation does not currently support births or deaths; when it does,
-		this method must be changed.
-
-		Args:
-			processes (list): a list of ndarray representing true state vector over time for each object
-			trajectories (list): a list of ndarray representing predicted state vector over time for each object
-
-		Returns:
-			error (numeric): a numeric value representing the root-mean-squared-error over all objects
+		Note: This method assumes processes and trajectories have been cleaned by their
+		respective methods in the Simulation class
 		"""
-		error = 0
-		total_objects = len(processes)
-		for i, estimate in enumerate(trajectories):
-			for j in range(estimate[0].size):
-				if estimate[0, j] != None:
-					dist = np.power((np.array(processes)[:, :, j] - estimate[:, j]), 2).sum(axis=1)
-					if dist.argmin() != i:
-						# Add a mismatch
-						error += 1
 
-		error = error / total_objects
-		return error
+		# Pseudocode:
+		# For each matching object-hypothesis pair:
+		# Calculate the distance between the object and hypothesized track
+		# Calculate the distance between the object and all other tracks
+		# For each time step where the hypothesized track is closest, calculate RMSE (L2 norm) and add to MOTP
+		# For each time step where the hypothesized track is NOT closest, add 1 to the MOTA (count swaps)
+		# For each hypothesis without a matching object, add time steps where this hypothesis appears to MOTA
+		# For each object without a matching hypothesis, add time steps where this object appears to MOTA
+		# Divide MOTP by number of object-hypothesis matches
+		# Divide MOTA by (number of objects + number of hypotheses)* time steps (max is no hypotheses overlap with any objects)
+
+		# MOTP simply measures the error at the "correct" matches
+		motp = 0
+
+		# MOTA measures how frequently an object is misidentified or missed, including false alarms
+		mota = 0
+		total_possibilities = 0
+
+		# Handle case for when there are no trajectories or processes
+		if len(trajectories) == 0 or len(processes) == 0:
+			return 0, 0
+
+		# Record the number of true and false keys
+		true_keys = [key for key in traj_keys if type(key) is int]
+		true_keys.sort()
+		false_keys = [key for key in traj_keys if type(key) is not int]
+		# Determine which time steps are marked correctly and calculate error based on RMSE
+		for key in true_keys:
+			# Filter out observations before or after the process begins
+			proc = processes[key]
+			period_alive = (~np.isnan(proc))[0]
+			proc = proc[:, period_alive]
+			traj = trajectories[key][:,period_alive]
+			# Calculate the errors
+			marked_dist = np.linalg.norm(traj - proc, axis=0)
+
+			# Test each process to see if a point at a given time step is closer
+			# If a point from a different process is closer, mark this as a swap by setting to NaN
+			for key2 in true_keys:
+				if key != key2:
+					proc2 = processes[key2][:,period_alive]
+					cur_dist = np.linalg.norm(traj - proc2, axis=0)
+					better = cur_dist < marked_dist
+					marked_dist[better] = np.nan
+			# Calculate the error for each time step when object is correctly identified (NaN)
+			# Note that NaNs at the beginning and end represent areas where the object was only partially tracked correctly
+			# This incorporates misses for objects we do identify at some point, but not perfectly
+			motp += marked_dist[~np.isnan(marked_dist)].sum()
+
+			# Calculate number of times object swaps
+			mota += np.isnan(marked_dist).sum()
+
+			# Add to the tally of total objects and hypotheses at each time step
+			total_possibilities += proc.shape[1] + traj.shape[1]
+
+
+		# Count all of the times that the algorithm detected a false object and add to the MOTA
+		for i in range(len(false_keys)):
+			traj = trajectories[len(true_keys) + i]
+
+			# Count how many time steps an entry is actually added
+			false_objs = np.sum(~np.isnan(traj)[0])
+
+			# Add to MOTA and to the tally of total objects and hypotheses at each time step
+			total_possibilities += false_objs
+
+		# Count all of the times that the algorithm failed to detect a true process (not counting swaps) and add to the MOTA
+		for proc in range(len(true_keys), len(processes)):
+			undetected_objs = np.sum(~np.isnan(processes[proc])[0])
+			total_possibilities += undetected_objs
+
+
+		# Add all the measurements that could be potentially identified incorrectly as objects instead of false alarms,
+		# minus the ones associated with objects
+
+		# Divide by number of matches
+		motp = motp / len(true_keys)
+
+		# Tally number of objects and hypotheses at each time step
+		mota = 1 - (mota / total_possibilities)
+		return motp, mota
+
+
 
