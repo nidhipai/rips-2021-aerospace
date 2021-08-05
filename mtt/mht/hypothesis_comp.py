@@ -2,7 +2,6 @@
 
 import networkx as nx
 import networkx.algorithms.clique as nxac
-import numpy as np
 
 class HypothesisComp:
 
@@ -29,11 +28,8 @@ class HypothesisComp:
 		for track in tracks:
 			if track.confirmed():
 				confirmed_tracks.append(track)
-		# tracks = confirmed_tracks
 
 		if len(confirmed_tracks) > 0:
-			# Calculate values needed to normalize the score
-			#scores = [track.score for track in tracks if track.confirmed()]
 			scores = [confirmed_track.score for confirmed_track in confirmed_tracks]
 			minimum = min(scores)
 			maximum = max(scores)
@@ -49,9 +45,8 @@ class HypothesisComp:
 				if tracks[i] not in confirmed_tracks:
 					continue
 				for j in range(i):
-					if i == j or tracks[i] or tracks[j] not in confirmed_tracks:
+					if tracks[j] not in confirmed_tracks:
 						continue
-					# print(self.are_compatible(tracks[i], tracks[j])
 					if self.are_compatible(tracks[i], tracks[j]):
 						self.G.add_edge(i, j)
 			result = nxac.max_weight_clique(self.G)
@@ -81,9 +76,6 @@ class HypothesisComp:
 					return False
 			else:
 				continue
-		# if track1.obj_id == 0 and track2.obj_id == 22 or track2.obj_id == 0 and track1.obj_id == 22:
-		# 	print("compatible t1: ", track1)
-		# 	print("compatible t2: ", track2)
 		return True
 
 	def draw_graph(self):
