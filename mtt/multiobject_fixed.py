@@ -40,7 +40,8 @@ class MultiObjFixed(DataGenerator):
 		self.x_lim = x_lim					# half-width of frame
 		self.y_lim = y_lim					# half-height of frame
 
-		self.new_obj_prop = 0.2	# prob of new object spawning	TODO
+		print("NOP", new_obj_prop)
+		self.new_obj_prop = new_obj_prop	# prob of new object spawning	TODO
 		self.num_objs = len(xt0) - 1		#								TODO
 
 		# We require our initial state vector to have all 4 needed components:
@@ -78,9 +79,7 @@ class MultiObjFixed(DataGenerator):
 			output[xt_key] = self.A @ xt_prev + self.dt*self.process_noise(xt_prev, rng)
 
 		# With probability self.new_obj_prop, create new object on side of frame
-		print("ALMOST NEW OBJECT", self.new_obj_prop)
 		if rng.random() < self.new_obj_prop:
-			print("NEW OBJECT")
 			self.num_objs += 1
 			side = rng.random()
 			c = rng.random() - 0.5

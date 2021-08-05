@@ -205,7 +205,7 @@ class Simulation:
 		self.atct_error[len(self.atct_error)] = MTTMetrics.atct_signed(process, trajectory)
 		all_keys = self.get_traj_keys(best_trajs)
 		print(trajectory)
-		self.motp[len(self.motp)], self.mota[len(self.mota)] = MTTMetrics.mota_motp(process, trajectory, all_keys)
+		#self.motp[len(self.motp)], self.mota[len(self.mota)] = MTTMetrics.mota_motp(process, trajectory, all_keys)
 
 
 
@@ -484,7 +484,9 @@ class Simulation:
 				#true_state = "true state = " + "[" + self.descs[0]["x0"] + ", " + self.descs[0]["y0"] + ", " + self.descs[0]["vx0"] + ", " + self.descs[0]["vy0"] + "]"
 				#filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
 				covariance = "Starting P = " + self.descs[0]["P"]
-				mos = "MOTP = {}, MOTA = {}".format(np.round(self.motp[index], 3), np.round(self.mota[index],3))
+				# TODO: commented out for fixed frame testing
+				#mos = "MOTP = {}, MOTA = {}".format(np.round(self.motp[index], 3), np.round(self.mota[index],3))
+				mos = "IDK"
 
 				caption = true_noises + "\n" + measurement_noise + "\n" + other_noise + "\n" + filter_noise + "\n" + filter_measurement_noise + "\n" + covariance + "\n" + mos + "\n"
 				if tail >= 0:
