@@ -28,11 +28,9 @@ class HypothesisComp:
 		for track in tracks:
 			if track.confirmed():
 				confirmed_tracks.append(track)
-		tracks = confirmed_tracks
 
-		if len(tracks) > 0:
-			#scores = [track.score for track in tracks if track.confirmed()]
-			scores = [track.score for track in tracks]
+		if len(confirmed_tracks) > 0:
+			scores = [confirmed_track.score for confirmed_track in confirmed_tracks]
 			minimum = min(scores)
 			maximum = max(scores)
 			if max(scores) != min(scores):
@@ -40,12 +38,15 @@ class HypothesisComp:
 			else:
 				dif = 1
 
-			for track in tracks:
-				self.G.add_node(index, weight = 1 + int(((track.score - minimum) / dif)*1000))
+			for confirmed_track in confirmed_tracks:
+				self.G.add_node(index, weight = 1 + int(((confirmed_track.score - minimum) / dif)*1000))
 				index += 1
 			for i in range(len(tracks)):
+				if tracks[i] not in confirmed_tracks:
+					continue
 				for j in range(i):
-					# print(self.are_compatible(tracks[i], tracks[j]))
+					if tracks[j] not in confirmed_tracks:
+						continue
 					if self.are_compatible(tracks[i], tracks[j]):
 						self.G.add_edge(i, j)
 			result = nxac.max_weight_clique(self.G)
