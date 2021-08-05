@@ -209,7 +209,7 @@ class Simulation:
 		self.atct_error[len(self.atct_error)] = MTTMetrics.atct_signed(process, trajectory)
 		all_keys = self.get_traj_keys(best_trajs)
 		# TODO: motp/mota stuff might break fixed frame
-		self.motp[len(self.motp)], self.mota[len(self.mota)] = MTTMetrics.mota_motp(process, trajectory, all_keys)
+		#self.motp[len(self.motp)], self.mota[len(self.mota)] = MTTMetrics.mota_motp(process, trajectory, all_keys)
 		self.track_count[len(self.track_count.keys())] = len(self.tracker_model.tracks)
 
 	def experiment(self, ts, test="data", **kwargs):

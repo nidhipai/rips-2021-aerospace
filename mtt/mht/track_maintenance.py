@@ -156,18 +156,20 @@ class TrackMaintenanceMHT:
             # Next, calculate the sum of squared differences between the measurement and the predicted value,
             # weighted by the expected meausurement noise variance
             diff = measurement - track.x_hat_minus
-            vel = track.x_hat_minus
-            ang = np.arctan2(vel[3][0], vel[2][0])
-            vel = np.sqrt(vel[2][0] ** 2 + vel[3][0] ** 2)
-            c = np.cos(ang)
-            s = np.sin(ang)
-            W = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, c, -s], [0, 0, s, c]])
+
+            #vel = track.x_hat_minus
+            #ang = np.arctan2(vel[3][0], vel[2][0])
+            #vel = np.sqrt(vel[2][0] ** 2 + vel[3][0] ** 2)
+            #c = np.cos(ang)
+            #s = np.sin(ang)
+            #W = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, c, -s], [0, 0, s, c]])
+            #Q = self.kFilter_model.Q
+
             #test_stat += diff.T @ np.linalg.inv(track.P_minus * (1 + vel)) @ diff
             #test_stat += diff.T @ np.linalg.inv(self.R * (1 + vel)) @ diff
             #test_stat += diff.T @ np.linalg.inv(self.R) @ diff
-            Q = self.kFilter_model.Q
             #test_stat += diff.T @ np.linalg.inv((self.R + W @ Q @ W.T) * (1 + vel)) @ diff
-            test_stat += diff.T @ np.linalg.inv(self.R + track.P_minus) @ diff
+            test_stat = track.test_stat + diff.T @ np.linalg.inv(self.R + track.P_minus) @ diff
             #test_stat += diff.T @ np.linalg.inv(self.R + track.P_minus + W @ Q @ W.T) @ diff
             test_stat = test_stat[0,0] # Remove numpy array wrapping
 
