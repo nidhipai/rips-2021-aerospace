@@ -119,16 +119,15 @@ class TrackMaintenanceMHT:
                 if self.scoring_method == "distance":
                     if len(new_tracks) > 0:
                         score = min([track.score for track in new_tracks]) - 1
-                        # print(score)
                     else:
                         score = -1
                 else:
                     score = 0.0001
+
                 starting_observations = {ts: i}
                 new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n, P=self.P)
+                new_tracks.append(new_track)
                 self.num_objects += 1
-
-        return new_tracks
 
     def score_measurement(self, measurement, track, method = "chi2"):
         """
