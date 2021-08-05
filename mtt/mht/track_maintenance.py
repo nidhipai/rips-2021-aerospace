@@ -111,6 +111,7 @@ class TrackMaintenanceMHT:
             new_tracks (list): list of new tracks for this timestep
         """
         for i, measurement in enumerate(measurements):
+
             measurement_used = False
             for track in tracks:
                 if i in track.possible_observations:

@@ -703,19 +703,29 @@ class Simulation:
 		true_keys.sort()
 		false_keys = [key for key in all_keys if type(key) is not int]
 		all_keys = true_keys + false_keys
+		print("All keys: {}".format(all_keys))
 
-		num_keys = len(all_keys)
+		if len(true_keys) > 0:
+			max_true_key = max(true_keys)
+		else:
+			max_true_key = -1
 
 		# Iterate through each time step and allocate either the given xk or None
 		# to the trajectory arrays
 		i = 0
 		first_keys = list(trajectories[0].keys())
-		while i < num_keys:
-			if all_keys[i] in first_keys:
-				output.append(trajectories[0][all_keys[i]])
+		while i <= max_true_key:
+			if i in first_keys:
+				output.append(trajectories[0][i])
 			else:
 				output.append(np.array([[np.nan],[np.nan],[np.nan],[np.nan]]))
 			i+=1
+
+		for false_key in false_keys:
+			if i in first_keys:
+				output.append(trajectories[0][false_key])
+			else:
+				output.append(np.array([[np.nan],[np.nan],[np.nan],[np.nan]]))
 
 		for traj in trajectories[1:]:
 			for i, key in enumerate(all_keys):

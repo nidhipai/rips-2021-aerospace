@@ -437,11 +437,10 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         sim.predict(ellipse_mode="plotly")
     if n_clicks != 0:
         # Generate all variables to plot
-        # ASDF
         processes = sim.clean_trajectory(sim.processes[0])
         max_dist = sim.get_max_correspondence_dist(processes)
         best_trajs, correspondences = sim.get_best_correspondence(max_dist)
-        trajectories = sim.clean_trajectory(best_trajs)
+        trajectories = sim.clean_trajectory(best_trajs, )
 
         colors = sim.clean_measure(sim.measure_colors[0])
         measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
@@ -626,9 +625,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                                    }
                                ],"pad": {"r": 30, "t": 30}}]
                            )
-
-        #rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
-        #num_measures = sum([len(time_step) for time_step in sim.measures[0]])
+        print(correspondences)
         mota, motp = mtt.MTTMetrics.mota_motp(processes, trajectories, all_keys)
         fig = go.Figure(data=data, layout=layout, frames=frames)
         fig.update_xaxes(tickfont_size=fontsize)
