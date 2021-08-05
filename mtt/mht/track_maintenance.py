@@ -119,6 +119,10 @@ class TrackMaintenanceMHT:
             new_tracks.append(new_track)
             self.num_objects += 1
 
+        print("Number of new tracks: ", len(new_tracks))
+        for track in new_tracks:
+            print(track)
+
         return new_tracks
 
     def score_measurement(self, measurement, track, method = "chi2"):
@@ -160,6 +164,7 @@ class TrackMaintenanceMHT:
             W = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, c, -s], [0, 0, s, c]])
             #test_stat += diff.T @ np.linalg.inv(track.P_minus * (1 + vel)) @ diff
             #test_stat += diff.T @ np.linalg.inv(self.R * (1 + vel)) @ diff
+            #test_stat += diff.T @ np.linalg.inv(self.R) @ diff
             Q = self.kFilter_model.Q
             #test_stat += diff.T @ np.linalg.inv((self.R + track.P_minus) * (1 + vel)) @ diff
             test_stat = track.test_stat + diff.T @ np.linalg.inv((self.R + track.P_minus) * (1 + vel)) @ diff
@@ -195,7 +200,8 @@ class TrackMaintenanceMHT:
             # which represents the time step that passed without a new measurement
             #test_stat = chi2.ppf(track.score, 4*track.num_observations())
             #return track.score * (1 - self.pd)
-            return (1 - chi2.cdf(track.test_stat, 4*track.num_observations())) *.8
+            #return (1 - chi2.cdf(track.test_stat, 4*track.num_observations())) *.8
+            return track.score * .6
 
     # def graph_scores(self):
     #     x_vals =  list(range(0, len(self.scores["distance"])))

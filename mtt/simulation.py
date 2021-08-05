@@ -12,17 +12,14 @@ import mtt
 from .single_target_evaluation import SingleTargetEvaluation
 from itertools import repeat
 from scipy.stats import chi2
-from scipy.optimize import linear_sum_assignment
 
 from .pipeline.track_maintenance import TrackMaintenance
 from .pipeline.gating import DistanceGating
 from .tracker2 import MTTTracker
 from .mht.tracker3 import MHTTracker
 
+from .mtt_metrics import MTTMetrics
 
-from .metrics import *
-
-from mpl_toolkits import mplot3d
 from matplotlib.patches import Ellipse
 plt.rcParams["figure.figsize"] = (12, 8)
 
@@ -47,7 +44,6 @@ class Simulation:
 		else:
 			self.cur_seed = seed_value
 		self.rng = np.random.default_rng(self.cur_seed)
-
 		self.generator = generator
 		self.tracker_model = tracker
 		self.n = generator.n
@@ -63,6 +59,10 @@ class Simulation:
 		self.false_alarms = dict()
 		self.sorted_measurements = dict()
 		self.time_taken = dict()
+		self.atct_error = dict()
+		self.mota = dict()
+		self.motp = dict()
+		self.DEFAULT_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 	# the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
 	# data generator object to create the dictionary of processes and measures.
@@ -87,7 +87,8 @@ class Simulation:
 			"Missed Measures": str(self.generator.miss_p),
 			"FA Rate": str(self.generator.lam),
 			"FA Scale": str(self.generator.fa_scale),
-			"Time Steps": str(time_steps)
+			"Time Steps": str(time_steps),
+			"Seed": str(self.cur_seed)
 		}
 
 	def predict(self, ellipse_mode="mpl", index=None):
@@ -111,13 +112,16 @@ class Simulation:
 		self.false_alarms[len(self.false_alarms.keys())] = dict()
 		self.sorted_measurements[len(self.sorted_measurements)] = dict()
 
-		time_at_each_step = []
+		# MTTTracker stores false alarms and has a pipeline, but with MHT, we cannot do this until the end
+		# Therefore, we divide into two instances
+
+		total_time = 0
 		for i in range(len(self.processes[index])):
 			# Obtain a set of guesses for the current location of the object given the measurements
 			next_measurement = deepcopy(self.measures[index][i])
 			start_time = time.process_time()
 			self.tracker_model.predict(next_measurement)
-			time_at_each_step.append(time.process_time() - start_time)
+			total_time += time.process_time() - start_time
 
 			if isinstance(self.tracker_model, MHTTracker):
 				self.trajectories[len(self.trajectories.keys())-1].append(self.tracker_model.get_trajectories())
@@ -156,8 +160,8 @@ class Simulation:
 					"P": str(self.tracker_model.track_maintenance.P[0][0]),
 				}}
 
-		# Store the time at each time step taken by the predict method of the tracker
-		self.time_taken[len(self.time_taken.keys())] = time_at_each_step
+		# Store the total time taken by the predict method of the tracker
+		self.time_taken[len(self.time_taken.keys())] = total_time
 
 		# Store our output as an experiment
 		if isinstance(self.tracker_model, MTTTracker):
@@ -194,39 +198,18 @@ class Simulation:
 
 			self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
 
-
-		# Now store the errors at each time step
-		"""
-		self.signed_errors[index] = []
-		for i, next_guess in enumerate(latest_trajectory):
-			# Calculate the along-track and cross track error using rotation matrix
-			for j, value in next_guess.items():
-				true_val = self.processes[index][i][j]
-				step_error = self.generator.W(true_val) @ (true_val - next_guess[0])
-				self.signed_errors[index].append(step_error)
-				
-		self.signed_errors[index] = np.array(self.signed_errors[index]).squeeze().T
-		"""
-
-		# MTTTracker stores false alarms and has a pipeline, but with MHT, we cannot do this until the end
-		# Therefore, we divide into two instances
-
 		# this code will throw an error if there's no track maintenance object in the pipeline
 
 
-		#process = self.processes[index]
-		#process = self.clean_process(process)[0]  # get first two position coordinates
-		#traj = self.trajectories[index]
-		#traj = self.clean_trajectory(traj)[0]
-		#center_errors = (np.sqrt(np.power(process[:2, :][0] - traj[0], 2) + np.power(process[:2, :][1] - traj[1], 2)))
-		#center_errors = center_errors[20:]
-		#print("PROC", process[:2, :])
-		#print("TRAJ", traj)
-		#print(center_errors)
-		#center_errors = SingleTargetEvaluation.center_error(process[:2, :], traj)
-		#self.RMSE = np.sqrt(np.dot(center_errors, center_errors) / len(center_errors))
-		#print(self.RMSE)
-		#self.AME = sum(center_errors) / len(center_errors)
+		process = self.clean_process(self.processes[index])
+		best_trajs, correspondences = self.get_best_correspondence(np.inf, index = index)
+		trajectory = self.clean_trajectory(best_trajs)
+		self.atct_error[len(self.atct_error)] = MTTMetrics.atct_signed(process, trajectory)
+		all_keys = self.get_traj_keys(best_trajs)
+		#print(trajectory)
+		self.motp[len(self.motp)], self.mota[len(self.mota)] = MTTMetrics.mota_motp(process, trajectory, all_keys)
+
+
 
 	def experiment(self, ts, test="data", **kwargs):
 		"""
@@ -287,7 +270,7 @@ class Simulation:
 		if plot_error_q:
 			self.plot_all(error=True, var=var)
 
-	def plot_error(self, index=None, ax=None, title="Error", var="Time Steps"):
+	def plot_error(self, index=None, ax=None, title="Error", var="Seed"):
 		"""
 		Plot our trajectory based on the predicted trajectories given by the kalman filter object.
 
@@ -339,8 +322,7 @@ class Simulation:
 		else:
 			print("Number of dimensions cannot be graphed (error plot).")
 
-	'''We plot our trajectory based on the predicted trajectories given by the kalman filter object. '''
-	def plot(self, var="Time Steps", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0, tail = 0):
+	def plot(self, var="Seed", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0, tail = 0):
 		"""
 		Plot our trajectory based on the predicted trajectories given by the kalman filter object.
 
@@ -362,17 +344,18 @@ class Simulation:
 		# Convert stored experiments into numpy matrices for plotting
 		# (or list for measures)
 		if len(self.processes) > 0:
-			process = self.processes[index]
-			process = self.clean_process(process)
+			process = self.clean_process(self.processes[index])
 
 		correspondences = None
 		if len(self.trajectories) > 0:
 			# TO DO: Need a better distance gate than inf
 			if isinstance(self.tracker_model, MHTTracker):
-				output, correspondences = self.get_best_correspondence(np.inf, index)
+				best_trajs, correspondences = self.get_best_correspondence(np.inf, index)
 			else:
-				output = self.trajectories[index]
-			output = self.clean_trajectory(output)
+				best_trajs = self.trajectories[index]
+
+			output = self.clean_trajectory(best_trajs)
+			all_keys = self.get_traj_keys(best_trajs)
 
 		if len(self.measures) > 0:
 			sorted_measures = self.sorted_measurements[index]
@@ -382,7 +365,7 @@ class Simulation:
 		colors_process = ['skyblue', 'seagreen', 'darkkhaki'] # DOESN"T WORK FOR MORE THAN 3 OBJECTS
 		colors_filter = ['orange', 'violet', 'hotpink','red']
 		false_alarm_color = 'red'
-		proc_size = 1
+		proc_size = 2
 		traj_size = 1.5
 		measure_dot_size = 20
 
@@ -393,8 +376,7 @@ class Simulation:
 		# Select proper ellipses to plot
 		ellipses = None
 		if len(self.apriori_ellipses) > index:
-			ellipses = self.apriori_ellipses[index]
-			ellipses = self.clean_ellipses(ellipses)
+			ellipses = self.clean_ellipses(self.apriori_ellipses[index])
 
 		# Modify the legend
 		legend_size = 14
@@ -414,29 +396,30 @@ class Simulation:
 			if len(self.processes) > 0:
 				for i, obj in enumerate(process):
 					if tail > 0:
-						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=proc_size, markersize=8, marker=',')
+						line1, = ax.plot(obj[0][-tail:], obj[1][-tail:], lw=proc_size, markersize=8, marker=',', color=self.DEFAULT_COLORS[i % len(self.DEFAULT_COLORS)])
 					else:
-						line1, = ax.plot(obj[0], obj[1], lw=proc_size, markersize=8, marker=',')
+						line1, = ax.plot(obj[0], obj[1], lw=proc_size, markersize=8, marker=',', color=self.DEFAULT_COLORS[i % len(self.DEFAULT_COLORS)])
 					lines.append(line1)
-					labs.append("Obj" + str(i) + " Process")
+					labs.append("Obj " + str(i) + " Process")
 
 			# Add the predicted trajectories to the plot
 			if len(self.trajectories) > 0:
 				for i, out in enumerate(output):
 					if out is not None:
 						if tail > 0:
-							line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=traj_size, markersize=8, marker=',')
+							line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=traj_size, markersize=8, marker=',', linestyle='--', color=self.DEFAULT_COLORS[i % len(self.DEFAULT_COLORS)])
 						else:
-							line3, = ax.plot(out[0], out[1], lw=traj_size, markersize=8, marker=',')
+							line3, = ax.plot(out[0], out[1], lw=traj_size, markersize=8, marker=',', linestyle='--', color=self.DEFAULT_COLORS[i % len(self.DEFAULT_COLORS)])
 						lines.append(line3)
-						labs.append("Obj" + str(i) + " Filter")
+						labs.append("Obj " + str(all_keys[i]) + " Filter")
 
 			# Add the measures to the plot - the colors of a measurement correspond to which track the filter thinks it belongs to
 			if len(measure.values()) != 0:
-				for key, value in measure.items():
-					linex = ax.scatter(value[0], value[1], s=measure_dot_size, marker='x')
-					lines.append(linex)
-					labs.append("Obj" + str(key) + " Associated Measure")
+				for i, key in enumerate(all_keys):
+					if key in measure.keys():
+						linex = ax.scatter(measure[key][0], measure[key][1], s=measure_dot_size, marker='o', color=self.DEFAULT_COLORS[i % len(self.DEFAULT_COLORS)])
+						lines.append(linex)
+						labs.append("Obj " + str(key) + " Associated Measure")
 
 			# plot what we think are false_alarms
 			if len(false_alarms) > 0:
@@ -492,42 +475,26 @@ class Simulation:
 					ax.quiver(obj[0], obj[1], obj[2], obj[3], alpha = a)
 
 			if legend is True:
-				ax.legend(handles=lines, labels=labs, fontsize=legend_size, loc='center left', bbox_to_anchor=(1.05, 1))
+				ax.legend(handles=lines, labels=labs, fontsize=legend_size, loc = "upper left", bbox_to_anchor = (1.05, 1))
 			# Plot labels
-			if isinstance(self.tracker_model, MTTTracker):
-				true_noises = "true ep_at = " + str(self.generator.ep_tangent) + ", true ep_ct = " + str(self.generator.ep_normal)
-				filter_noises = "filter ep_at = " + self.descs[0]["fep_at"] + ", filter ep_ct = " + self.descs[0]["fep_ct"]
-				measurement_noise = "measurement noise = " + str(self.generator.R[0][0])
-				filter_measurement_noise = "filter measurement noise = " + str(self.generator.get_params()["R"][0][0])
+			if isinstance(self.tracker_model, MTTTracker) or True:
+				true_noises = "True Error Variances: AT = {}, CT = {}".format(self.generator.ep_tangent, self.generator.ep_normal)
+				measurement_noise = "Measurement Noise Variance = {}".format(self.generator.R[0][0])
+				other_noise = "Miss Rate = {}, FA Rate = {}".format(self.generator.miss_p, self.generator.lam)
+				filter_noise = "Filter Error Variances: AT = {}, CT = {}".format(self.descs[0]["fep_at"], self.descs[0]["fep_ct"])
+				filter_measurement_noise = "Filter Measurement Noise Variance = {}".format(self.generator.get_params()["R"][0][0])
 				#true_state = "true state = " + "[" + self.descs[0]["x0"] + ", " + self.descs[0]["y0"] + ", " + self.descs[0]["vx0"] + ", " + self.descs[0]["vy0"] + "]"
 				#filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
-				covariance = "P = " + self.descs[0]["P"]
+				covariance = "Starting P = " + self.descs[0]["P"]
+				mos = "MOTP = {}, MOTA = {}".format(np.round(self.motp[index], 3), np.round(self.mota[index],3))
 
-				caption = true_noises + "\n" + filter_noises + "\n" + measurement_noise + "\n" + filter_measurement_noise + "\n" + covariance + "\n"# + "RMSE of plot = " + str(self.RMSE) + "\nAME of plot = " + str(self.AME)
+				caption = true_noises + "\n" + measurement_noise + "\n" + other_noise + "\n" + filter_noise + "\n" + filter_measurement_noise + "\n" + covariance + "\n" + mos + "\n"
 				if tail >= 0:
-					fig.text(1, 0.5, caption, ha='center', fontsize = 14)
+					fig.text(1, 0.1, caption, ha='center', fontsize = 14)
 			#else:
 				#print(caption)
 			return lines;
 
-		#Plot in 3 dimensions
-		elif self.n // 2 == 3:
-			# title = title + ", seed=" + str(self.seed_value)
-			ax = plt.axes(projection='3d')
-			ax.scatter3D(process[0], process[1], process[2], lw=1.5, marker=',')
-			ax.scatter3D(measure[0], measure[1], measure[2], lw=0.4, marker='+')
-			ax.scatter3D(output[0], output[1], output[2], lw=0.4, marker='.')
-			ax.set_xlabel(x_label)
-			ax.set_ylabel(y_label)
-			ax.set_zlabel(z_label)
-			ax.set_title(title)
-			plt.legend(labs, fontsize=legend_size)
-			plt.show()
-		else:
-			print("Number of dimensions cannot be graphed.")
-
-	'''the plot_all function takes in a variable name, and an ellipse frequency between 0 and 1. Then, all stored experiments
-	are plotted in one single figure with subplots'''
 	def plot_all(self, var="Time Steps", error=False, test="data", labs=("Process", "Filter", "Measure"), ellipse_freq = 0):
 		"""
 		This function takes in a variable name, and an ellipse frequency between 0 and 1.
@@ -590,6 +557,9 @@ class Simulation:
 		self.measure_colors = dict()
 		self.false_alarms = dict()
 		self.time_taken = dict()
+		self.atct_error = dict()
+		self.mota = dict()
+		self.motp = dict()
 
 		# Clear stored tracks from the tracker
 		self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
@@ -847,7 +817,7 @@ class Simulation:
 				# key = the id of the process
 				# value = the value of the trajectory associated with said process at this iteration
 				correspondences[traj_ids_considering[best_traj]] = proc_ids_considering[best_proc]
-			print(correspondences)
+
 			# Generate the output for this time step using the correspondences dictionary
 			for traj_id, traj in self.trajectories[index][i].items():
 				if traj_id in correspondences.keys():
@@ -859,6 +829,35 @@ class Simulation:
 			output.append(new_step)
 
 		return output, correspondences
+
+	@staticmethod
+	def get_traj_keys(best_trajectories):
+		"""
+		Returns a list of keys from the result of get_best_correspondences to allow correct plotting.
+		Used in the dashboard.
+
+		Args:
+			best_trajectories (dict): dict storing the measurements associated with each trajectory as output from Simulation.get_best_correspondences
+
+		Returns:
+			all_keys (list): list of keys representing the order in which each trajectory should be plotted; aligned with process keys
+		"""
+		potential_keys = []
+		for step in best_trajectories:
+			potential_keys += list(step.keys())
+		all_keys = []
+		for key in potential_keys:
+			if key not in all_keys:
+				all_keys.append(key)
+
+		# Need to ensure all_keys is sorted with integers first
+		# so that trajectories are plotted correctly
+		true_keys = [key for key in all_keys if type(key) is int]
+		true_keys.sort()
+		false_keys = [key for key in all_keys if type(key) is not int]
+		all_keys = true_keys + false_keys
+
+		return all_keys
 
 	# New algorithm pseudocode below:
 
@@ -951,31 +950,3 @@ class Simulation:
 		if m == 'fa':
 			return Metrics.false_id_rate(true_false_alarms, false_alarms)
 		print("ERROR INVALID METRIC")
-
-	# NIDHI'S TESTING
-	def evaluate(self):
-		# Return mota, motp
-		processes = self.clean_process(self.processes[0])
-		best_trajs, correspondences = self.get_best_correspondence(np.inf)
-		trajectories = self.clean_trajectory(best_trajs)
-
-		# Get labels for the trajectory
-		# Need a mapping from trajectory list index to process list index
-		potential_keys = []
-		for step in best_trajs:
-			potential_keys += list(step.keys())
-		all_keys = []
-		for key in potential_keys:
-			if key not in all_keys:
-				all_keys.append(key)
-
-		# Need to ensure all_keys is sorted with integers first
-		# so that trajectories are plotted correctly
-		true_keys = [key for key in all_keys if type(key) is int]
-		true_keys.sort()
-		false_keys = [key for key in all_keys if type(key) is not int]
-		all_keys = true_keys + false_keys
-
-		mota, motp = mtt.MTTMetrics.mota_motp(processes, trajectories, all_keys)
-		return mota, motp
-
