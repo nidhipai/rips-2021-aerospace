@@ -332,6 +332,8 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
     fig = prev_fig
     err = prev_err
     time_taken = 0
+    mota = 0
+    motp = 0
     if ts is None:
         ts = 15
     if prev_clicks < n_clicks:
@@ -626,9 +628,8 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         #rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
         #num_measures = sum([len(time_step) for time_step in sim.measures[0]])
-        #mota, motp = mtt.MTTMetrics.mota_motp(processes, trajectories, all_keys)
-        mota = 0
-        motp = 0
+
+        mota, motp = mtt.MTTMetrics.mota_motp(processes, trajectories, all_keys)
         fig = go.Figure(data=data, layout=layout, frames=frames)
         fig.update_xaxes(tickfont_size=fontsize)
         fig.update_yaxes(tickfont_size=fontsize)

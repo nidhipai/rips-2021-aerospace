@@ -799,11 +799,10 @@ class Simulation:
 	def get_max_correspondence_dist(self, clean_processes):
 		"""
 		Heuristic for max correspondence distance for the correspondence algorithm below.
+		We use infinity since we have a special method of max correspondence that only looks at the first
+		starting measurement.
 		"""
-		if len(clean_processes) > 0:
-			return 2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
-		else:
-			return np.inf
+		return np.inf
 
 	def get_best_correspondence(self, max_dist, index=0):
 		"""
