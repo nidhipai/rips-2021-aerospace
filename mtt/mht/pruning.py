@@ -23,8 +23,10 @@ class Pruning:
 		required_obs = []
 		for index in best_tracks:
 			prev_obs = np.array(list(tracks[index].observations.values()))
+			#print("P", index, prev_obs)
 			required_obs.append(prev_obs[:(prev_obs.size - 0 - self.n)])
-		required_obs = np.array(required_obs)
+		#required_obs = np.array(required_obs)
+		#print("R", required_obs)
 
 		# Test each track to see whether its initial sequence leads to a valid part of the tree
 		for i in reversed(range(len(tracks))):
@@ -32,7 +34,9 @@ class Pruning:
 			keep = False
 			# Extract the first part of the sequence of measurements, up to n
 			prev_ob = np.array(list(track.observations.values()))
-			if prev_ob.size - 0 - self.n <= 0:
+			# if prev_ob.size - 0 - self.n <= 0:
+			# 	continue
+			if prev_ob.size - 0 - 4 <= 0:
 				continue
 			prev_ob = prev_ob[:(prev_ob.size - 0 - self.n)]
 			# Test each possibility

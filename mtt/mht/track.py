@@ -32,6 +32,9 @@ class Track:
         self.P_minus = self.P
         self.missed_measurements = 0
 
+        #testing
+        self.test_stat = 20
+
     def __str__(self):
         return "[OBJ ID: " + str(self.obj_id) + "   OBSERVATIONS: " + str(self.observations) + "   SCORE: " + str(self.score) + "]"
 
@@ -70,7 +73,14 @@ class Track:
         self.aposteriori_estimates[ts] = self.x_hat
         self.aposteriori_P[ts] = self.P
 
+    # def confirmed(self):
+    #     num_observation = len(self.observations.values())
+    #     return num_observation > self.pruning_n
+
     def confirmed(self):
-        num_observations = len(self.observations.values())
-        return num_observations > self.pruning_n
+        #num_observations = (self.num_observations() + len(self.observations.values()))
+        return self.num_observations() > 4
+
+    def num_observations(self):
+        return sum(x is not None for x in list(self.observations.values()))
 

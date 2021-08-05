@@ -18,21 +18,18 @@ class HypothesisComp:
 		"""
 		self.G = nx.Graph()
 
-		index = 0
-
 		# Calculate values needed to normalize the score
 		# Only use confirmed tracks
 		# scores = [track.score for track in tracks if track.confirmed()]
 
+		#confirmed_tracks = [track for track in tracks if track.confirmed()]
 		confirmed_tracks = []
 		for track in tracks:
 			if track.confirmed():
 				confirmed_tracks.append(track)
-		tracks = confirmed_tracks
 
-		if len(tracks) > 0:
-			#scores = [track.score for track in tracks if track.confirmed()]
-			scores = [track.score for track in tracks]
+		if len(confirmed_tracks) > 0:
+			scores = [confirmed_track.score for confirmed_track in confirmed_tracks]
 			minimum = min(scores)
 			maximum = max(scores)
 			if max(scores) != min(scores):
@@ -40,12 +37,15 @@ class HypothesisComp:
 			else:
 				dif = 1
 
-			for track in tracks:
-				self.G.add_node(index, weight = 1 + int(((track.score - minimum) / dif)*1000))
-				index += 1
+			for i, track in enumerate(tracks):
+				if track in confirmed_tracks:
+					self.G.add_node(i, weight=1 + int(((track.score - minimum) / dif) * 1000))
 			for i in range(len(tracks)):
+				if tracks[i] not in confirmed_tracks:
+					continue
 				for j in range(i):
-					# print(self.are_compatible(tracks[i], tracks[j]))
+					if tracks[j] not in confirmed_tracks:
+						continue
 					if self.are_compatible(tracks[i], tracks[j]):
 						self.G.add_edge(i, j)
 			result = nxac.max_weight_clique(self.G)
@@ -53,31 +53,6 @@ class HypothesisComp:
 		else:
 			clique = []
 		return clique
-
-		#scores = [track.score for track in tracks]
-#
-		#if len(scores) > 0:
-			#minimum = min(scores)
-			#maximum = max(scores)
-			#if max(scores) != min(scores):
-				#dif = maximum - minimum
-			#else:
-				#dif = 1
-#
-			#for track in tracks:
-#
-				#self.G.add_node(index, weight = int(((track.score - minimum) / dif)*1000))
-				#index += 1
-			#for i in range(len(tracks)):
-				#for j in range(i):
-					## print(self.are_compatible(tracks[i], tracks[j]))
-					#if self.are_compatible(tracks[i], tracks[j]):
-						#self.G.add_edge(i, j)
-			#result = nxac.max_weight_clique(self.G)
-			#clique = result[0]
-		#else:
-			#clique = []
-		#return clique
 
 	def are_compatible(self, track1, track2):
 		"""
@@ -93,6 +68,7 @@ class HypothesisComp:
 
 		if len(track1.observations) > len(track2.observations):
 			return self.are_compatible(track2, track1)
+
 		for ts, obs in track1.observations.items():
 			if ts in track2.observations.keys():
 				if obs == track2.observations[ts]:
