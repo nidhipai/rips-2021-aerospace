@@ -7,7 +7,7 @@ class Pruning:
 
 		self.n = n # The number of time steps from which to prune back
 
-	def predict(self, tracks, best_tracks):
+	def predict(self, tracks, best_tracks, ts):
 		"""
 
 		Extracts and stores the sequences of measurements that correspond to valid tracks.
@@ -44,3 +44,4 @@ class Pruning:
 			if not keep:
 				#print("THROWN: ", track.obj_id, "OBS: ", track.observations)
 				tracks.remove(track)
+

@@ -32,7 +32,7 @@ class MHTTracker:
 
         self.measurements.append(measurements)
         print("___________ Time step: {} _________________________________".format(self.ts))
-        print("Number of Tracks: {}".format(len(self.tracks)))
+        # print("Number of Tracks: {}".format(len(self.tracks)))
 
         # 1) assign all measurements to all tracks in all children of tree, AND...
         # 2) calculate the expected next position for each track using the time update equation
@@ -47,12 +47,31 @@ class MHTTracker:
         # Next, calculate track scores and create new potential tracks
         self.tracks = self.track_maintenance.predict(self.ts, self.tracks, measurements)
 
+        pointer = 0
+        while pointer < len(self.tracks):
+            i = pointer + 1
+            while i < len(self.tracks):
+                keep = False
+                observations1 = self.tracks[pointer].observations
+                observations2 = self.tracks[i].observations
+                if (len(list(observations1.values())) and len(list(observations2.values()))) > self.pruning.n - 1:
+                    for j in range(self.pruning.n):
+                        if observations1[self.ts-j] != observations2[self.ts-j]:
+                            keep = True
+                if not keep:
+                    self.tracks.remove(self.tracks[i])
+                i +=1
+            pointer +=1
+
         # Calculate the maximum weighted clique
         best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
 
         # Save the current best hypothesis to output
         self.cur_best_hypothesis = best_tracks_indexes
         self.cur_best_tracks = np.array(self.tracks)[self.cur_best_hypothesis]
+
+        for track in self.tracks:
+            print("TRACK: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
         print("==========")
         print("BEST HYP: ")
         for track in self.cur_best_tracks:
@@ -65,7 +84,7 @@ class MHTTracker:
 
         # Remove tracks that do not lead to the best hypothesis within a certain number of time steps
         if self.ts > 0:
-            self.pruning.predict(self.tracks, best_tracks_indexes)
+            self.pruning.predict(self.tracks, best_tracks_indexes, self.ts)
 
         # Run the Kalman Filter measurement update for each track
         i = 0

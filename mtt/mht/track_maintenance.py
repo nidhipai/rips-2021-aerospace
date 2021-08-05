@@ -102,6 +102,7 @@ class TrackMaintenanceMHT:
             if self.scoring_method == "distance":
                 if len(new_tracks) > 0:
                     score = min([track.score for track in new_tracks]) - 1
+                    # print(score)
                 else:
                     score = -1
             else:
@@ -125,9 +126,9 @@ class TrackMaintenanceMHT:
                 new_tracks.append(new_track)
                 self.num_objects += 1
 
-        print("Number of new tracks: ", len(new_tracks))
-        for track in new_tracks:
-            print(track)
+        # print("Number of new tracks: ", len(new_tracks))
+        # for track in new_tracks:
+        #     print(track)
 
         return new_tracks
 
@@ -194,6 +195,7 @@ class TrackMaintenanceMHT:
 
 
         # scoring without measurement occurs here
+
         if method == "loglikelihood":
             return track.score + np.log(1 - self.pd)
         elif method == "distance":
