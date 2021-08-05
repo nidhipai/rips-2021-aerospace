@@ -202,7 +202,6 @@ class Simulation:
 
 		# this code will throw an error if there's no track maintenance object in the pipeline
 
-		# ASDF
 		process = self.clean_trajectory(self.processes[index])
 		max_dist = self.get_max_correspondence_dist(process)
 		best_trajs, correspondences = self.get_best_correspondence(max_dist, index = index)
@@ -331,7 +330,6 @@ class Simulation:
 		if index is None:
 			index = len(self.processes.keys()) - 1
 		process = self.processes[index]
-		# ASDF
 		process = self.clean_trajectory(process)[0]  # get first two position coordinates
 		if isinstance(self.tracker_model, MHTTracker):
 			max_dist = self.get_max_correspondence_dist(process)
@@ -389,7 +387,6 @@ class Simulation:
 		# Convert stored experiments into numpy matrices for plotting
 		# (or list for measures)
 		if len(self.processes) > 0:
-			# ASDF
 			process = self.clean_trajectory(self.processes[index])
 
 		correspondences = None
@@ -939,7 +936,6 @@ class Simulation:
 		index = len(self.processes.keys()) - 1
 		if len(self.processes) > 0:
 			process = self.processes[index]
-			# ASDF
 			process = self.clean_trajectory(process)
 		else:
 			print("ERROR PROCESS LENGTH 0")

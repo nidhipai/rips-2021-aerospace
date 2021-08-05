@@ -419,7 +419,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         #Set up the simulation with the newly specified parameters
         sim.seed_value = int(seed)
         sim.clear(lam, miss_p)
-        sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale, new_obj_prop = new_obj_prop)
+        sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale)
 
         params = {
             "f": sim.generator.process_function,
