@@ -141,6 +141,8 @@ class MTTMetrics:
 			# Filter out observations before or after the process begins
 			proc = processes[key]
 			traj = trajectories[key]
+			print(proc)
+			print(traj)
 			# NOTE: This throws an error when the process is shorter than the trajectory
 			# We need both the proc and the traj to be NaN-passed on time steps in which they do not exist
 
