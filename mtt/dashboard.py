@@ -433,8 +433,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
     if n_clicks != 0:
         # Generate all variables to plot
         processes = sim.clean_process(sim.processes[0])
-
-        best_trajs, correspondences = sim.get_best_correspondence(np.inf)
+        best_trajs, correspondences = sim.get_best_correspondence(processes)
         trajectories = sim.clean_trajectory(best_trajs)
 
         colors = sim.clean_measure(sim.measure_colors[0])
