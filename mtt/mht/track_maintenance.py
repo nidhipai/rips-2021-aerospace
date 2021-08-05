@@ -116,7 +116,6 @@ class TrackMaintenanceMHT:
                 if i in track.possible_observations:
                     measurement_used = True
             if measurement_used == False:
-                new_scores = [0,0,0]
                 if self.scoring_method == "distance":
                     if len(new_tracks) > 0:
                         score = min([track.score for track in new_tracks]) - 1
@@ -125,18 +124,8 @@ class TrackMaintenanceMHT:
                         score = -1
                 else:
                     score = 0.0001
-                new_scores[0] = 0.001
-                new_scores[2] = 0.001
-
-                if len(new_tracks) > 0:
-                    new_scores[1]= min([track.score for track in new_tracks]) - 1
-                else:
-                    new_scores[1] = -1
                 starting_observations = {ts: i}
                 new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n, P=self.P)
-                if self.record_scores:
-                    new_track.all_scores[ts] = new_scores
-                new_tracks.append(new_track)
                 self.num_objects += 1
 
         return new_tracks
