@@ -204,8 +204,8 @@ class TrackMaintenanceMHT:
         else:
             # Here we simply recalculate the p-value, but with an additional degree of freedom
             # which represents the time step that passed without a new measurement
-            test_stat = chi2.ppf(track.score, 4*len(track.observations))
-            return chi2.cdf(test_stat, 4*len(track.observations) + 4)
+            test_stat = 1 - chi2.ppf(track.score, 4*len(track.observations))
+            return 1 - chi2.cdf(test_stat, 4*len(track.observations) + 4)
 
     # def graph_scores(self):
     #     x_vals =  list(range(0, len(self.scores["distance"])))
