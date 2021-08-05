@@ -820,7 +820,8 @@ class Simulation:
 		"""
 		# Heuristic for determining the cutoff between a poor filter prediction and an object miss
 		# This is a custom heuristic created by the Aerospace research team
-		max_dist = 	2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
+		# NOTE: can't handle new objects
+		max_dist = 2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
 
 		output = []
 		# Maintain a list of the objects : trajectory correspondences that have already been generated
