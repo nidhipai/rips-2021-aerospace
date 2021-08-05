@@ -6,7 +6,7 @@ from copy import deepcopy
 import numpy as np
 
 class MHTTracker:
-    def __init__(self, global_kalman, gating, track_maintenance, track_merging, hypothesis_comp, pruning):
+    def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning):
         self.tracks = [] # list of tracks
         self.kalman = global_kalman # holds the global kalman for all tracks
         self.measurements = [] # 2D array of state vectors - each row is a time step
@@ -15,7 +15,6 @@ class MHTTracker:
         # all the methods
         self.gating = gating # holds the Gating object
         self.track_maintenance = track_maintenance # holds the track maintenance object
-        self.track_merging = track_merging # holds the track merging object
         self.hypothesis_comp = hypothesis_comp # holds the hypothesis comp object
         self.pruning = pruning # holds the pruning object
         self.gating.kalman = global_kalman # set the gating object's kalman to the global kalman
@@ -51,9 +50,6 @@ class MHTTracker:
 
         # Next, calculate track scores and create new potential tracks
         self.tracks = self.track_maintenance.predict(self.ts, self.tracks, measurements)
-
-        # Combine tracks that are likely tracking the same object, for efficiency
-        self.track_merging.predict(self.ts, self.tracks)
 
         # Calculate the maximum weighted clique
         best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
