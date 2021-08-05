@@ -439,7 +439,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         # Generate all variables to plot
         processes = sim.clean_process(sim.processes[0])
         max_dist = sim.get_max_correspondence_dist(processes)
-        print(max_dist)
         best_trajs, correspondences = sim.get_best_correspondence(max_dist)
         trajectories = sim.clean_trajectory(best_trajs)
 

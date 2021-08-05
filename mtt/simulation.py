@@ -202,8 +202,8 @@ class Simulation:
 
 		# this code will throw an error if there's no track maintenance object in the pipeline
 
-
-		process = self.clean_process(self.processes[index])
+		# ASDF
+		process = self.clean_trajectory(self.processes[index])
 		max_dist = self.get_max_correspondence_dist(process)
 		best_trajs, correspondences = self.get_best_correspondence(max_dist, index = index)
 		trajectory = self.clean_trajectory(best_trajs)
@@ -331,7 +331,8 @@ class Simulation:
 		if index is None:
 			index = len(self.processes.keys()) - 1
 		process = self.processes[index]
-		process = self.clean_process(process)[0]  # get first two position coordinates
+		# ASDF
+		process = self.clean_trajectory(process)[0]  # get first two position coordinates
 		if isinstance(self.tracker_model, MHTTracker):
 			max_dist = self.get_max_correspondence_dist(process)
 			traj, correspondences = self.get_best_correspondence(max_dist, index=index)
@@ -388,7 +389,8 @@ class Simulation:
 		# Convert stored experiments into numpy matrices for plotting
 		# (or list for measures)
 		if len(self.processes) > 0:
-			process = self.clean_process(self.processes[index])
+			# ASDF
+			process = self.clean_trajectory(self.processes[index])
 
 		correspondences = None
 		if len(self.trajectories) > 0:
@@ -821,8 +823,10 @@ class Simulation:
 		"""
 		Heuristic for max correspondence distance for the correspondence algorithm below.
 		"""
-		return 2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
-
+		if len(clean_processes) > 0:
+			return 2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
+		else:
+			return np.inf
 
 	def get_best_correspondence(self, max_dist, index=0):
 		"""
@@ -964,7 +968,8 @@ class Simulation:
 		index = len(self.processes.keys()) - 1
 		if len(self.processes) > 0:
 			process = self.processes[index]
-			process = self.clean_process(process)
+			# ASDF
+			process = self.clean_trajectory(process)
 		else:
 			print("ERROR PROCESS LENGTH 0")
 			return
