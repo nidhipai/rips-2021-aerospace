@@ -48,3 +48,4 @@ class Pruning:
 			if not keep:
 				#print("THROWN: ", track.obj_id, "OBS: ", track.observations)
 				tracks.remove(track)
+

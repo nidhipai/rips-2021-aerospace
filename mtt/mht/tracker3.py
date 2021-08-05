@@ -35,8 +35,8 @@ class MHTTracker:
 
         self.measurements.append(measurements)
         print("___________ Time step: {} _________________________________".format(self.ts))
-        print("Number of Tracks: {}".format(len(self.tracks)))
-        print("Measurements: ", measurements)
+        # print("Number of Tracks: {}".format(len(self.tracks)))
+
 
         # 1) assign all measurements to all tracks in all children of tree, AND...
         # 2) calculate the expected next position for each track using the time update equation
@@ -58,16 +58,19 @@ class MHTTracker:
         self.cur_best_hypothesis = best_tracks_indexes
         self.cur_best_tracks = np.array(self.tracks)[self.cur_best_hypothesis]
 
+        # for track in self.tracks:
+        #     print("TRACK: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
         if len(best_tracks_indexes) > 0:
             self.prev_best_hypotheses.append(best_tracks_indexes)
 
-        print("==========")
-        print("BEST HYP: ")
-        for track in self.cur_best_tracks:
-            print("TRACK ID: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
-        print("==========")
+        # print("==========")
+        # print("BEST HYP: ")
+        # for track in self.cur_best_tracks:
+        #     print("TRACK ID: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
+        # print("==========")
 
         # Remove tracks that do not lead to the best hypothesis within a certain number of time steps
+
         if self.ts > self.pruning.n: # might be >=
             self.pruning.predict(self.tracks, best_tracks_indexes)
 
@@ -250,9 +253,6 @@ class MHTTracker:
             if track.confirmed():  # this is redundant later because cur_best_tracks should all be confirmed
                 # If the track records the time step, set the observation in the track as not a false alarm
                 if time in track.observations.keys() and track.observations[time] is not None:
-                    print(track)
-                    print("removing: ", track.observations[time])
-                    print("possible measurements:", possible_measurements)
                     possible_measurements.remove(track.observations[time])
         # any measurement that is not in a "good" (confirmed and in best hyp) track is a false alarm
         result = [self.measurements[-1][p] for p in possible_measurements if p is not None]
