@@ -204,7 +204,8 @@ class Simulation:
 
 
 		process = self.clean_process(self.processes[index])
-		best_trajs, correspondences = self.get_best_correspondence(process, index = index)
+		max_dist = self.get_max_correspondence_dist(process)
+		best_trajs, correspondences = self.get_best_correspondence(max_dist, index = index)
 		trajectory = self.clean_trajectory(best_trajs)
 		self.atct_error[len(self.atct_error)] = MTTMetrics.atct_signed(process, trajectory)
 		all_keys = self.get_traj_keys(best_trajs)
@@ -331,7 +332,8 @@ class Simulation:
 		process = self.processes[index]
 		process = self.clean_process(process)[0]  # get first two position coordinates
 		if isinstance(self.tracker_model, MHTTracker):
-			traj, correspondences = self.get_best_correspondence(process, index=index)
+			max_dist = self.get_max_correspondence_dist(process)
+			traj, correspondences = self.get_best_correspondence(max_dist, index=index)
 		else:
 			traj = self.trajectories[index]
 		traj = self.clean_trajectory(traj)[0]
@@ -391,7 +393,8 @@ class Simulation:
 		if len(self.trajectories) > 0:
 			# TO DO: Need a better distance gate than inf
 			if isinstance(self.tracker_model, MHTTracker):
-				best_trajs, correspondences = self.get_best_correspondence(process, index)
+				max_dist = self.get_max_correspondence_dist(process)
+				best_trajs, correspondences = self.get_best_correspondence(max_dist, index)
 			else:
 				best_trajs = self.trajectories[index]
 
@@ -811,14 +814,19 @@ class Simulation:
 			output.append(track_output)
 		return output
 
-	def get_best_correspondence(self, clean_processes, index=0):
+	def get_max_correspondence_dist(self, clean_processes):
+		"""
+		Heuristic for max correspondence distance for the correspondence algorithm below.
+		"""
+		return 2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
+
+
+	def get_best_correspondence(self, max_dist, index=0):
 		"""
 		Restructures trajectories to assign them the best corresponding object ids from the process
 		"""
 		# Heuristic for determining the cutoff between a poor filter prediction and an object miss
 		# This is a custom heuristic created by the Aerospace research team
-		max_dist = 	2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
-
 		output = []
 		# Maintain a list of the objects : trajectory correspondences that have already been generated
 		correspondences = {}
@@ -840,7 +848,7 @@ class Simulation:
 					# that has not yet been assigned
 					for traj_id, traj in self.trajectories[index][i].items():
 						if traj_id not in correspondences.keys():
-							dists.append(np.power(proc - traj, 2).sum())
+							dists.append(np.linalg.norm(proc - traj))
 							if traj_id not in traj_ids_considering:
 								traj_ids_considering.append(traj_id)
 					# Store the distances for this process in a cost array
@@ -876,35 +884,6 @@ class Simulation:
 
 		return output, correspondences
 
-	@staticmethod
-	def get_traj_keys(best_trajectories):
-		"""
-		Returns a list of keys from the result of get_best_correspondences to allow correct plotting.
-		Used in the dashboard.
-
-		Args:
-			best_trajectories (dict): dict storing the measurements associated with each trajectory as output from Simulation.get_best_correspondences
-
-		Returns:
-			all_keys (list): list of keys representing the order in which each trajectory should be plotted; aligned with process keys
-		"""
-		potential_keys = []
-		for step in best_trajectories:
-			potential_keys += list(step.keys())
-		all_keys = []
-		for key in potential_keys:
-			if key not in all_keys:
-				all_keys.append(key)
-
-		# Need to ensure all_keys is sorted with integers first
-		# so that trajectories are plotted correctly
-		true_keys = [key for key in all_keys if type(key) is int]
-		true_keys.sort()
-		false_keys = [key for key in all_keys if type(key) is not int]
-		all_keys = true_keys + false_keys
-
-		return all_keys
-
 	# New algorithm pseudocode below:
 
 	# I do not believe we can use linear sum assignment.
@@ -936,7 +915,34 @@ class Simulation:
 	# which we want because that is how the satellites will be identified
 	# and the hypotheses are matched to the processes in the optimal (closest) manner
 
+	@staticmethod
+	def get_traj_keys(best_trajectories):
+		"""
+		Returns a list of keys from the result of get_best_correspondences to allow correct plotting.
+		Used in the dashboard.
 
+		Args:
+			best_trajectories (dict): dict storing the measurements associated with each trajectory as output from Simulation.get_best_correspondences
+
+		Returns:
+			all_keys (list): list of keys representing the order in which each trajectory should be plotted; aligned with process keys
+		"""
+		potential_keys = []
+		for step in best_trajectories:
+			potential_keys += list(step.keys())
+		all_keys = []
+		for key in potential_keys:
+			if key not in all_keys:
+				all_keys.append(key)
+
+		# Need to ensure all_keys is sorted with integers first
+		# so that trajectories are plotted correctly
+		true_keys = [key for key in all_keys if type(key) is int]
+		true_keys.sort()
+		false_keys = [key for key in all_keys if type(key) is not int]
+		all_keys = true_keys + false_keys
+
+		return all_keys
 
 	def get_true_fa_and_num_measures(self, measures, colors):
 		true_false_alarms = []

@@ -184,7 +184,10 @@ class MTTMetrics:
 		# minus the ones associated with objects
 
 		# Divide by number of matches
-		motp = motp / len(true_keys)
+		if len(true_keys) > 0:
+			motp = motp / len(true_keys)
+		else:
+			motp = 0
 
 		# Tally number of objects and hypotheses at each time step
 		mota = 1 - (mota / total_possibilities)
