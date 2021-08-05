@@ -115,7 +115,6 @@ class TrackMaintenanceMHT:
             for track in tracks:
                 if i in track.possible_observations:
                     measurement_used = True
-<<<<<<< HEAD
             if measurement_used == False:
                 new_scores = [0,0,0]
                 if self.scoring_method == "distance":
