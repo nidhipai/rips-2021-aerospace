@@ -204,7 +204,7 @@ class Simulation:
 
 
 		process = self.clean_process(self.processes[index])
-		best_trajs, correspondences = self.get_best_correspondence(np.inf, index = index)
+		best_trajs, correspondences = self.get_best_correspondence(process, index = index)
 		trajectory = self.clean_trajectory(best_trajs)
 		self.atct_error[len(self.atct_error)] = MTTMetrics.atct_signed(process, trajectory)
 		all_keys = self.get_traj_keys(best_trajs)
@@ -331,8 +331,7 @@ class Simulation:
 		process = self.processes[index]
 		process = self.clean_process(process)[0]  # get first two position coordinates
 		if isinstance(self.tracker_model, MHTTracker):
-			# TO DO: Implement a better distance parameter to improve our correspondence calculation
-			traj, correspondences = self.get_best_correspondence(np.inf, index=index)
+			traj, correspondences = self.get_best_correspondence(process, index=index)
 		else:
 			traj = self.trajectories[index]
 		traj = self.clean_trajectory(traj)[0]
@@ -392,7 +391,7 @@ class Simulation:
 		if len(self.trajectories) > 0:
 			# TO DO: Need a better distance gate than inf
 			if isinstance(self.tracker_model, MHTTracker):
-				best_trajs, correspondences = self.get_best_correspondence(np.inf, index)
+				best_trajs, correspondences = self.get_best_correspondence(process, index)
 			else:
 				best_trajs = self.trajectories[index]
 
@@ -812,10 +811,14 @@ class Simulation:
 			output.append(track_output)
 		return output
 
-	def get_best_correspondence(self, max_dist, index=0):
+	def get_best_correspondence(self, clean_processes, index=0):
 		"""
 		Restructures trajectories to assign them the best corresponding object ids from the process
 		"""
+		# Heuristic for determining the cutoff between a poor filter prediction and an object miss
+		# This is a custom heuristic created by the Aerospace research team
+		max_dist = 	2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
+
 		output = []
 		# Maintain a list of the objects : trajectory correspondences that have already been generated
 		correspondences = {}
