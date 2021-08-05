@@ -4,6 +4,7 @@ import numpy as np
 class MTTMetrics:
 	# Returns AME of Euclidean distances between trajectory and actual process for each object
 	# Access AME of ith object with errors[i]
+	# TODO: Obsolte and no longer maintained
 	@staticmethod
 	def AME_euclidean(processes, trajectos, cut=0):
 		index = 0
@@ -43,12 +44,13 @@ class MTTMetrics:
 		i = 0
 		errors = []
 		for process in processes:
-			diff_x = process[0] - trajectos[i][0]
-			diff_y = process[1] - trajectos[i][1]
+			l = len(process[0])
+			diff_x = process[0] - trajectos[i][0][:l]
+			diff_y = process[1] - trajectos[i][1][:l]
 			vx = process[2]
 			vy = process[3]
-			diff_vx = vx - trajectos[i][2]
-			diff_vy = vy - trajectos[i][3]
+			diff_vx = vx - trajectos[i][2][:l]
+			diff_vy = vy - trajectos[i][3][:l]
 			angles = np.arctan2(vy, vx)
 			j = 0
 			diff_at = []
