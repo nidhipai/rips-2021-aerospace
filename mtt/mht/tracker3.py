@@ -52,22 +52,6 @@ class MHTTracker:
         # Next, calculate track scores and create new potential tracks
         self.tracks = self.track_maintenance.predict(self.ts, self.tracks, measurements)
 
-        pointer = 0
-        while pointer < len(self.tracks):
-            i = pointer + 1
-            while i < len(self.tracks):
-                keep = False
-                observations1 = self.tracks[pointer].observations
-                observations2 = self.tracks[i].observations
-                if (len(list(observations1.values())) and len(list(observations2.values()))) > self.pruning.n - 1:
-                    for j in range(self.pruning.n):
-                        if observations1[self.ts-j] != observations2[self.ts-j]:
-                            keep = True
-                if not keep:
-                    self.tracks.remove(self.tracks[i])
-                i +=1
-            pointer +=1
-
         # Calculate the maximum weighted clique
         best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
 
@@ -75,22 +59,22 @@ class MHTTracker:
         self.cur_best_hypothesis = best_tracks_indexes
         self.cur_best_tracks = np.array(self.tracks)[self.cur_best_hypothesis]
 
-        for track in self.tracks:
-            print("TRACK: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
+        # for track in self.tracks:
+        #     print("TRACK: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
         if len(best_tracks_indexes) > 0:
             self.prev_best_hypotheses.append(best_tracks_indexes)
 
-        print("==========")
-        print("BEST HYP: ")
-        for track in self.cur_best_tracks:
-            print("TRACK ID: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
-        print("==========")
+        # print("==========")
+        # print("BEST HYP: ")
+        # for track in self.cur_best_tracks:
+        #     print("TRACK ID: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
+        # print("==========")
 
         # Remove tracks that do not lead to the best hypothesis within a certain number of time steps
 
         if self.ts > self.pruning.n: # might be >=
             self.pruning.predict(self.tracks, best_tracks_indexes)
-            
+
         # Run the Kalman Filter measurement update for each track
         i = 0
         for track in self.tracks:

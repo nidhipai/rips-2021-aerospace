@@ -55,11 +55,11 @@ class TrackMaintenanceMHT:
 
         new_tracks = []
         for j, track in enumerate(tracks):
-            print("SCORE OF OLD TRACK:", track.score)
+            # print("SCORE OF OLD TRACK:", track.score)
             # consider the case of missed measurement, replicate each of these tracks as if they missed a measurement
 
             missed_measurement_score = self.score_no_measurement(track, method=self.scoring_method)
-            print("MM score: ", missed_measurement_score)
+            # print("MM score: ", missed_measurement_score)
             if missed_measurement_score >= self.threshold_miss_measurement:
                 mm_track = deepcopy(track)
                 mm_track.score = missed_measurement_score
@@ -79,7 +79,7 @@ class TrackMaintenanceMHT:
             # observation added to the observations
             for possible_observation in track.possible_observations:
                 score, test_stat = self.score_measurement(measurements[possible_observation], track, self.scoring_method)
-                print("Score: ", score, "Test stat: ", test_stat)
+                # print("Score: ", score, "Test stat: ", test_stat)
                 if score >= self.threshold_old_track:
                     # Create a new track with the new observations and score
                     po_track = deepcopy(track)
@@ -93,32 +93,37 @@ class TrackMaintenanceMHT:
                     po_track.observations[ts] = possible_observation
                     po_track.possible_observations = []
                     new_tracks.append(po_track)
-                    print("ID, OBS: ", track.obj_id, possible_observation, "OBS: ", track.observations, "SCORE: ", track.score)
+                    # print("ID, OBS: ", track.obj_id, possible_observation, "OBS: ", track.observations, "SCORE: ", track.score)
 
         # finally, for every measurement, make a new track (assume it is a new object)
         for i, measurement in enumerate(measurements):
-            new_scores = [0,0,0]
-            if self.scoring_method == "distance":
-                if len(new_tracks) > 0:
-                    score = min([track.score for track in new_tracks]) - 1
-                    # print(score)
+            measurement_used = False
+            for track in tracks:
+                if i in track.possible_observations:
+                    measurement_used = True
+            if measurement_used == False:
+                new_scores = [0,0,0]
+                if self.scoring_method == "distance":
+                    if len(new_tracks) > 0:
+                        score = min([track.score for track in new_tracks]) - 1
+                        # print(score)
+                    else:
+                        score = -1
                 else:
-                    score = -1
-            else:
-                score = 0.0001
-            new_scores[0] = 0.001
-            new_scores[2] = 0.001
+                    score = 0.0001
+                new_scores[0] = 0.001
+                new_scores[2] = 0.001
 
-            if len(new_tracks) > 0:
-                new_scores[1]= min([track.score for track in new_tracks]) - 1
-            else:
-                new_scores[1] = -1
-            starting_observations = {ts: i}
-            new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n, P=self.P)
-            if self.record_scores:
-                new_track.all_scores[ts] = new_scores
-            new_tracks.append(new_track)
-            self.num_objects += 1
+                if len(new_tracks) > 0:
+                    new_scores[1]= min([track.score for track in new_tracks]) - 1
+                else:
+                    new_scores[1] = -1
+                starting_observations = {ts: i}
+                new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n, P=self.P)
+                if self.record_scores:
+                    new_track.all_scores[ts] = new_scores
+                new_tracks.append(new_track)
+                self.num_objects += 1
 
         # print("Number of new tracks: ", len(new_tracks))
         # for track in new_tracks:

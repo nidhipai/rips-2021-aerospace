@@ -158,10 +158,7 @@ class MTTMetrics:
 			motp += marked_dist[~np.isnan(marked_dist)].sum()
 
 			# Calculate number of times object swaps
-<<<<<<< HEAD
-			# print("Test: {}".format(np.isnan(marked_dist).sum()))
-=======
->>>>>>> ace0d9ecf6e134ba4ddde4cef709554ddd32b8dc
+
 			mota += np.isnan(marked_dist).sum()
 
 			# Add to the tally of total objects and hypotheses at each time step
@@ -191,11 +188,6 @@ class MTTMetrics:
 		motp = motp / len(true_keys)
 
 		# Tally number of objects and hypotheses at each time step
-<<<<<<< HEAD
-		# print(mota)
-		# print(total_possibilities)
-=======
->>>>>>> ace0d9ecf6e134ba4ddde4cef709554ddd32b8dc
 		mota = 1 - (mota / total_possibilities)
 		return motp, mota
 
