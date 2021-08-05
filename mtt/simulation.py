@@ -537,8 +537,7 @@ class Simulation:
 				caption = true_noises + "\n" + measurement_noise + "\n" + other_noise + "\n" + filter_noise + "\n" + filter_measurement_noise + "\n" + covariance + "\n" + mos + "\n"
 				if tail >= 0:
 					fig.text(1, 0.1, caption, ha='center', fontsize = 14)
-			#else:
-				#print(caption)
+
 			return lines;
 
 	def plot_all(self, var="Time Steps", error=False, test="data", labs=("Process", "Filter", "Measure"), ellipse_freq = 0):
