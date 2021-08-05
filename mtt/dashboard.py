@@ -50,8 +50,8 @@ input_style = {"display": "inline-block", "margin": input_margin}
 output_style = {"display": "inline-block", "margin-right": 20, "margin-left": 20, "margin-top": 10, "margin-bottom": 10}
 
 # Set up the necessary infrastructure to run a simulation
-#gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa_scale)
-gen = mtt.MultiObjFixed(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam = lam, fa_scale = fa_scale, x_lim = x_lim, y_lim = y_lim, new_obj_prop = new_obj_prop)
+gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa_scale)
+#gen = mtt.MultiObjFixed(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam = lam, fa_scale = fa_scale, x_lim = x_lim, y_lim = y_lim, new_obj_prop = new_obj_prop)
 
 
 #Set up a default tracker and simulation
