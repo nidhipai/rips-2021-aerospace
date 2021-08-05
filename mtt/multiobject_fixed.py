@@ -40,9 +40,7 @@ class MultiObjFixed(DataGenerator):
 		self.x_lim = x_lim					# half-width of frame
 		self.y_lim = y_lim					# half-height of frame
 
-		print("NOP", new_obj_prop)
 		self.new_obj_prop = new_obj_prop	# prob of new object spawning	TODO
-		print("NOP2", self.new_obj_prop)
 		self.num_objs = len(xt0) - 1		#								TODO
 
 		# We require our initial state vector to have all 4 needed components:
@@ -85,6 +83,7 @@ class MultiObjFixed(DataGenerator):
 			side = rng.random()
 			c = rng.random() - 0.5
 			buff = 0.125
+			print("LIMITS", self.x_lim, self.y_lim)
 			if side <= 0.25:
 				new_x = -self.x_lim + buff
 				new_y = c * 2 * self.y_lim
@@ -178,4 +177,4 @@ class MultiObjFixed(DataGenerator):
 		clone = copy(self)
 		for arg in kwargs.items():
 			setattr(clone, arg[0], arg[1])
-		return MultiObjFixed(clone.xt0, clone.dt, clone.ep_tangent, clone.ep_normal, clone.nu, clone.miss_p, new_obj_prop = clone.new_obj_prop)
+		return MultiObjFixed(clone.xt0, clone.dt, clone.ep_tangent, clone.ep_normal, clone.nu, clone.miss_p, x_lim = clone.x_lim, y_lim = clone.y_lim, new_obj_prop = clone.new_obj_prop)
