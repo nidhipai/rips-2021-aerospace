@@ -6,7 +6,7 @@ from copy import deepcopy
 import numpy as np
 
 class MHTTracker:
-    def __init__(self, global_kalman, gating, track_maintenance, track_merging, hypothesis_comp, pruning):
+    def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning):
         self.tracks = [] # list of tracks
         self.kalman = global_kalman # holds the global kalman for all tracks
         self.measurements = [] # 2D array of state vectors - each row is a time step
@@ -15,7 +15,6 @@ class MHTTracker:
         # all the methods
         self.gating = gating # holds the Gating object
         self.track_maintenance = track_maintenance # holds the track maintenance object
-        self.track_merging = track_merging # holds the track merging object
         self.hypothesis_comp = hypothesis_comp # holds the hypothesis comp object
         self.pruning = pruning # holds the pruning object
         self.gating.kalman = global_kalman # set the gating object's kalman to the global kalman
@@ -254,9 +253,6 @@ class MHTTracker:
             if track.confirmed():  # this is redundant later because cur_best_tracks should all be confirmed
                 # If the track records the time step, set the observation in the track as not a false alarm
                 if time in track.observations.keys() and track.observations[time] is not None:
-                    print(track)
-                    print("removing: ", track.observations[time])
-                    print("possible measurements:", possible_measurements)
                     possible_measurements.remove(track.observations[time])
         # any measurement that is not in a "good" (confirmed and in best hyp) track is a false alarm
         result = [self.measurements[-1][p] for p in possible_measurements if p is not None]

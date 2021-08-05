@@ -4,6 +4,7 @@ import numpy as np
 class MTTMetrics:
 	# Returns AME of Euclidean distances between trajectory and actual process for each object
 	# Access AME of ith object with errors[i]
+	# TODO: Obsolte and no longer maintained
 	@staticmethod
 	def AME_euclidean(processes, trajectos, cut=0):
 		index = 0
@@ -43,12 +44,13 @@ class MTTMetrics:
 		i = 0
 		errors = []
 		for process in processes:
-			diff_x = process[0] - trajectos[i][0]
-			diff_y = process[1] - trajectos[i][1]
+			l = len(process[0])
+			diff_x = process[0] - trajectos[i][0][:l]
+			diff_y = process[1] - trajectos[i][1][:l]
 			vx = process[2]
 			vy = process[3]
-			diff_vx = vx - trajectos[i][2]
-			diff_vy = vy - trajectos[i][3]
+			diff_vx = vx - trajectos[i][2][:l]
+			diff_vy = vy - trajectos[i][3][:l]
 			angles = np.arctan2(vy, vx)
 			j = 0
 			diff_at = []
@@ -138,9 +140,10 @@ class MTTMetrics:
 		for key in true_keys:
 			# Filter out observations before or after the process begins
 			proc = processes[key]
-			period_alive = (~np.isnan(proc))[0]
-			proc = proc[:, period_alive]
-			traj = trajectories[key][:,period_alive]
+			traj = trajectories[key]
+			# NOTE: This throws an error when the process is shorter than the trajectory
+			# We need both the proc and the traj to be NaN-passed on time steps in which they do not exist
+
 			# Calculate the errors
 			marked_dist = np.linalg.norm(traj - proc, axis=0)
 
@@ -148,7 +151,7 @@ class MTTMetrics:
 			# If a point from a different process is closer, mark this as a swap by setting to NaN
 			for key2 in true_keys:
 				if key != key2:
-					proc2 = processes[key2][:,period_alive]
+					proc2 = processes[key2]
 					cur_dist = np.linalg.norm(traj - proc2, axis=0)
 					better = cur_dist < marked_dist
 					marked_dist[better] = np.nan
@@ -185,7 +188,10 @@ class MTTMetrics:
 		# minus the ones associated with objects
 
 		# Divide by number of matches
-		motp = motp / len(true_keys)
+		if len(true_keys) > 0:
+			motp = motp / len(true_keys)
+		else:
+			motp = 0
 
 		# Tally number of objects and hypotheses at each time step
 		mota = 1 - (mota / total_possibilities)

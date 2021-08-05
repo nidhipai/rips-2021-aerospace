@@ -202,13 +202,15 @@ class Simulation:
 
 		# this code will throw an error if there's no track maintenance object in the pipeline
 
-
-		process = self.clean_process(self.processes[index])
-		best_trajs, correspondences = self.get_best_correspondence(np.inf, index = index)
+		# ASDF
+		process = self.clean_trajectory(self.processes[index])
+		max_dist = self.get_max_correspondence_dist(process)
+		best_trajs, correspondences = self.get_best_correspondence(max_dist, index = index)
 		trajectory = self.clean_trajectory(best_trajs)
 		self.atct_error[len(self.atct_error)] = MTTMetrics.atct_signed(process, trajectory)
 		all_keys = self.get_traj_keys(best_trajs)
-		self.motp[len(self.motp)], self.mota[len(self.mota)] = MTTMetrics.mota_motp(process, trajectory, all_keys)
+		# TODO: motp/mota stuff might break fixed frame
+		#self.motp[len(self.motp)], self.mota[len(self.mota)] = MTTMetrics.mota_motp(process, trajectory, all_keys)
 		self.track_count[len(self.track_count.keys())] = len(self.tracker_model.tracks)
 
 	def experiment(self, ts, test="data", **kwargs):
@@ -329,10 +331,11 @@ class Simulation:
 		if index is None:
 			index = len(self.processes.keys()) - 1
 		process = self.processes[index]
-		process = self.clean_process(process)[0]  # get first two position coordinates
+		# ASDF
+		process = self.clean_trajectory(process)[0]  # get first two position coordinates
 		if isinstance(self.tracker_model, MHTTracker):
-			# TO DO: Implement a better distance parameter to improve our correspondence calculation
-			traj, correspondences = self.get_best_correspondence(np.inf, index=index)
+			max_dist = self.get_max_correspondence_dist(process)
+			traj, correspondences = self.get_best_correspondence(max_dist, index=index)
 		else:
 			traj = self.trajectories[index]
 		traj = self.clean_trajectory(traj)[0]
@@ -386,13 +389,15 @@ class Simulation:
 		# Convert stored experiments into numpy matrices for plotting
 		# (or list for measures)
 		if len(self.processes) > 0:
-			process = self.clean_process(self.processes[index])
+			# ASDF
+			process = self.clean_trajectory(self.processes[index])
 
 		correspondences = None
 		if len(self.trajectories) > 0:
 			# TO DO: Need a better distance gate than inf
 			if isinstance(self.tracker_model, MHTTracker):
-				best_trajs, correspondences = self.get_best_correspondence(np.inf, index)
+				max_dist = self.get_max_correspondence_dist(process)
+				best_trajs, correspondences = self.get_best_correspondence(max_dist, index)
 			else:
 				best_trajs = self.trajectories[index]
 
@@ -528,7 +533,9 @@ class Simulation:
 				#true_state = "true state = " + "[" + self.descs[0]["x0"] + ", " + self.descs[0]["y0"] + ", " + self.descs[0]["vx0"] + ", " + self.descs[0]["vy0"] + "]"
 				#filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
 				covariance = "Starting P = " + self.descs[0]["P"]
-				mos = "MOTP = {}, MOTA = {}".format(np.round(self.motp[index], 3), np.round(self.mota[index],3))
+				# TODO: commented out for fixed frame testing
+				#mos = "MOTP = {}, MOTA = {}".format(np.round(self.motp[index], 3), np.round(self.mota[index],3))
+				mos = "IDK"
 
 				caption = true_noises + "\n" + measurement_noise + "\n" + other_noise + "\n" + filter_noise + "\n" + filter_measurement_noise + "\n" + covariance + "\n" + mos + "\n"
 				if tail >= 0:
@@ -812,10 +819,21 @@ class Simulation:
 			output.append(track_output)
 		return output
 
+	def get_max_correspondence_dist(self, clean_processes):
+		"""
+		Heuristic for max correspondence distance for the correspondence algorithm below.
+		"""
+		if len(clean_processes) > 0:
+			return 2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
+		else:
+			return np.inf
+
 	def get_best_correspondence(self, max_dist, index=0):
 		"""
 		Restructures trajectories to assign them the best corresponding object ids from the process
 		"""
+		# Heuristic for determining the cutoff between a poor filter prediction and an object miss
+		# This is a custom heuristic created by the Aerospace research team
 		output = []
 		# Maintain a list of the objects : trajectory correspondences that have already been generated
 		correspondences = {}
@@ -837,7 +855,7 @@ class Simulation:
 					# that has not yet been assigned
 					for traj_id, traj in self.trajectories[index][i].items():
 						if traj_id not in correspondences.keys():
-							dists.append(np.power(proc - traj, 2).sum())
+							dists.append(np.linalg.norm(proc - traj))
 							if traj_id not in traj_ids_considering:
 								traj_ids_considering.append(traj_id)
 					# Store the distances for this process in a cost array
@@ -860,7 +878,6 @@ class Simulation:
 				# key = the id of the process
 				# value = the value of the trajectory associated with said process at this iteration
 				correspondences[traj_ids_considering[best_traj]] = proc_ids_considering[best_proc]
-
 			# Generate the output for this time step using the correspondences dictionary
 			for traj_id, traj in self.trajectories[index][i].items():
 				if traj_id in correspondences.keys():
@@ -872,35 +889,6 @@ class Simulation:
 			output.append(new_step)
 
 		return output, correspondences
-
-	@staticmethod
-	def get_traj_keys(best_trajectories):
-		"""
-		Returns a list of keys from the result of get_best_correspondences to allow correct plotting.
-		Used in the dashboard.
-
-		Args:
-			best_trajectories (dict): dict storing the measurements associated with each trajectory as output from Simulation.get_best_correspondences
-
-		Returns:
-			all_keys (list): list of keys representing the order in which each trajectory should be plotted; aligned with process keys
-		"""
-		potential_keys = []
-		for step in best_trajectories:
-			potential_keys += list(step.keys())
-		all_keys = []
-		for key in potential_keys:
-			if key not in all_keys:
-				all_keys.append(key)
-
-		# Need to ensure all_keys is sorted with integers first
-		# so that trajectories are plotted correctly
-		true_keys = [key for key in all_keys if type(key) is int]
-		true_keys.sort()
-		false_keys = [key for key in all_keys if type(key) is not int]
-		all_keys = true_keys + false_keys
-
-		return all_keys
 
 	# New algorithm pseudocode below:
 
@@ -933,7 +921,34 @@ class Simulation:
 	# which we want because that is how the satellites will be identified
 	# and the hypotheses are matched to the processes in the optimal (closest) manner
 
+	@staticmethod
+	def get_traj_keys(best_trajectories):
+		"""
+		Returns a list of keys from the result of get_best_correspondences to allow correct plotting.
+		Used in the dashboard.
 
+		Args:
+			best_trajectories (dict): dict storing the measurements associated with each trajectory as output from Simulation.get_best_correspondences
+
+		Returns:
+			all_keys (list): list of keys representing the order in which each trajectory should be plotted; aligned with process keys
+		"""
+		potential_keys = []
+		for step in best_trajectories:
+			potential_keys += list(step.keys())
+		all_keys = []
+		for key in potential_keys:
+			if key not in all_keys:
+				all_keys.append(key)
+
+		# Need to ensure all_keys is sorted with integers first
+		# so that trajectories are plotted correctly
+		true_keys = [key for key in all_keys if type(key) is int]
+		true_keys.sort()
+		false_keys = [key for key in all_keys if type(key) is not int]
+		all_keys = true_keys + false_keys
+
+		return all_keys
 
 	def get_true_fa_and_num_measures(self, measures, colors):
 		true_false_alarms = []
@@ -953,7 +968,8 @@ class Simulation:
 		index = len(self.processes.keys()) - 1
 		if len(self.processes) > 0:
 			process = self.processes[index]
-			process = self.clean_process(process)
+			# ASDF
+			process = self.clean_trajectory(process)
 		else:
 			print("ERROR PROCESS LENGTH 0")
 			return

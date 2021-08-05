@@ -40,10 +40,6 @@ fa_scale = 1
 gate_size = 0.95
 gate_expand_size = 0.5
 
-x_lim = 50
-y_lim = 50
-new_obj_prop = 0.05
-
 # Style Parameters
 input_margin = 10
 input_style = {"display": "inline-block", "margin": input_margin}
@@ -51,7 +47,6 @@ output_style = {"display": "inline-block", "margin-right": 20, "margin-left": 20
 
 # Set up the necessary infrastructure to run a simulation
 gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa_scale)
-#gen = mtt.MultiObjFixed(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam = lam, fa_scale = fa_scale, x_lim = x_lim, y_lim = y_lim, new_obj_prop = new_obj_prop)
 
 
 #Set up a default tracker and simulation
@@ -419,7 +414,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         #Set up the simulation with the newly specified parameters
         sim.seed_value = int(seed)
         sim.clear(lam, miss_p)
-        sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale, new_obj_prop = new_obj_prop)
+        sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale)
 
         params = {
             "f": sim.generator.process_function,
@@ -438,8 +433,8 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
     if n_clicks != 0:
         # Generate all variables to plot
         processes = sim.clean_process(sim.processes[0])
-        max_dist = sim.get_max_correspondence_dist(processes)
-        best_trajs, correspondences = sim.get_best_correspondence(max_dist)
+
+        best_trajs, correspondences = sim.get_best_correspondence(np.inf)
         trajectories = sim.clean_trajectory(best_trajs)
 
         colors = sim.clean_measure(sim.measure_colors[0])
