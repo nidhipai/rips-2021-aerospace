@@ -36,7 +36,7 @@ class Pruning:
 			prev_ob = np.array(list(track.observations.values()))
 			# if prev_ob.size - 0 - self.n <= 0:
 			# 	continue
-			if prev_ob.size - 0 - 4 <= 0:
+			if prev_ob.size - 0 - self.n <= 0:
 				continue
 			prev_ob = prev_ob[:(prev_ob.size - 0 - self.n)]
 			# Test each possibility

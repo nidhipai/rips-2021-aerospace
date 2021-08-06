@@ -72,6 +72,7 @@ class TrackMaintenanceMHT:
             if missed_measurement_score >= self.threshold_miss_measurement:
                 mm_track = deepcopy(track)  # So that the original track can be used in add_measurements
                 mm_track.score = missed_measurement_score
+                mm_track.all_scores[ts] = missed_measurement_score
                 mm_track.observations[ts] = None
                 mm_track.possible_observations = []  # Reset for the next time step
                 new_tracks.append(mm_track)
@@ -96,6 +97,7 @@ class TrackMaintenanceMHT:
                     # Create a new track with the new observations and score
                     po_track = deepcopy(track)
                     po_track.score = score
+                    po_track.all_scores[ts] = score
                     po_track.test_stat = test_stat
                     po_track.observations[ts] = possible_observation
                     po_track.possible_observations = []
@@ -111,24 +113,28 @@ class TrackMaintenanceMHT:
             new_tracks (list): list of new tracks for this timestep
         """
         for i, measurement in enumerate(measurements):
-            measurement_used = False
-            for track in tracks:
-                if i in track.possible_observations:
-                    measurement_used = True
-                    break
-            if not measurement_used:
-                if self.scoring_method == "distance":
-                    if len(new_tracks) > 0:
-                        score = min([track.score for track in new_tracks]) - 1
-                    else:
-                        score = -1
+            # measurement_used = False
+            # for track in tracks:
+            #     if i in track.possible_observations:
+            #         measurement_used = True
+            #         break
+            # if not measurement_used:
+            if self.scoring_method == "distance":
+                if len(new_tracks) > 0:
+                    score = min([track.score for track in new_tracks]) - 1
                 else:
-                    score = 0.0001
+                    score = -1
+            else:
+                # dists = [DistancesMHT.mahalanobis(measurement, track, self.kFilter_model) for track in tracks]
+                # nearest_track = tracks[dists.index(min(dists))]
+                # score = 1 - self.score_measurement(measurements, nearest_track)
+                score = .00001
 
-                starting_observations = {ts: i}
-                new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n, P=self.P)
-                new_tracks.append(new_track)
-                self.num_objects += 1
+            starting_observations = {ts: i}
+            new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n, P=self.P)
+            new_track.all_scores[ts] = score
+            new_tracks.append(new_track)
+            self.num_objects += 1
 
     def score_measurement(self, measurement, track, method = "chi2"):
         """

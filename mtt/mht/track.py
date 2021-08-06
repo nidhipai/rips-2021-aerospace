@@ -78,8 +78,7 @@ class Track:
     #     return num_observation > self.pruning_n
 
     def confirmed(self):
-        #num_observations = (self.num_observations() + len(self.observations.values()))
-        return self.num_observations() > 4
+        return self.num_observations() > self.pruning_n
 
     def num_observations(self):
         return sum(x is not None for x in list(self.observations.values()))
