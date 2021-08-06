@@ -41,9 +41,8 @@ class MTTMetrics:
 	# Access CT errors of ith object with errors[i][1]
 	@staticmethod
 	def atct_signed(processes, trajectos, cut = 0):
-		i = 0
 		errors = []
-		for process in processes:
+		for i, process in enumerate(processes):
 			if i >= len(trajectos):
 				break
 			diff_x = process[0] - trajectos[i][0]
@@ -71,7 +70,6 @@ class MTTMetrics:
 			diff_atv = diff_atv[cut:]
 			diff_ctv = diff_ctv[cut:]
 			errors.append([diff_at, diff_ct, diff_atv, diff_ctv])
-			i += 1
 		return errors
 
 	# Returns 4 ratios based on TP, FP, TN, FN
@@ -140,6 +138,7 @@ class MTTMetrics:
 		# Determine which time steps are marked correctly and calculate error based on RMSE
 		for key in true_keys:
 			# Filter out observations before or after the process begins
+
 			proc = processes[key]
 			traj = trajectories[key]
 			# NOTE: This throws an error when the process is shorter than the trajectory
