@@ -978,11 +978,11 @@ class Simulation:
 			return
 
 		if m == 'ame':
-			return Metrics.AME_euclidean(process, output1, cut)
+			return MTTMetrics.AME_euclidean(process, output1, cut)
 		if m == 'rmse':
-			return [Metrics.RMSE_euclidean(process, output1, cut), Metrics.RMSE_euclidean(process, output2, cut)]
+			return [MTTMetrics.RMSE_euclidean(process, output1, cut), Metrics.RMSE_euclidean(process, output2, cut)]
 		if m == 'atct':
-			return Metrics.atct_signed(process, output, cut)
+			return MTTMetrics.atct_signed(process, output1, cut)
 		if m == 'fa':
-			return Metrics.false_id_rate(true_false_alarms, false_alarms)
+			return MTTMetrics.false_id_rate(true_false_alarms, false_alarms)
 		print("ERROR INVALID METRIC")
