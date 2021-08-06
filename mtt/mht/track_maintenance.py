@@ -72,7 +72,6 @@ class TrackMaintenanceMHT:
             if missed_measurement_score >= self.threshold_miss_measurement:
                 mm_track = deepcopy(track)  # So that the original track can be used in add_measurements
                 mm_track.score = missed_measurement_score
-                mm_track.all_scores[ts] = missed_measurement_score
                 mm_track.observations[ts] = None
                 mm_track.possible_observations = []  # Reset for the next time step
                 new_tracks.append(mm_track)
@@ -97,7 +96,6 @@ class TrackMaintenanceMHT:
                     # Create a new track with the new observations and score
                     po_track = deepcopy(track)
                     po_track.score = score
-                    po_track.all_scores[ts] = score
                     po_track.test_stat = test_stat
                     po_track.observations[ts] = possible_observation
                     po_track.possible_observations = []
@@ -132,7 +130,7 @@ class TrackMaintenanceMHT:
 
             starting_observations = {ts: i}
             new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n, P=self.P)
-            new_track.all_scores[ts] = score
+            #new_track.all_scores[ts] = score
             new_tracks.append(new_track)
             self.num_objects += 1
 
