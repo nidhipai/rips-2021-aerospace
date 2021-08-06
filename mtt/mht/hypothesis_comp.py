@@ -18,6 +18,7 @@ class HypothesisComp:
 		"""
 		self.G = nx.Graph()
 
+
 		# Calculate values needed to normalize the score
 		# Only use confirmed tracks
 		# scores = [track.score for track in tracks if track.confirmed()]
@@ -39,7 +40,8 @@ class HypothesisComp:
 
 			for i, track in enumerate(tracks):
 				if track in confirmed_tracks:
-					self.G.add_node(i, weight=1 + int(((track.score - minimum) / dif) * 1000))
+					self.G.add_node(i, weight = 1 + int(((track.score - minimum) / dif)*1000))
+
 			for i in range(len(tracks)):
 				if tracks[i] not in confirmed_tracks:
 					continue

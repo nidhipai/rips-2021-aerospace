@@ -63,11 +63,11 @@ class MHTTracker:
         if len(best_tracks_indexes) > 0:
             self.prev_best_hypotheses.append(best_tracks_indexes)
 
-        print("==========")
-        print("BEST HYP: ")
-        for track in self.cur_best_tracks:
-            print("TRACK ID: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
-        print("==========")
+        # print("==========")
+        # print("BEST HYP: ")
+        # for track in self.cur_best_tracks:
+        #     print("TRACK ID: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
+        # print("==========")
 
         # Remove tracks that do not lead to the best hypothesis within a certain number of time steps
 
@@ -79,7 +79,7 @@ class MHTTracker:
         for track in self.tracks:
             #print("A posteriori estimate:\n", track.x_hat)
             # Printing track index
-            #print("Track {} Score:".format(i), track.score)
+            # print("Track {} Score:".format(i), track.score)
             # Printing track object id
             # print("Track {} Score:".format(track.obj_id), track.score)
             track.measurement_update(self.kalman, measurements, self.ts)

@@ -51,7 +51,8 @@ class MTTTracker:
 		Returns: A list. Each index of the list represents a timestep; an index contains a dictionary. A key of the dictionary is the object keys (from MTTTracker.tracks) and a value is a column vector (2D vector)
 		"""
 		result = []
-		for ts in range(0, len(self.tracks[0].predictions.values())): # iterate over timesteps
+		#for ts in range(0, len(self.tracks[0].predictions.values())): # iterate over timesteps
+		for ts in range(0, self.time): # iterate over timesteps
 			result.append(dict())
 			for j, track in self.tracks.items():
 				if ts in track.predictions.keys():
@@ -59,11 +60,13 @@ class MTTTracker:
 				else:
 					# Note that this assumes the state vector is of length 4
 					result[ts][j] = list(repeat([None], 4))
+		#print("TRACKER: (", self.time, ")", result)
 		return result
 
 	def get_apriori_traj(self):
 		result = []
-		for ts in range(0, len(self.tracks[0].apriori_pred.values())): # iterate over timesteps
+		#for ts in range(0, len(self.tracks[0].apriori_pred.values())): # iterate over timesteps
+		for ts in range(0, self.time): # iterate over timesteps
 			result.append(dict())
 			for j, track in self.tracks.items():
 				if ts in track.apriori_pred.keys():
@@ -71,6 +74,7 @@ class MTTTracker:
 				else:
 					# Note that this assumes the state vector is of length 4
 					result[ts][j] = list(repeat([None], 4))
+		#print("?", result)
 		return result
 
 	def get_ellipses(self, mode="apriori"):

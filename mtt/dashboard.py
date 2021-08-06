@@ -11,7 +11,6 @@ from copy import copy
 #Declare these as global variables to be used by all callbacks
 global sim
 global prev_clicks
-global num_objects
 prev_clicks = 0
 num_objects = 1
 
@@ -86,6 +85,13 @@ app.layout = html.Div(children=[
         value=['process', 'measure', 'trajectory'],
         labelStyle={'display': 'inline-block'},
         style={"margin-top": 10, "margin-left":20}
+    ),
+    dcc.Checklist(id='display_params',
+        options=[
+            {'label': 'Display Parameters on Graph?', 'value': 'True'}
+        ],
+        value=['True'],
+        style={"margin-left":20}
     ),
     html.Div(children=[
         dcc.Graph(
@@ -309,6 +315,7 @@ app.layout = html.Div(children=[
     Input('error-graph', 'figure'),
     Input('run', 'n_clicks'),
     Input('check-options', 'value'),
+    Input('display_params', 'value'),
     State('time-steps', 'value'), # Outputs are drawn from text box states
     State('nu', 'value'),
     State('ep_tangent', 'value'),
@@ -326,7 +333,7 @@ app.layout = html.Div(children=[
     State('prune_time', 'value'),
     State('scoring_method', 'value')
 )
-def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, prune_time, scoring_method):
+def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, prune_time, scoring_method):
     global prev_clicks
     global sim
     fig = prev_fig
@@ -371,8 +378,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         for i, item in enumerate(x0_split):
             x0_parse[i] = np.array(item.strip().split(" ")).astype(float)
             x0_parse[i].shape = (4,1)
-
-        num_objects = len(x0_parse.items())
 
         """
         if x0_filter is not None:
@@ -441,12 +446,20 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         max_dist = sim.get_max_correspondence_dist(processes)
         best_trajs, correspondences = sim.get_best_correspondence(max_dist)
         trajectories = sim.clean_trajectory(best_trajs)
+        skip_traj = trajectories[-1] is None
+
 
         colors = sim.clean_measure(sim.measure_colors[0])
-        measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
-        measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
-        measures = sim.clean_measure2(sim.sorted_measurements[0], correspondences)
-
+        # If there are no measures, we must skip plotting them
+        skip_measures = False
+        if(colors.size > 0):
+            measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
+            measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
+            measures = sim.clean_measure2(sim.sorted_measurements[0], correspondences)
+        else:
+            skip_measures = True
+            measures_true = np.array([])
+            measures_false = np.array([])
         false_alarms = sim.false_alarms[0]
         false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
 
@@ -458,32 +471,41 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         # Set the range manually to prevent the animation from dynamically changing the range
         measure_max = []
         measure_min = []
-        if measures_true.size > 0:
+        if measures_true.size > 0 and not skip_measures:
             measure_max.append(measures_true[0].max())
             measure_max.append(measures_true[1].max())
             measure_min.append(measures_true[0].min())
             measure_min.append(measures_true[1].min())
 
-        if measures_false.size > 0:
+        if measures_false.size > 0 and not skip_measures:
             measure_max.append(measures_false[0].max())
             measure_max.append(measures_false[1].max())
             measure_min.append(measures_false[0].min())
             measure_min.append(measures_false[1].min())
 
-        # Remove nones
-        xmax = max([max([process[0].max() for process in processes]), max([trajectory[0].max() for trajectory in trajectories] + measure_max)])
-        xmin = min([min([process[0].min() for process in processes]), min([trajectory[0].min() for trajectory in trajectories] + measure_min)])
-        ymax = max([max([process[1].max() for process in processes]), max([trajectory[1].max() for trajectory in trajectories] + measure_max)])
-        ymin = min([min([process[1].min() for process in processes]), min([trajectory[1].min() for trajectory in trajectories] + measure_min)])
-        xrange = [xmin*1.1, xmax*1.1]
-        yrange = [ymin*1.1, ymax*1.1]
+        # Check to make sure there is a trajectory to plot, and not a filler list of Nones
+        if not skip_traj:
+            xmax = max([max([process[0].max() for process in processes]), max([trajectory[0][trajectory[0] != None].max() for trajectory in trajectories] + measure_max)])
+            xmin = min([min([process[0].min() for process in processes]), min([trajectory[0][trajectory[0] != None].min() for trajectory in trajectories] + measure_min)])
+            ymax = max([max([process[1].max() for process in processes]), max([trajectory[1][trajectory[0] != None].max() for trajectory in trajectories] + measure_max)])
+            ymin = min([min([process[1].min() for process in processes]), min([trajectory[1][trajectory[0] != None].min() for trajectory in trajectories] + measure_min)])
+            xrange = [xmin*1.1, xmax*1.1]
+            yrange = [ymin*1.1, ymax*1.1]
+        else:
+            xmax = max([max([process[0].max() for process in processes])])
+            xmin = min([min([process[0].min() for process in processes])])
+            ymax = max([max([process[1].max() for process in processes])])
+            ymin = min([min([process[1].min() for process in processes])])
+            xrange = [xmin * 1.1, xmax * 1.1]
+            yrange = [ymin * 1.1, ymax * 1.1]
 
         desc = ''
         # Print out the parameters on the plot
 
-        for key, value in sim.descs[0].items():
-            if key not in ["Q", "R", "fep_at", "fep_ct", "fnu", "P", "Time Steps"]:
-                desc += key + " = " + value.replace("\n", "<br>").replace("[[", "<br> [").replace("]]","]") + "<br>"
+        if "True" in display_params:
+            for key, value in sim.descs[0].items():
+                if key not in ["Q", "R", "fep_at", "fep_ct", "fnu", "P", "Time Steps"]:
+                    desc += key + " = " + value.replace("\n", "<br>").replace("[[", "<br> [").replace("]]","]") + "<br>"
 
         data = []
 
@@ -496,7 +518,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 # NOTE: the "time" text here assumes all objects are on-screen for an equal number of time steps;
                 # Otherwise "time" will be incorrect
                 data.append(go.Scatter(x=process[0], y=process[1], mode='lines', name='Obj {} Process'.format(i), text=time, line=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
-        if 'measure' in options:
+        if 'measure' in options and not skip_measures:
             for i, key in enumerate(all_keys):
                 if key in measures.keys():
                     # NOTE: no time step added
@@ -573,7 +595,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                         go.Scatter(x=process[0, :(t+1)], y=process[1, :(t+1)], mode='lines', name='Object {} Process'.format(i),
                                    text=time))
 
-            if 'measure' in options:
+            if 'measure' in options and not skip_measures:
                 for i, key in enumerate(all_keys):
                     if key in measures.keys():
                         # NOTE: no time step added
@@ -582,7 +604,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
                 scatters.append(go.Scatter(x=false_alarms[0][:(t+1)], y=false_alarms[1][:(t+1)], mode='markers', name="False Alarms",
                                        marker=dict(color="black", symbol="x")))
 
-            if 'trajectory' in options:
+            if 'trajectory' in options and not skip_traj:
                 for i, key in enumerate(all_keys):
                     scatters.append(go.Scatter(x=trajectories[i][0, :(t+1)], y=trajectories[i][1, :(t+1)], mode='lines',
                                              name='Object {} Prediction'.format(key), text=time, line=dict(width=3, dash='dash')))
@@ -628,8 +650,8 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         #rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
         #num_measures = sum([len(time_step) for time_step in sim.measures[0]])
-
-        mota, motp = mtt.MTTMetrics.mota_motp(processes, trajectories, all_keys)
+        if not skip_traj:
+            mota, motp = mtt.MTTMetrics.mota_motp(processes, trajectories, all_keys)
         fig = go.Figure(data=data, layout=layout, frames=frames)
         fig.update_xaxes(tickfont_size=fontsize)
         fig.update_yaxes(tickfont_size=fontsize)
