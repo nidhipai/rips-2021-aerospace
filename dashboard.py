@@ -331,9 +331,9 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
     global sim
     fig = prev_fig
     err = prev_err
+    time_taken = 0
     mota = 0
     motp = 0
-    time_taken = 0
     if ts is None:
         ts = 15
     if prev_clicks < n_clicks:
@@ -419,7 +419,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         #Set up the simulation with the newly specified parameters
         sim.seed_value = int(seed)
         sim.clear(lam, miss_p)
-        sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale)
+        sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale, x_lim = x_lim, y_lim = y_lim, new_obj_prop = new_obj_prop)
 
         params = {
             "f": sim.generator.process_function,
@@ -437,7 +437,6 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
         sim.predict(ellipse_mode="plotly")
     if n_clicks != 0:
         # Generate all variables to plot
-        # ASDF
         processes = sim.clean_trajectory(sim.processes[0])
         max_dist = sim.get_max_correspondence_dist(processes)
         best_trajs, correspondences = sim.get_best_correspondence(max_dist)
@@ -629,6 +628,7 @@ def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal,
 
         #rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
         #num_measures = sum([len(time_step) for time_step in sim.measures[0]])
+
         mota, motp = mtt.MTTMetrics.mota_motp(processes, trajectories, all_keys)
         fig = go.Figure(data=data, layout=layout, frames=frames)
         fig.update_xaxes(tickfont_size=fontsize)

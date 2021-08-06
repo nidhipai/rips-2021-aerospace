@@ -703,19 +703,29 @@ class Simulation:
 		true_keys.sort()
 		false_keys = [key for key in all_keys if type(key) is not int]
 		all_keys = true_keys + false_keys
+		print("All keys: {}".format(all_keys))
 
-		num_keys = len(all_keys)
+		if len(true_keys) > 0:
+			max_true_key = max(true_keys)
+		else:
+			max_true_key = -1
 
 		# Iterate through each time step and allocate either the given xk or None
 		# to the trajectory arrays
 		i = 0
 		first_keys = list(trajectories[0].keys())
-		while i < num_keys:
-			if all_keys[i] in first_keys:
-				output.append(trajectories[0][all_keys[i]])
+		while i <= max_true_key:
+			if i in first_keys:
+				output.append(trajectories[0][i])
 			else:
 				output.append(np.array([[np.nan],[np.nan],[np.nan],[np.nan]]))
 			i+=1
+
+		for false_key in false_keys:
+			if i in first_keys:
+				output.append(trajectories[0][false_key])
+			else:
+				output.append(np.array([[np.nan],[np.nan],[np.nan],[np.nan]]))
 
 		for traj in trajectories[1:]:
 			for i, key in enumerate(all_keys):
@@ -789,11 +799,10 @@ class Simulation:
 	def get_max_correspondence_dist(self, clean_processes):
 		"""
 		Heuristic for max correspondence distance for the correspondence algorithm below.
+		We use infinity since we have a special method of max correspondence that only looks at the first
+		starting measurement.
 		"""
-		if len(clean_processes) > 0:
-			return 2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
-		else:
-			return np.inf
+		return np.inf
 
 	def get_best_correspondence(self, max_dist, index=0):
 		"""
@@ -801,6 +810,9 @@ class Simulation:
 		"""
 		# Heuristic for determining the cutoff between a poor filter prediction and an object miss
 		# This is a custom heuristic created by the Aerospace research team
+		# NOTE: can't handle new objects
+		#max_dist = 2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
+
 		output = []
 		# Maintain a list of the objects : trajectory correspondences that have already been generated
 		correspondences = {}
