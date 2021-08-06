@@ -315,6 +315,7 @@ app.layout = html.Div(children=[
     Input('error-graph', 'figure'),
     Input('run', 'n_clicks'),
     Input('check-options', 'value'),
+    Input('display_params', 'value'),
     State('time-steps', 'value'), # Outputs are drawn from text box states
     State('nu', 'value'),
     State('ep_tangent', 'value'),
@@ -330,10 +331,9 @@ app.layout = html.Div(children=[
     State('gate_size', 'value'),
     State('gate_expand_size', 'value'),
     State('prune_time', 'value'),
-    State('scoring_method', 'value'),
-    State('display_params', 'value')
+    State('scoring_method', 'value')
 )
-def update(prev_fig, prev_err, n_clicks, options, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, prune_time, scoring_method, display_params):
+def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, prune_time, scoring_method):
     global prev_clicks
     global sim
     fig = prev_fig
