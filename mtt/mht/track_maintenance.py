@@ -5,6 +5,7 @@ from scipy.stats import chi2
 from .track import Track
 from copy import deepcopy
 from mtt.mht.distances_mht import DistancesMHT
+from scipy.stats import binom
 
 class TrackMaintenanceMHT:
 
@@ -74,6 +75,7 @@ class TrackMaintenanceMHT:
                 mm_track.score = missed_measurement_score
                 mm_track.observations[ts] = None
                 mm_track.possible_observations = []  # Reset for the next time step
+                mm_track.diff = {}
                 new_tracks.append(mm_track)
 
     def add_measurements(self, ts, tracks, measurements, new_tracks):
@@ -91,7 +93,8 @@ class TrackMaintenanceMHT:
             # This new tracks should be a copy of the old track, with the new possible
             # observation added to the observations
             for possible_observation in track.possible_observations:
-                score, test_stat = self.score_measurement(measurements[possible_observation], track, self.scoring_method)
+                score, test_stat, diff = self.score_measurement(measurements[possible_observation], track, self.scoring_method)
+                track.diff[possible_observation] = diff
                 if score >= self.threshold_old_track:
                     # Create a new track with the new observations and score
                     po_track = deepcopy(track)
@@ -99,6 +102,7 @@ class TrackMaintenanceMHT:
                     po_track.test_stat = test_stat
                     po_track.observations[ts] = possible_observation
                     po_track.possible_observations = []
+                    po_track.diff = {}
                     new_tracks.append(po_track)
 
     def new_object(self, ts, tracks, measurements, new_tracks):
@@ -123,12 +127,36 @@ class TrackMaintenanceMHT:
                 else:
                     score = -1
             else:
-                score = 0.0001
+                # dists = [DistancesMHT.mahalanobis(measurement, track, self.kFilter_model) for track in tracks]
+                # nearest_track = tracks[dists.index(min(dists))]
+                # score = 1 - self.score_measurement(measurements, nearest_track)
+                #score = .00001
+                p_not_fa = 1 - self.lambda_fa / (2 + self.lambda_fa)
+                p = self.closest_track(i, tracks)
+                if p is None:
+                    p = 1
+                else:
+                    p = 1 - p
+                score = p_not_fa * p
+                print("p_not_fa: ", p_not_fa, "p: ", p, "new obj score: ", score)
 
-            starting_observations = {ts: i}
-            new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n, P=self.P)
-            new_tracks.append(new_track)
-            self.num_objects += 1
+            if score >= self.threshold_new_track:
+                starting_observations = {ts: i}
+                new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n, P=self.P)
+                new_tracks.append(new_track)
+                self.num_objects += 1
+
+    def closest_track(self, measurement_index, tracks):
+        min_p = None
+        for track in tracks:
+            if measurement_index in track.possible_observations:
+                diff = track.diff[measurement_index]
+                test_stat = diff.T @ np.linalg.inv(self.R + track.P_minus) @ diff
+                test_stat = test_stat[0, 0]
+                p = chi2.cdf(test_stat, 4 - 1)
+                if min_p is None or p < min_p:
+                    min_p = p
+        return min_p
 
     def score_measurement(self, measurement, track, method = "chi2"):
         """
@@ -155,12 +183,15 @@ class TrackMaintenanceMHT:
             # Calculate the test statistic by adding the sum of squared differences between the measurement and the
             # predicted value weighted the expected measurement noise variance to the old test stat
             diff = measurement - track.x_hat_minus
-            test_stat = track.test_stat + diff.T @ np.linalg.inv(self.R + track.P_minus) @ diff
+            diff2 = diff.T @ np.linalg.inv(self.R + track.P_minus) @ diff
+            test_stat = track.test_stat + diff2
             test_stat = test_stat[0,0]  # Remove numpy array wrapping
             # Convert the test stat to a probability from the chi 2 distribution
             # We multiply by 4 because there are four independent components of the measurements, so
             # we add four random variables at each time step
-            return 1 - chi2.cdf(test_stat, 4*track.num_observations() + 4), test_stat
+            score = 1 - chi2.cdf(test_stat, 4*track.num_observations() + 4)
+            #score *= binom.pmf(track.num_missed_measurements(), len(track.observations.values()), 1-self.pd)
+            return score, test_stat, diff
 
     def score_no_measurement(self, track, method="distance"):
         """
@@ -176,4 +207,8 @@ class TrackMaintenanceMHT:
         # elif method == "distance":  # this makes no sense - why would you increase the score?
         #     return track.score * (1 + self.pd)
         else:  # chi2 method - decrease the previous score
-            return track.score * ((1 - self.pd)*.5 + .5)  # TODO could also try log
+            #return track.score * ((1 - self.pd)*.5 + .5)  # TODO could also try log
+            #return track.score * .7
+            binom_factor = binom.pmf(track.num_missed_measurements(), len(track.observations.values()), 1-self.pd)
+            #print("binom", binom_factor, "score", track.score)
+            return track.score * binom_factor
