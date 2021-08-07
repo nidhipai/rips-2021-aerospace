@@ -125,17 +125,10 @@ class TrackMaintenanceMHT:
             else:
                 score = 0.0001
 
-<<<<<<< HEAD
             starting_observations = {ts: i}
             new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n, P=self.P)
             new_tracks.append(new_track)
             self.num_objects += 1
-=======
-                starting_observations = {ts: i}
-                new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n, P=self.P)
-                new_tracks.append(new_track)
-                self.num_objects += 1
->>>>>>> 0bd2e4e73d629f45809a3c07c048c2a41fe558d4
 
     def score_measurement(self, measurement, track, method = "chi2"):
         """
