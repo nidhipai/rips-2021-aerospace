@@ -131,7 +131,7 @@ class TrackMaintenanceMHT:
                 # nearest_track = tracks[dists.index(min(dists))]
                 # score = 1 - self.score_measurement(measurements, nearest_track)
                 #score = .00001
-                p_not_fa = 1 - self.lambda_fa / (2 + self.lambda_fa)
+                p_not_fa = 1 - self.lambda_fa / (1 + self.lambda_fa)
                 p = self.closest_track(i, tracks)
                 if p is None:
                     p = 1
