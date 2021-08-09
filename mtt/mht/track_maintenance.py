@@ -115,12 +115,13 @@ class TrackMaintenanceMHT:
             new_tracks (list): list of new tracks for this timestep
         """
         for i, measurement in enumerate(measurements):
-            # measurement_used = False
-            # for track in tracks:
-            #     if i in track.possible_observations:
-            #         measurement_used = True
-            #         break
-            # if not measurement_used:
+
+            #measurement_used = False
+            #for track in tracks:
+                #if i in track.possible_observations:
+                    #measurement_used = True
+                    #break
+            #if not measurement_used:
             if self.scoring_method == "distance":
                 if len(new_tracks) > 0:
                     score = min([track.score for track in new_tracks]) - 1

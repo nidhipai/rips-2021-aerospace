@@ -156,6 +156,18 @@ app.layout = html.Div(children=[
     labelStyle={'display': 'inline-block'}
     ),
 
+    html.H6(children="Gating Method"),
+
+    dcc.RadioItems(
+        options=[
+            {'label': 'Mahalanobis', 'value': 'mahalanobis'},
+            {'label': 'Euclidean', 'value': 'euclidean'},
+        ],
+    value='mahalanobis',
+    id = 'gate_method',
+    labelStyle={'display': 'inline-block'}
+    ),
+
         html.Div(children=[
             html.H6(children='Measure Noise'),
             dcc.Input(
@@ -236,6 +248,33 @@ app.layout = html.Div(children=[
             dcc.Input(
                 id="seed",
                 type="text",
+                placeholder="0"
+            )
+        ], style=input_style),
+
+        html.Div(children=[
+            html.H6(children='tot'),
+            dcc.Input(
+                id="tot",
+                type="number",
+                placeholder="0"
+            )
+        ], style=input_style),
+
+        html.Div(children=[
+            html.H6(children='tmm'),
+            dcc.Input(
+                id="tmm",
+                type="number",
+                placeholder="0"
+            )
+        ], style=input_style),
+
+        html.Div(children=[
+            html.H6(children='tnt'),
+            dcc.Input(
+                id="tnt",
+                type="number",
                 placeholder="0"
             )
         ], style=input_style)
@@ -331,9 +370,14 @@ app.layout = html.Div(children=[
     State('gate_size', 'value'),
     State('gate_expand_size', 'value'),
     State('prune_time', 'value'),
-    State('scoring_method', 'value')
+    State('scoring_method', 'value'),
+    State('gate_method', 'value'),
+    State('tot', 'value'),
+    State('tnt', 'value'),
+    State('tmm', 'value'),
+
 )
-def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, prune_time, scoring_method):
+def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, prune_time, scoring_method, gate_method, tot, tmm, tnt):
     global prev_clicks
     global sim
     fig = prev_fig
@@ -343,6 +387,12 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
     motp = 0
     if ts is None:
         ts = 15
+    if tmm is None:
+        tmm = 0.1
+    if tnt is None:
+        tnt = 0.8
+    if tot is None:
+        tot = 0.00001
     if prev_clicks < n_clicks:
         prev_clicks = n_clicks
         # Set default parameters
@@ -370,7 +420,6 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             prune_time = 4
         if scoring_method is None or scoring_method == "chi2":
             scoring_method = "chi2"
-
         # Parse the Object Starting Positions
         x0_split = x0.split("|")
         x0_parse = dict()
@@ -437,7 +486,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             "P": P_parse
         }
 
-        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, prune_time=prune_time, scoring_method=scoring_method))
+        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method = gate_method, tot = tot, tmm = tmm, tnt = tnt, prune_time=prune_time, scoring_method=scoring_method))
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly")
     if n_clicks != 0:
