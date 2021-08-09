@@ -36,6 +36,10 @@ class MHTTracker:
         self.measurements.append(measurements)
         print("___________ Time step: {} _________________________________".format(self.ts))
         # print("Number of Tracks: {}".format(len(self.tracks)))
+        #
+        # print("Measurements")
+        # print(measurements)
+
 
 
         # 1) assign all measurements to all tracks in all children of tree, AND...
@@ -51,6 +55,10 @@ class MHTTracker:
         # Next, calculate track scores and create new potential tracks
         self.tracks = self.track_maintenance.predict(self.ts, self.tracks, measurements)
 
+        # print("Tracks after track maintain", self.ts)
+        # for track in self.tracks:
+        #     print(track)
+
         # Calculate the maximum weighted clique
         best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
 
@@ -58,16 +66,15 @@ class MHTTracker:
         self.cur_best_hypothesis = best_tracks_indexes
         self.cur_best_tracks = np.array(self.tracks)[self.cur_best_hypothesis]
 
-        # for track in self.tracks:
-        #     print("TRACK: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
         if len(best_tracks_indexes) > 0:
             self.prev_best_hypotheses.append(best_tracks_indexes)
 
-        # print("==========")
-        # print("BEST HYP: ")
-        # for track in self.cur_best_tracks:
-        #     print("TRACK ID: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
-        # print("==========")
+
+        print("==========")
+        print("BEST HYP: ")
+        for track in self.cur_best_tracks:
+            print("TRACK ID: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
+        print("==========")
 
         # Remove tracks that do not lead to the best hypothesis within a certain number of time steps
 
