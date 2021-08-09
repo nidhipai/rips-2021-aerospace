@@ -72,7 +72,7 @@ class MultiObjFixed(DataGenerator):
 		output = dict()
 		# Iterate through each state in the list of previous object states
 		for xt_key, xt_prev in xt_prevs.items():
-			if abs(xt_prev[0]) > self.x_lim or abs(xt_prev[1]) > self.y_lim:
+			if abs(xt_prev[0]) > self.x_lim * 1.15 or abs(xt_prev[1]) > self.y_lim * 1.15:
 				continue
 			# calculate the next state and add to output
 			output[xt_key] = self.A @ xt_prev + self.dt*self.process_noise(xt_prev, rng)
@@ -83,7 +83,6 @@ class MultiObjFixed(DataGenerator):
 			side = rng.random()
 			c = rng.random() - 0.5
 			buff = 0.125
-			print("LIMITS", self.x_lim, self.y_lim)
 			if side <= 0.25:
 				new_x = -self.x_lim + buff
 				new_y = c * 2 * self.y_lim
@@ -118,12 +117,16 @@ class MultiObjFixed(DataGenerator):
 		for xt in xts.values():
 			# Calculate whether the measurement is missed
 			if rng.random() > self.miss_p:
-				output.append(self.H @ xt + self.measure_noise(rng))
-				colors.append("black")
+				possible_measurement = self.H @ xt + self.measure_noise(rng)
+				if abs(possible_measurement[0][0]) < self.x_lim and abs(possible_measurement[1][0]) < self.y_lim:
+					output.append(possible_measurement)
+					colors.append("black")
 
 			for i in range(rng.poisson(self.lam)):
-				output.append(self.H @ xt + self.measure_noise(rng) * self.fa_scale)
-				colors.append("red")
+				possible_measurement = self.H @ xt + self.measure_noise(rng) * self.fa_scale
+				if abs(possible_measurement[0][0]) < self.x_lim and abs(possible_measurement[1][0]) < self.y_lim:
+					output.append(possible_measurement)
+					colors.append("red")
 
 		return output, colors
 

@@ -135,8 +135,6 @@ class TrackMaintenanceMHT:
                 p = self.closest_track(i, tracks)
                 if p is None:
                     p = 1
-                else:
-                    p = 1 - p
                 score = p_not_fa * p
                 print("p_not_fa: ", p_not_fa, "p: ", p, "new obj score: ", score)
 
@@ -211,4 +209,5 @@ class TrackMaintenanceMHT:
             #return track.score * .7
             binom_factor = binom.pmf(track.num_missed_measurements(), len(track.observations.values()), 1-self.pd)
             #print("binom", binom_factor, "score", track.score)
-            return track.score * binom_factor
+            score = 1 - chi2.cdf(track.test_stat, 4 * track.num_observations())
+            return score * binom_factor
