@@ -32,11 +32,13 @@ class MHTTracker:
         Args:
             measurements (list): A list of ndarray representing state vectors of all measurements at the current time
         """
-
         self.measurements.append(measurements)
         print("___________ Time step: {} _________________________________".format(self.ts))
         # print("Number of Tracks: {}".format(len(self.tracks)))
 
+        #print("_MEASUREMENTS_")
+        #print(measurements)
+        #print("______________")
 
         # 1) assign all measurements to all tracks in all children of tree, AND...
         # 2) calculate the expected next position for each track using the time update equation
@@ -79,7 +81,7 @@ class MHTTracker:
         for track in self.tracks:
             #print("A posteriori estimate:\n", track.x_hat)
             # Printing track index
-            #print("Track {} Score:".format(i), track.score)
+            # print("Track {} Score:".format(i), track.score)
             # Printing track object id
             # print("Track {} Score:".format(track.obj_id), track.score)
             track.measurement_update(self.kalman, measurements, self.ts)

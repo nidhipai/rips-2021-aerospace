@@ -77,7 +77,7 @@ class Simulation:
 			time_steps (int): the number of time steps to simulate
 		"""
 
-		#we generate the process data and the measure data and assign it to the instances of processes and measures
+		# we generate the process data and the measure data and assign it to the instances of processes and measures
 		process = self.generator.process(time_steps - 1, self.rng)
 		self.processes[len(self.processes.keys())] = process
 		self.measures[len(self.measures.keys())], self.measure_colors[len(self.measure_colors.keys())] = self.generator.measure(process, self.rng)
@@ -703,7 +703,6 @@ class Simulation:
 		true_keys.sort()
 		false_keys = [key for key in all_keys if type(key) is not int]
 		all_keys = true_keys + false_keys
-		print("All keys: {}".format(all_keys))
 
 		if len(true_keys) > 0:
 			max_true_key = max(true_keys)
@@ -979,11 +978,11 @@ class Simulation:
 			return
 
 		if m == 'ame':
-			return Metrics.AME_euclidean(process, output1, cut)
+			return MTTMetrics.AME_euclidean(process, output1, cut)
 		if m == 'rmse':
-			return [Metrics.RMSE_euclidean(process, output1, cut), Metrics.RMSE_euclidean(process, output2, cut)]
+			return [MTTMetrics.RMSE_euclidean(process, output1, cut), Metrics.RMSE_euclidean(process, output2, cut)]
 		if m == 'atct':
-			return Metrics.atct_signed(process, output, cut)
+			return MTTMetrics.atct_signed(process, output1, cut)
 		if m == 'fa':
-			return Metrics.false_id_rate(true_false_alarms, false_alarms)
+			return MTTMetrics.false_id_rate(true_false_alarms, false_alarms)
 		print("ERROR INVALID METRIC")

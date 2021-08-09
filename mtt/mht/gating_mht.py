@@ -37,3 +37,8 @@ class DistanceGatingMHT:
 				# if not self.distance_function(obs, track.filter_model, self.error_threshold):
 				if not self.distance_function(measurements[obs_index], track, self.kalman, expanded_gate_threshold):
 					track.possible_observations.remove(obs_index)
+		#print("=================")
+		#print("TRACK DEBUGGING: ")
+		#for track in tracks:
+			#print(track, track.possible_observations)
+		#print("=================")
