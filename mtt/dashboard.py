@@ -250,33 +250,6 @@ app.layout = html.Div(children=[
                 type="text",
                 placeholder="0"
             )
-        ], style=input_style),
-
-        html.Div(children=[
-            html.H6(children='tot'),
-            dcc.Input(
-                id="tot",
-                type="number",
-                placeholder="0"
-            )
-        ], style=input_style),
-
-        html.Div(children=[
-            html.H6(children='tmm'),
-            dcc.Input(
-                id="tmm",
-                type="number",
-                placeholder="0"
-            )
-        ], style=input_style),
-
-        html.Div(children=[
-            html.H6(children='tnt'),
-            dcc.Input(
-                id="tnt",
-                type="number",
-                placeholder="0"
-            )
         ], style=input_style)
 
     ]),
@@ -339,6 +312,33 @@ app.layout = html.Div(children=[
                 placeholder=4
             )
         ], style=input_style),
+
+        html.Div(children=[
+            html.H6(children='Old Track Threshold'),
+            dcc.Input(
+                id="tot",
+                type="number",
+                placeholder="0.001"
+            )
+        ], style=input_style),
+
+        html.Div(children=[
+            html.H6(children='Missed Measurement Threshold'),
+            dcc.Input(
+                id="tmm",
+                type="number",
+                placeholder="0.1"
+            )
+        ], style=input_style),
+
+        html.Div(children=[
+            html.H6(children='New Track Threshold'),
+            dcc.Input(
+                id="tnt",
+                type="number",
+                placeholder="0.8"
+            )
+        ], style=input_style)
     ])
 ])
 
