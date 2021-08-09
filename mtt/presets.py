@@ -16,7 +16,7 @@ class Presets:
 
 	@staticmethod
 	def standardMHT(params, miss_p, lam, gate_size=0.95, gate_expand_size=0, gate_method="mahalanobis",
-	                tot=0.00001, tmm=0.1, tnt=0.8, prune_time=4, scoring_method = "chi2", P = None):
+	                tot=0.00001, tmm=0.1, tnt=0.7, prune_time=4, scoring_method = "chi2", P = None):
 		if "P" in params.keys():
 			params.pop("P")
 		if P is None:

@@ -336,7 +336,7 @@ app.layout = html.Div(children=[
             dcc.Input(
                 id="tnt",
                 type="number",
-                placeholder="0.8"
+                placeholder="0.7"
             )
         ], style=input_style)
     ])
