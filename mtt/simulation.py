@@ -103,7 +103,6 @@ class Simulation:
 
 		if index is None:
 			index = len(self.processes.keys()) - 1
-		output = np.empty((self.n, 1))
 
 		# {0: first}
 		# Iterate through each time step for which we have measurements
@@ -128,8 +127,6 @@ class Simulation:
 			if isinstance(self.tracker_model, MHTTracker):
 				self.trajectories[len(self.trajectories.keys())-1].append(self.tracker_model.get_trajectories())
 				self.apriori_traj[len(self.apriori_traj.keys())-1].append(self.tracker_model.get_apriori_traj())
-				#self.apriori_ellipses[len(self.apriori_ellipses.keys())-1].append(self.tracker_model.get_ellipses("apriori"))
-				#self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())-1].append(self.tracker_model.get_ellipses("aposteriori"))
 				self.false_alarms[len(self.false_alarms.keys())-1][i] = self.tracker_model.get_false_alarms()
 
 				apriori_ellipses = self.tracker_model.get_ellipses("apriori")
@@ -208,8 +205,7 @@ class Simulation:
 		trajectory = self.clean_trajectory(best_trajs)
 		self.atct_error[len(self.atct_error)] = MTTMetrics.atct_signed(process, trajectory)
 		all_keys = self.get_traj_keys(best_trajs)
-		# TODO: motp/mota stuff might break fixed frame
-		#self.motp[len(self.motp)], self.mota[len(self.mota)] = MTTMetrics.mota_motp(process, trajectory, all_keys)
+		self.motp[len(self.motp)], self.mota[len(self.mota)] = MTTMetrics.mota_motp(process, trajectory, all_keys)
 		self.track_count[len(self.track_count.keys())] = len(self.tracker_model.tracks)
 
 	def experiment(self, ts, test="data", **kwargs):
@@ -530,9 +526,7 @@ class Simulation:
 				#true_state = "true state = " + "[" + self.descs[0]["x0"] + ", " + self.descs[0]["y0"] + ", " + self.descs[0]["vx0"] + ", " + self.descs[0]["vy0"] + "]"
 				#filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
 				covariance = "Starting P = " + self.descs[0]["P"]
-				# TODO: commented out for fixed frame testing
-				#mos = "MOTP = {}, MOTA = {}".format(np.round(self.motp[index], 3), np.round(self.mota[index],3))
-				mos = "IDK"
+				mos = "MOTP = {}, MOTA = {}".format(np.round(self.motp[index], 3), np.round(self.mota[index],3))
 
 				caption = true_noises + "\n" + measurement_noise + "\n" + other_noise + "\n" + filter_noise + "\n" + filter_measurement_noise + "\n" + covariance + "\n" + mos + "\n"
 				if tail >= 0:

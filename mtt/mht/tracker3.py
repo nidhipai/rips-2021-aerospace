@@ -217,31 +217,6 @@ class MHTTracker:
                     result[track.obj_id] = self.measurements[-1][obs]
 
         return result
-    """
-    def get_false_alarms(self):
-        
-        Gets a list of false alarms at each time step in the data format required by the Simulation class
-
-        Returns:
-            result (list): list of all false alarms for the current time step.
-        
-
-        # TODO: This was previously changed by Nidhi
-
-        possible_measurements = list(range(len(self.measurements[-1])))
-        for track in self.cur_best_tracks:
-            # Remove observation assigned most recently to track
-            possible_measurements.remove(
-                    track.observations[
-                        max(track.observations.keys())
-                ]
-            )
-
-        result = []
-        for p in possible_measurements:
-            result.append(self.measurements[-1][p])
-        return result
-    """
 
     def get_false_alarms(self):
         """
