@@ -72,12 +72,13 @@ class MultiObjFixed(DataGenerator):
 		output = dict()
 		# Iterate through each state in the list of previous object states
 		for xt_key, xt_prev in xt_prevs.items():
-			if abs(xt_prev[0]) > self.x_lim * 1.15 or abs(xt_prev[1]) > self.y_lim * 1.15:
+			if abs(xt_prev[0]) > self.x_lim or abs(xt_prev[1]) > self.y_lim:
 				continue
 			# calculate the next state and add to output
 			output[xt_key] = self.A @ xt_prev + self.dt*self.process_noise(xt_prev, rng)
 
 		# With probability self.new_obj_prop, create new object on side of frame
+		"""
 		if rng.random() < self.new_obj_prop:
 			self.num_objs += 1
 			side = rng.random()
@@ -100,7 +101,18 @@ class MultiObjFixed(DataGenerator):
 			ang += perturb
 			new_state = np.array([[new_x], [new_y], [np.cos(ang + np.pi)], [np.sin(ang + np.pi)]])
 			output[self.num_objs] = new_state
+		"""
 
+		# Sal's version of object generation:
+		if rng.random() < self.new_obj_prop:
+			self.num_objs += 1
+			new_x = rng.uniform(-self.x_lim, self.x_lim)
+			new_y = rng.uniform(-self.y_lim, self.y_lim)
+			ang = np.arctan2(new_y, new_x)
+			perturb = (rng.random() - 0.5) / 10
+			ang += perturb
+			new_state = np.array([[new_x], [new_y], [np.cos(ang + np.pi)], [np.sin(ang + np.pi)]])
+			output[self.num_objs] = new_state
 		return output
 
 	def measure_step(self, xts, rng):
@@ -122,11 +134,13 @@ class MultiObjFixed(DataGenerator):
 					output.append(possible_measurement)
 					colors.append("black")
 
-			for i in range(rng.poisson(self.lam)):
-				possible_measurement = self.H @ xt + self.measure_noise(rng) * self.fa_scale
-				if abs(possible_measurement[0][0]) < self.x_lim and abs(possible_measurement[1][0]) < self.y_lim:
-					output.append(possible_measurement)
-					colors.append("red")
+		for i in range(rng.poisson(self.lam)):
+			# possible_measurement = self.H @ xt + self.measure_noise(rng) * self.fa_scale
+			possible_measurement = np.append(rng.uniform((-self.x_lim, -self.y_lim), (self.x_lim, self.y_lim), 2), rng.normal(0, np.sqrt(self.nu), 2)*self.fa_scale)
+			possible_measurement.shape = (4, 1)
+			if abs(possible_measurement[0][0]) < self.x_lim and abs(possible_measurement[1][0]) < self.y_lim:
+				output.append(possible_measurement)
+				colors.append("red")
 
 		return output, colors
 

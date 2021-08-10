@@ -133,15 +133,12 @@ class TrackMaintenanceMHT:
                 # nearest_track = tracks[dists.index(min(dists))]
                 # score = 1 - self.score_measurement(measurements, nearest_track)
                 #score = .00001
-                p_not_fa = 1 - self.lambda_fa / (1 + self.lambda_fa)
+                p_not_fa = 1 - (self.lambda_fa / (1 + self.lambda_fa))
                 p = self.closest_track(i, tracks)
                 if p is not None:
                     score = p_not_fa * (1 - p) * self.born_p
                 else:
                     score = p_not_fa
-                # else:
-                #     p = 1 - p
-                # NOTE: ADD PROBABILITY THAT THE CLOSEST MISSED A MEASUREMENT
 
                 print("p_not_fa: ", p_not_fa, "p: ", p, "new obj score: ", score)
 
@@ -216,10 +213,9 @@ class TrackMaintenanceMHT:
         # elif method == "distance":  # this makes no sense - why would you increase the score?
         #     return track.score * (1 + self.pd)
         else:  # chi2 method - decrease the previous score
-            #test_stat = track.test_stat  #if track.num_observations() == 1 else 20
-            #score = 1 - chi2.cdf(test_stat, 4 * track.num_observations())
-            #score = self.bi_factor(score, track)
-            score = 0
+            test_stat = track.test_stat  #if track.num_observations() == 1 else 20
+            score = 1 - chi2.cdf(test_stat, 4 * track.num_observations())
+            score = self.bi_factor(score, track)
             return score
 
     def bi_factor(self, score, track):
