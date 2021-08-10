@@ -387,7 +387,6 @@ class Simulation:
 
 		correspondences = None
 		if len(self.trajectories) > 0:
-			# TO DO: Need a better distance gate than inf
 			if isinstance(self.tracker_model, MHTTracker):
 				max_dist = self.get_max_correspondence_dist(process)
 				best_trajs, correspondences = self.get_best_correspondence(max_dist, index)
@@ -412,7 +411,6 @@ class Simulation:
 		if len(self.false_alarms) > 0:
 			false_alarms = self.false_alarms[index]
 			false_alarms = self.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
-
 		# Select proper ellipses to plot
 		ellipses = None
 		if len(self.apriori_ellipses) > index:

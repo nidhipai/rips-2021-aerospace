@@ -34,6 +34,7 @@ class Track:
 
         #testing
         self.test_stats = {}
+        self.diff = {}
 
     def __str__(self):
         return "[OBJ ID: " + str(self.obj_id) + "   OBSERVATIONS: " + str(self.observations) + "   SCORE: " + str(self.score) + "]"
