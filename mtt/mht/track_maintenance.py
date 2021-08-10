@@ -123,6 +123,7 @@ class TrackMaintenanceMHT:
                     #measurement_used = True
                     #break
             #if not measurement_used:
+            p_not_fa = 1 - (self.lambda_fa / (1 + self.lambda_fa))
             if self.scoring_method == "distance":
                 if len(new_tracks) > 0:
                     score = min([track.score for track in new_tracks]) - 1
@@ -133,7 +134,6 @@ class TrackMaintenanceMHT:
                 # nearest_track = tracks[dists.index(min(dists))]
                 # score = 1 - self.score_measurement(measurements, nearest_track)
                 #score = .00001
-                p_not_fa = 1 - (self.lambda_fa / (1 + self.lambda_fa))
                 p = self.closest_track(i, tracks)
                 if p is not None:
                     score = p_not_fa * (1 - p) * self.born_p
@@ -142,7 +142,7 @@ class TrackMaintenanceMHT:
 
                 print("p_not_fa: ", p_not_fa, "p: ", p, "new obj score: ", score)
 
-            if score >= self.threshold_new_track:
+            if score >= p_not_fa*self.born_p*self.threshold_new_track:
                 print("New Track Created")
                 starting_observations = {ts: i}
                 new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n, P=self.P)

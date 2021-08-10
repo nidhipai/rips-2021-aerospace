@@ -369,7 +369,7 @@ app.layout = html.Div(children=[
             dcc.Input(
                 id="tnt",
                 type="number",
-                placeholder="0.7"
+                placeholder="1"
             )
         ], style=input_style)
     ])
@@ -426,7 +426,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
     if tmm is None:
         tmm = 0.1
     if tnt is None:
-        tnt = 0.8
+        tnt = 1
     if tot is None:
         tot = 0.001
     if prev_clicks < n_clicks:
@@ -552,7 +552,6 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             measures_true = np.array([])
             measures_false = np.array([])
         false_alarms = sim.false_alarms[0]
-        print(sim.false_alarms)
         false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
