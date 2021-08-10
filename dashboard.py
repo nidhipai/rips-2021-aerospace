@@ -235,6 +235,39 @@ app.layout = html.Div(children=[
         ], style=input_style),
 
         html.Div(children=[
+            html.H6(children='Sensor Width'),
+            dcc.Input(
+                id="x_lim",
+                type="number",
+                min=10,
+                max=10000,
+                placeholder=100
+            )
+        ], style=input_style),
+
+        html.Div(children=[
+            html.H6(children='Sensor Height'),
+            dcc.Input(
+                id="y_lim",
+                type="number",
+                min=10,
+                max=10000,
+                placeholder=100
+            )
+        ], style=input_style),
+
+        html.Div(children=[
+            html.H6(children='New Object Proportion'),
+            dcc.Input(
+                id="new_obj_prop",
+                type="number",
+                min=0,
+                max=1,
+                placeholder=0.1
+            )
+        ], style=input_style),
+
+        html.Div(children=[
             html.H6(children='Object Starting Positions'),
             dcc.Input(
                 id="x0",
@@ -375,9 +408,12 @@ app.layout = html.Div(children=[
     State('tot', 'value'),
     State('tnt', 'value'),
     State('tmm', 'value'),
+    State('x_lim', 'value'),
+    State('y_lim', 'value'),
+    State('new_obj_prop', 'value'),
 
 )
-def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, prune_time, scoring_method, gate_method, tot, tmm, tnt):
+def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, prune_time, scoring_method, gate_method, tot, tmm, tnt, x_lim, y_lim, new_obj_prop):
     global prev_clicks
     global sim
     fig = prev_fig
@@ -400,6 +436,12 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             nu = 1
         if ep_tangent is None or ep_tangent == "":
             ep_tangent = 1
+        if new_obj_prop is None:
+            new_obj_prop = 0.1
+        if x_lim is None:
+            x_lim = 100
+        if y_lim is None:
+            y_lim = 100
         if ep_normal is None or ep_normal == "":
             ep_normal = 1
         if miss_p is None or miss_p == "":
