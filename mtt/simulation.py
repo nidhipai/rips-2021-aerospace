@@ -412,7 +412,6 @@ class Simulation:
 		if len(self.false_alarms) > 0:
 			false_alarms = self.false_alarms[index]
 			false_alarms = self.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
-
 		# Select proper ellipses to plot
 		ellipses = None
 		if len(self.apriori_ellipses) > index:

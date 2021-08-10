@@ -259,4 +259,4 @@ class MHTTracker:
         if lam is not None:
             self.track_maintenance.lambda_fa = lam
         if miss_p is not None:
-            self.track_maintenance.pd = miss_p
+            self.track_maintenance.pd = 1 - miss_p
