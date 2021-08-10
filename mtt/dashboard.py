@@ -41,7 +41,7 @@ gate_expand_size = 0.5
 
 x_lim = 50
 y_lim = 50
-new_obj_prop = 0.05
+new_obj_prop = 0
 
 # Style Parameters
 input_margin = 10
@@ -175,7 +175,7 @@ app.layout = html.Div(children=[
                 type="number",
                 min=0.0000001,
                 max=100,
-                placeholder=1
+                placeholder=0.1
             )
         ], style=input_style),
 
@@ -186,7 +186,7 @@ app.layout = html.Div(children=[
                 type="number",
                 min=0,
                 max=100,
-                placeholder=1
+                placeholder=0.1
             )
         ], style=input_style),
 
@@ -197,7 +197,7 @@ app.layout = html.Div(children=[
                 type="number",
                 min=0,
                 max=100,
-                placeholder=1
+                placeholder=0.1
             )
         ], style=input_style),
 
@@ -263,7 +263,7 @@ app.layout = html.Div(children=[
                 type="number",
                 min=0,
                 max=1,
-                placeholder=0.1
+                placeholder=0
             )
         ], style=input_style),
 
@@ -433,17 +433,17 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         prev_clicks = n_clicks
         # Set default parameters
         if nu is None or nu == "":
-            nu = 1
+            nu = 0.1
         if ep_tangent is None or ep_tangent == "":
-            ep_tangent = 1
+            ep_tangent = 0.1
         if new_obj_prop is None:
-            new_obj_prop = 0.1
+            new_obj_prop = 0
         if x_lim is None:
             x_lim = 100
         if y_lim is None:
             y_lim = 100
         if ep_normal is None or ep_normal == "":
-            ep_normal = 1
+            ep_normal = 0.1
         if miss_p is None or miss_p == "":
             miss_p = 0
         if lam is None or lam == "":

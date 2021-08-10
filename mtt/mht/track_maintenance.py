@@ -142,7 +142,7 @@ class TrackMaintenanceMHT:
 
                 print("p_not_fa: ", p_not_fa, "p: ", p, "new obj score: ", score)
 
-            if score >= p_not_fa*self.born_p*self.threshold_new_track:
+            if score > p_not_fa*self.born_p*self.threshold_new_track:
                 print("New Track Created")
                 starting_observations = {ts: i}
                 new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n, P=self.P)

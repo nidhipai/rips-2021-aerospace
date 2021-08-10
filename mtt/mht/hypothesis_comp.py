@@ -32,7 +32,7 @@ class HypothesisComp:
 
 		# We only want to consider tracks that have had enough time to be pruned off
 		if len(confirmed_tracks) > 0:
-			scores = [confirmed_track.score for confirmed_track in confirmed_tracks]
+			scores = [np.log(confirmed_track.score) for confirmed_track in confirmed_tracks]
 			# Normalize the scores
 			minimum = min(scores)
 			maximum = max(scores)
