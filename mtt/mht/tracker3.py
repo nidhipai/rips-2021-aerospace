@@ -90,7 +90,7 @@ class MHTTracker:
             # Printing track index
             # print("Track {} Score:".format(i), track.score)
             # Printing track object id
-            # print("Track {} Score:".format(track.obj_id), track.score)
+            print("Track {} Score:".format(track.obj_id), track.score)
             track.measurement_update(self.kalman, measurements, self.ts)
             i += 1
 
@@ -230,7 +230,6 @@ class MHTTracker:
 
         time = self.ts - 1  # since ts is incrememented at the end of predict
         possible_measurements = list(range(len(self.measurements[-1])))  # get indices of all possible measurements
-
         # Iterate through our best hypothesis to find which measurements should not be included as false alarms
         for track in self.cur_best_tracks:
             # Test if the track is confirmed yet; if not, it is considered a false alarm
@@ -240,8 +239,6 @@ class MHTTracker:
                     possible_measurements.remove(track.observations[time])
         # any measurement that is not in a "good" (confirmed and in best hyp) track is a false alarm
         result = [self.measurements[-1][p] for p in possible_measurements if p is not None]
-        #print(result)
-        #print("false alarms ", result)
         return result
 
 
