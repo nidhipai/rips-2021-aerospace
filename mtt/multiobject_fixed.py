@@ -40,8 +40,8 @@ class MultiObjFixed(DataGenerator):
 		self.x_lim = x_lim					# half-width of frame
 		self.y_lim = y_lim					# half-height of frame
 
-		self.new_obj_prop = new_obj_prop	# prob of new object spawning	TODO
-		self.num_objs = len(xt0) - 1		#								TODO
+		self.new_obj_prop = new_obj_prop	# prob of new object spawning
+		self.num_objs = len(xt0) - 1
 
 		# We require our initial state vector to have all 4 needed components:
 		# x,y, velocity in the x direction, velocity in the y direction
@@ -72,7 +72,7 @@ class MultiObjFixed(DataGenerator):
 		output = dict()
 		# Iterate through each state in the list of previous object states
 		for xt_key, xt_prev in xt_prevs.items():
-			if abs(xt_prev[0]) > self.x_lim * 1.15 or abs(xt_prev[1]) > self.y_lim * 1.15:
+			if abs(xt_prev[0]) > self.x_lim + 1 or abs(xt_prev[1]) > self.y_lim + 1:
 				continue
 			# calculate the next state and add to output
 			output[xt_key] = self.A @ xt_prev + self.dt*self.process_noise(xt_prev, rng)

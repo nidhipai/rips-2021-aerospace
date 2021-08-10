@@ -101,6 +101,8 @@ class Simulation:
 			index (int): the stored trajectory to predict
 		"""
 
+		self.tracker_model.set_bound(self.generator.x_lim, self.generator.y_lim)
+
 		if index is None:
 			index = len(self.processes.keys()) - 1
 		output = np.empty((self.n, 1))
@@ -507,8 +509,6 @@ class Simulation:
 				labs.append("Covariance")
 			ax.set_aspect(1)
 			ax.axis('square')
-			#ax.set_xlim(-self.generator.x_lim, self.generator.x_lim)
-			#ax.set_ylim(-self.generator.y_lim, self.generator.y_lim)
 
 			# Add the velocity vectors to the plot
 			for i, obj in enumerate(process):

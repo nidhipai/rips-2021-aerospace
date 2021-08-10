@@ -53,8 +53,12 @@ class MHTTracker:
         # Next, calculate track scores and create new potential tracks
         self.tracks = self.track_maintenance.predict(self.ts, self.tracks, measurements)
 
+        if self.x_lim is None:
+            self.set_bound(30, 30)
+        lims = [self.x_lim, self.y_lim]
+
         # Calculate the maximum weighted clique
-        best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
+        best_tracks_indexes = self.hypothesis_comp.predict(self.tracks, lims)
 
         # Save the current best hypothesis to output
         self.cur_best_hypothesis = best_tracks_indexes
@@ -92,6 +96,10 @@ class MHTTracker:
 
         # Indicate that one time step has passed
         self.ts += 1
+
+    def set_bound(self, x_lim, y_lim):
+        self.x_lim = x_lim
+        self.y_lim = y_lim
 
     def get_all_trajectories(self):
         """

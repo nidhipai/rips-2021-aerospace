@@ -181,7 +181,15 @@ class TrackMaintenanceMHT:
             # Calculate the test statistic by adding the sum of squared differences between the measurement and the
             # predicted value weighted the expected measurement noise variance to the old test stat
             diff = measurement - track.x_hat_minus
-            diff2 = diff.T @ np.linalg.inv(self.R + track.P_minus) @ diff
+            vel = track.x_hat_minus
+            ang = np.arctan2(vel[3][0], vel[2][0])
+            vel = np.sqrt(vel[2][0] ** 2 + vel[3][0] ** 2)
+            c = np.cos(ang)
+            s = np.sin(ang)
+            W = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, c, -s], [0, 0, s, c]])
+            Q = self.kFilter_model.Q
+            diff2 = diff.T @ np.linalg.inv(self.R + track.P_minus + W @ Q @ W.T) @ diff
+            #diff2 = diff.T @ np.linalg.inv(self.R + track.P_minus) @ diff
             test_stat = track.test_stat + diff2
             test_stat = test_stat[0,0]  # Remove numpy array wrapping
             # Convert the test stat to a probability from the chi 2 distribution
