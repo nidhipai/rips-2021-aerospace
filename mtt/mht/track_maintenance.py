@@ -9,7 +9,7 @@ from scipy.stats import binom
 
 class TrackMaintenanceMHT:
 
-    def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R, P, kFilter_model, pruning_n, scoring_method):
+    def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R, P, kFilter_model, pruning_n, scoring_method, born_p):
         """
         Args:
             threshold_old_track (float): score threshold for creating a new track from an existing object
@@ -35,6 +35,7 @@ class TrackMaintenanceMHT:
         self.num_objects = 0
         self.pruning_n = pruning_n
         self.scoring_method = scoring_method
+        self.born_p = born_p
         if P is None:
             self.P = np.eye(4)
         else:
@@ -135,7 +136,7 @@ class TrackMaintenanceMHT:
                 p_not_fa = 1 - self.lambda_fa / (1 + self.lambda_fa)
                 p = self.closest_track(i, tracks)
                 if p is not None:
-                    score = p_not_fa * (1 - p) * 0.05
+                    score = p_not_fa * (1 - p) * self.born_p
                 else:
                     score = p_not_fa
                 # else:

@@ -528,7 +528,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             "P": P_parse
         }
 
-        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method = gate_method, tot = tot, tmm = tmm, tnt = tnt, prune_time=prune_time, scoring_method=scoring_method))
+        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method = gate_method, tot = tot, tmm = tmm, tnt = tnt, born_p = new_obj_prop, prune_time=prune_time, scoring_method=scoring_method))
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly")
     if n_clicks != 0:
