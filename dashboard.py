@@ -406,8 +406,8 @@ app.layout = html.Div(children=[
     State('scoring_method', 'value'),
     State('gate_method', 'value'),
     State('tot', 'value'),
-    State('tmm', 'value'),
     State('tnt', 'value'),
+    State('tmm', 'value'),
     State('x_lim', 'value'),
     State('y_lim', 'value'),
     State('new_obj_prop', 'value'),
@@ -515,7 +515,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         #Set up the simulation with the newly specified parameters
         sim.seed_value = int(seed)
         sim.clear(lam, miss_p)
-        sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale, x_lim=x_lim, y_lim=y_lim, new_obj_prop=new_obj_prop)
+        sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale, x_lim = x_lim, y_lim = y_lim, new_obj_prop = new_obj_prop)
 
         params = {
             "f": sim.generator.process_function,
@@ -528,7 +528,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             "P": P_parse
         }
 
-        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method = gate_method, tot=tot, tmm=tmm, tnt=tnt, born_p=new_obj_prop, prune_time=prune_time, scoring_method=scoring_method))
+        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method = gate_method, tot = tot, tmm = tmm, tnt = tnt, prune_time=prune_time, scoring_method=scoring_method))
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly")
     if n_clicks != 0:
@@ -537,7 +537,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         max_dist = sim.get_max_correspondence_dist(processes)
         best_trajs, correspondences = sim.get_best_correspondence(max_dist)
         trajectories = sim.clean_trajectory(best_trajs)
-        skip_traj = len(trajectories) == 0 or trajectories[-1] is None
+        skip_traj = trajectories[-1] is None
 
 
         colors = sim.clean_measure(sim.measure_colors[0])
@@ -553,6 +553,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             measures_false = np.array([])
         false_alarms = sim.false_alarms[0]
         false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
+
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
         atct_errors = mtt.MTTMetrics.atct_signed(processes, trajectories)

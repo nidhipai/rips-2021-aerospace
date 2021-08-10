@@ -16,7 +16,7 @@ class Presets:
 
 	@staticmethod
 	def standardMHT(params, miss_p, lam, gate_size=0.95, gate_expand_size=0, gate_method="mahalanobis",
-	                tot=0.00001, tmm=0.1, tnt=0.8, prune_time=4, scoring_method = "chi2", P = None):
+	                tot=0.00001, tmm=0.1, tnt=0.7, born_p = 0.05, prune_time=4, scoring_method = "chi2", P = None):
 		if "P" in params.keys():
 			params.pop("P")
 		if P is None:
@@ -24,23 +24,11 @@ class Presets:
 
 		k = mtt.KalmanFilter(**params)
 		gate = mtt.DistanceGatingMHT(gate_size, gate_expand_size, gate_method)
-		main = mtt.TrackMaintenanceMHT(tot, tmm, tnt, 1 - miss_p, 4, lam, params['R'], P, k, prune_time, scoring_method)
+		main = mtt.TrackMaintenanceMHT(tot, tmm, tnt, 1 - miss_p, 4, lam, params['R'], P, k, prune_time, scoring_method, born_p)
 		hypo = mtt.HypothesisComp()
 		prune = mtt.Pruning(prune_time)
 
 		return mtt.MHTTracker(k, gate, main, hypo, prune)
 
-	def standard_chisquare_MHT(params, miss_p, lam, gate_size = 0.95, gate_expand_size = 0, gate_method = "mahalanobis", tot = 0.001, tmm = 0.1, tnt = 0.1, prune_time = 4, P = None):
-		if "P" in params.keys():
-			params.pop("P")
-		if P is None:
-			P = np.eye(4)
 
-		k = mtt.KalmanFilter(**params)
-		gate = mtt.DistanceGatingMHT(gate_size, gate_expand_size, gate_method)
-		main = mtt.TrackMaintenanceMHT(tot, tmm, tnt, 1 - miss_p, 4, lam, params['R'], P, k, prune_time, "chi2")
-		hypo = mtt.HypothesisComp()
-		prune = mtt.Pruning(prune_time)
-
-		return mtt.MHTTracker(k, gate, main, hypo, prune)
 

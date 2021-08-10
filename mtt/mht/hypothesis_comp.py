@@ -1,5 +1,6 @@
 """Aerospace Team - Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng"""
 
+import numpy as np
 import networkx as nx
 import networkx.algorithms.clique as nxac
 
@@ -30,8 +31,10 @@ class HypothesisComp:
 				if abs(track.x_hat_minus[0][0]) < lims[0] and abs(track.x_hat_minus[1][0]) < lims[1]:
 					confirmed_tracks.append(track)
 
+		# We only want to consider tracks that have had enough time to be pruned off
 		if len(confirmed_tracks) > 0:
 			scores = [confirmed_track.score for confirmed_track in confirmed_tracks]
+			# Normalize the scores
 			minimum = min(scores)
 			maximum = max(scores)
 			if max(scores) != min(scores):

@@ -9,7 +9,7 @@ from scipy.stats import binom
 
 class TrackMaintenanceMHT:
 
-    def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R, P, kFilter_model, pruning_n, scoring_method):
+    def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R, P, kFilter_model, pruning_n, scoring_method, born_p):
         """
         Args:
             threshold_old_track (float): score threshold for creating a new track from an existing object
@@ -35,6 +35,7 @@ class TrackMaintenanceMHT:
         self.num_objects = 0
         self.pruning_n = pruning_n
         self.scoring_method = scoring_method
+        self.born_p = born_p
         if P is None:
             self.P = np.eye(4)
         else:
@@ -115,6 +116,7 @@ class TrackMaintenanceMHT:
             new_tracks (list): list of new tracks for this timestep
         """
         for i, measurement in enumerate(measurements):
+
             #measurement_used = False
             #for track in tracks:
                 #if i in track.possible_observations:
@@ -131,14 +133,17 @@ class TrackMaintenanceMHT:
                 # nearest_track = tracks[dists.index(min(dists))]
                 # score = 1 - self.score_measurement(measurements, nearest_track)
                 #score = .00001
-                p_not_fa = 1 - self.lambda_fa / (1 + self.lambda_fa)
+                p_not_fa = 1 - (self.lambda_fa / (1 + self.lambda_fa))
                 p = self.closest_track(i, tracks)
-                if p is None:
-                    p = 1
-                score = p_not_fa * p
+                if p is not None:
+                    score = p_not_fa * (1 - p) * self.born_p
+                else:
+                    score = p_not_fa
+
                 print("p_not_fa: ", p_not_fa, "p: ", p, "new obj score: ", score)
 
             if score >= self.threshold_new_track:
+                print("New Track Created")
                 starting_observations = {ts: i}
                 new_track = Track(starting_observations, score, measurement, self.num_objects, self.pruning_n, P=self.P)
                 new_tracks.append(new_track)
@@ -151,7 +156,7 @@ class TrackMaintenanceMHT:
                 diff = track.diff[measurement_index]
                 test_stat = diff.T @ np.linalg.inv(self.R + track.P_minus) @ diff
                 test_stat = test_stat[0, 0]
-                p = chi2.cdf(test_stat, 4 - 1)
+                p = chi2.cdf(test_stat, 3)
                 if min_p is None or p < min_p:
                     min_p = p
         return min_p
@@ -195,8 +200,11 @@ class TrackMaintenanceMHT:
             # Convert the test stat to a probability from the chi 2 distribution
             # We multiply by 4 because there are four independent components of the measurements, so
             # we add four random variables at each time step
-            score = 1 - chi2.cdf(test_stat, 4*track.num_observations() + 4)
-            #score *= binom.pmf(track.num_missed_measurements(), len(track.observations.values()), 1-self.pd)
+            score = 1 - chi2.cdf(test_stat, 4*track.num_observations() + 4 - 1)
+            #score = score * binom_factor
+            # print("add measure to track:", track)
+            # print("test stat", test_stat, "score: ", score, "measurement:", measurement)
+            # score = self.bi_factor(score, track)
             return score, test_stat, diff
 
     def score_no_measurement(self, track, method="distance"):
@@ -213,9 +221,11 @@ class TrackMaintenanceMHT:
         # elif method == "distance":  # this makes no sense - why would you increase the score?
         #     return track.score * (1 + self.pd)
         else:  # chi2 method - decrease the previous score
-            #return track.score * ((1 - self.pd)*.5 + .5)  # TODO could also try log
-            #return track.score * .7
-            binom_factor = binom.pmf(track.num_missed_measurements(), len(track.observations.values()), 1-self.pd)
-            #print("binom", binom_factor, "score", track.score)
-            score = 1 - chi2.cdf(track.test_stat, 4 * track.num_observations())
-            return score * binom_factor
+            test_stat = track.test_stat  #if track.num_observations() == 1 else 20
+            score = 1 - chi2.cdf(test_stat, 4 * track.num_observations())
+            score = self.bi_factor(score, track)
+            return score
+
+    def bi_factor(self, score, track):
+        binom_factor = binom.pmf(track.num_missed_measurements(), len(track.observations.values())+1, 1 - self.pd)
+        return score * binom_factor # * np.log(len(track.observations))

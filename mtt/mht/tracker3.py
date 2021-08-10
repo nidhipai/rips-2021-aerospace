@@ -35,6 +35,10 @@ class MHTTracker:
         self.measurements.append(measurements)
         print("___________ Time step: {} _________________________________".format(self.ts))
         # print("Number of Tracks: {}".format(len(self.tracks)))
+        #
+        # print("Measurements")
+        # print(measurements)
+
 
         #print("_MEASUREMENTS_")
         #print(measurements)
@@ -64,16 +68,15 @@ class MHTTracker:
         self.cur_best_hypothesis = best_tracks_indexes
         self.cur_best_tracks = np.array(self.tracks)[self.cur_best_hypothesis]
 
-        # for track in self.tracks:
-        #     print("TRACK: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
         if len(best_tracks_indexes) > 0:
             self.prev_best_hypotheses.append(best_tracks_indexes)
 
-        # print("==========")
-        # print("BEST HYP: ")
-        # for track in self.cur_best_tracks:
-        #     print("TRACK ID: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
-        # print("==========")
+
+        print("==========")
+        print("BEST HYP: ")
+        for track in self.cur_best_tracks:
+            print("TRACK ID: ", track.obj_id, "OBS: ", track.observations, "SCORE: ", track.score)
+        print("==========")
 
         # Remove tracks that do not lead to the best hypothesis within a certain number of time steps
 
@@ -87,7 +90,7 @@ class MHTTracker:
             # Printing track index
             # print("Track {} Score:".format(i), track.score)
             # Printing track object id
-            # print("Track {} Score:".format(track.obj_id), track.score)
+            print("Track {} Score:".format(track.obj_id), track.score)
             track.measurement_update(self.kalman, measurements, self.ts)
             i += 1
 
@@ -218,31 +221,6 @@ class MHTTracker:
                     result[track.obj_id] = self.measurements[-1][obs]
 
         return result
-    """
-    def get_false_alarms(self):
-        
-        Gets a list of false alarms at each time step in the data format required by the Simulation class
-
-        Returns:
-            result (list): list of all false alarms for the current time step.
-        
-
-        # TODO: This was previously changed by Nidhi
-
-        possible_measurements = list(range(len(self.measurements[-1])))
-        for track in self.cur_best_tracks:
-            # Remove observation assigned most recently to track
-            possible_measurements.remove(
-                    track.observations[
-                        max(track.observations.keys())
-                ]
-            )
-
-        result = []
-        for p in possible_measurements:
-            result.append(self.measurements[-1][p])
-        return result
-    """
 
     def get_false_alarms(self):
         """
@@ -256,7 +234,6 @@ class MHTTracker:
 
         time = self.ts - 1  # since ts is incrememented at the end of predict
         possible_measurements = list(range(len(self.measurements[-1])))  # get indices of all possible measurements
-
         # Iterate through our best hypothesis to find which measurements should not be included as false alarms
         for track in self.cur_best_tracks:
             # Test if the track is confirmed yet; if not, it is considered a false alarm
@@ -266,8 +243,6 @@ class MHTTracker:
                     possible_measurements.remove(track.observations[time])
         # any measurement that is not in a "good" (confirmed and in best hyp) track is a false alarm
         result = [self.measurements[-1][p] for p in possible_measurements if p is not None]
-        #print(result)
-        #print("false alarms ", result)
         return result
 
 
@@ -288,4 +263,4 @@ class MHTTracker:
         if lam is not None:
             self.track_maintenance.lambda_fa = lam
         if miss_p is not None:
-            self.track_maintenance.pd = miss_p
+            self.track_maintenance.pd = 1 - miss_p
