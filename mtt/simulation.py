@@ -127,6 +127,7 @@ class Simulation:
 			if isinstance(self.tracker_model, MHTTracker):
 				self.trajectories[len(self.trajectories.keys())-1].append(self.tracker_model.get_trajectories())
 				self.apriori_traj[len(self.apriori_traj.keys())-1].append(self.tracker_model.get_apriori_traj())
+				print("False alarms", self.tracker_model.get_false_alarms())
 				self.false_alarms[len(self.false_alarms.keys())-1][i] = self.tracker_model.get_false_alarms()
 
 				apriori_ellipses = self.tracker_model.get_ellipses("apriori")
@@ -387,7 +388,6 @@ class Simulation:
 
 		correspondences = None
 		if len(self.trajectories) > 0:
-			# TO DO: Need a better distance gate than inf
 			if isinstance(self.tracker_model, MHTTracker):
 				max_dist = self.get_max_correspondence_dist(process)
 				best_trajs, correspondences = self.get_best_correspondence(max_dist, index)

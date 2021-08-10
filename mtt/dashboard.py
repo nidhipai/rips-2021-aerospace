@@ -34,7 +34,7 @@ ep_tangent = 1
 nu = 1
 ts = 10
 miss_p = 0
-lam = 0
+lam = 1
 fa_scale = 1
 gate_size = 0.95
 gate_expand_size = 0.5
@@ -50,7 +50,7 @@ output_style = {"display": "inline-block", "margin-right": 20, "margin-left": 20
 
 # Set up the necessary infrastructure to run a simulation
 #gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa_scale)
-gen = mtt.MultiObjFixed(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam = lam, fa_scale = fa_scale, x_lim = x_lim, y_lim = y_lim, new_obj_prop = new_obj_prop)
+gen = mtt.MultiObjFixed(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam=lam, fa_scale=fa_scale, x_lim = x_lim, y_lim = y_lim, new_obj_prop = new_obj_prop)
 
 
 #Set up a default tracker and simulation
@@ -428,7 +428,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
     if tnt is None:
         tnt = 0.8
     if tot is None:
-        tot = 0.00001
+        tot = 0.001
     if prev_clicks < n_clicks:
         prev_clicks = n_clicks
         # Set default parameters
@@ -528,7 +528,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             "P": P_parse
         }
 
-        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method = gate_method, tot=tot, tmm=tmm, tnt=tnt, born_p=new_obj_prop, prune_time=prune_time, scoring_method=scoring_method))
+        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method=gate_method, tot=tot, tmm=tmm, tnt=tnt, born_p=new_obj_prop, prune_time=prune_time, scoring_method=scoring_method))
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly")
     if n_clicks != 0:
@@ -552,6 +552,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             measures_true = np.array([])
             measures_false = np.array([])
         false_alarms = sim.false_alarms[0]
+        print(sim.false_alarms)
         false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")

@@ -239,6 +239,7 @@ class MHTTracker:
                     possible_measurements.remove(track.observations[time])
         # any measurement that is not in a "good" (confirmed and in best hyp) track is a false alarm
         result = [self.measurements[-1][p] for p in possible_measurements if p is not None]
+        print(result)
         return result
 
 
