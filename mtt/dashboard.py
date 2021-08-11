@@ -527,8 +527,15 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             "H": sim.generator.measurement_jacobian(x0_parse),
             "P": P_parse
         }
+        # Add some noise to the starting position based on P
+        starting_pos = {}
+        for i, pos in x0_parse.items():
+            rand = np.random.multivariate_normal(np.zeros(4), P_parse)
+            rand.shape = (4,1)
+            starting_pos[i] = pos + rand
 
-        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method=gate_method, tot=tot, tmm=tmm, tnt=tnt, born_p=new_obj_prop, prune_time=prune_time, scoring_method=scoring_method, starting_pos=x0_parse))
+        # Set the parameters for the tracker and generate the data and predictions
+        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method=gate_method, tot=tot, tmm=tmm, tnt=tnt, born_p=new_obj_prop, prune_time=prune_time, scoring_method=scoring_method, starting_pos=starting_pos))
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly")
 
@@ -536,6 +543,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         # Generate all variables to plot
         processes = sim.clean_trajectory(sim.processes[0])
         max_dist = sim.get_max_correspondence_dist(processes)
+        print(sim.trajectories[0])
         best_trajs, correspondences = sim.get_best_correspondence(max_dist)
         trajectories = sim.clean_trajectory(best_trajs)
         skip_traj = len(trajectories) == 0 or trajectories[-1] is None
@@ -620,7 +628,8 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
                                 marker=dict(color="black", symbol="x")))
         if 'trajectory' in options:
             for i, key in enumerate(all_keys):
-                data.append(go.Scatter(x=trajectories[i][0], y=trajectories[i][1], mode='lines',
+                if not np.all(np.isnan(trajectories[i])):
+                    data.append(go.Scatter(x=trajectories[i][0], y=trajectories[i][1], mode='lines',
                                          name='Obj {} Prediction'.format(key), text=time, line=dict(width=3, dash='dot', color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
         if 'apriori-covariance' in options:
             xs = []
@@ -697,8 +706,9 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
 
             if 'trajectory' in options and not skip_traj:
                 for i, key in enumerate(all_keys):
-                    scatters.append(go.Scatter(x=trajectories[i][0, :(t+1)], y=trajectories[i][1, :(t+1)], mode='lines',
-                                             name='Object {} Prediction'.format(key), text=time, line=dict(width=3, dash='dash')))
+                    if not np.all(np.isnan(trajectories[i])):
+                        scatters.append(go.Scatter(x=trajectories[i][0, :(t+1)], y=trajectories[i][1, :(t+1)], mode='lines',
+                                                 name='Object {} Prediction'.format(key), text=time, line=dict(width=3, dash='dash')))
 
             frames.append(go.Frame(data=scatters))
 
@@ -754,7 +764,6 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             )
         ))
         time_taken = sim.time_taken[0]
-
 
     return fig, err, sim.cur_seed, str(mota), str(motp), time_taken
 

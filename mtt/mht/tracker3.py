@@ -31,8 +31,7 @@ class MHTTracker:
                 self.tracks.append(Track({0: i}, 1, pos, i, self.pruning.n, P=self.track_maintenance.P))
             self.cur_best_hypothesis.append(list(range(len(starting_pos.values()))))
             self.ts += 1
-
-
+            self.cur_best_tracks = np.array(self.tracks)[tuple(self.cur_best_hypothesis)]
 
         # for testing
         self.num_tracks_at_each_timestep = []
@@ -162,6 +161,7 @@ class MHTTracker:
         """
 
         result = dict()
+        print(self.cur_best_tracks)
         for track in self.cur_best_tracks:
             if track.confirmed():
                 result[track.obj_id] = track.x_hat

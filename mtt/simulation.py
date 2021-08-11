@@ -801,8 +801,7 @@ class Simulation:
 		"""
 		# Heuristic for determining the cutoff between a poor filter prediction and an object miss
 		# This is a custom heuristic created by the Aerospace research team
-		# NOTE: can't handle new objects
-		#max_dist = 2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
+		# max_dist = 2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
 
 		output = []
 		# Maintain a list of the objects : trajectory correspondences that have already been generated
@@ -835,9 +834,8 @@ class Simulation:
 			# Ensure objects that are too far away are not assigned by making the distance infinity
 			if cost.size > 0:
 				cost[cost > max_dist] = np.inf
-
 			# Find the best combinations of trajectory and process using the cost matrix
-			while cost.size > 0 and (cost != np.inf).all():
+			while cost.size > 0 and (cost != np.inf).any():
 				# Calculate each subsequent minimum traj-proc pair and remove this from consideration
 				# (greedy algorithm)
 				best_proc, best_traj = np.unravel_index(cost.argmin(), cost.shape)
