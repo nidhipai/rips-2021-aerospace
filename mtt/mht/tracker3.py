@@ -16,10 +16,10 @@ class MHTTracker:
         self.hypothesis_comp = hypothesis_comp # holds the hypothesis comp object
         self.pruning = pruning # holds the pruning object
         self.gating.kalman = global_kalman # set the gating object's kalman to the global kalman
-        self.cur_best_hypothesis = [] # holds the current best hypothesis
-        self.prev_best_hypotheses = [] # holds the previous best hypothesis
 
         self.tracks = []  # list of tracks
+        self.cur_best_hypothesis = []  # holds the current best hypothesis
+        self.prev_best_hypotheses = []  # holds the previous best hypothesis
 
         self.kalman = global_kalman  # holds the global kalman for all tracks
         self.measurements = []  # 2D list of state vectors - each row is a time step
@@ -29,6 +29,10 @@ class MHTTracker:
             self.measurements.append(list(starting_pos.values()))
             for i, pos in starting_pos.items():
                 self.tracks.append(Track({0: i}, 1, pos, i, self.pruning.n, P=self.track_maintenance.P))
+            self.cur_best_hypothesis.append(list(range(len(starting_pos.values()))))
+            self.ts += 1
+
+
 
         # for testing
         self.num_tracks_at_each_timestep = []

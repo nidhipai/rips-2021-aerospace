@@ -24,7 +24,10 @@ class Presets:
 
 		k = mtt.KalmanFilter(**params)
 		gate = mtt.DistanceGatingMHT(gate_size, gate_expand_size, gate_method)
-		main = mtt.TrackMaintenanceMHT(tot, tmm, tnt, 1 - miss_p, 4, lam, params['R'], P, k, prune_time, scoring_method, born_p)
+		if starting_pos is not None:
+			main = mtt.TrackMaintenanceMHT(tot, tmm, tnt, 1 - miss_p, 4, lam, params['R'], P, k, prune_time, scoring_method, born_p, len(starting_pos))
+		else:
+			main = mtt.TrackMaintenanceMHT(tot, tmm, tnt, 1 - miss_p, 4, lam, params['R'], P, k, prune_time, scoring_method, born_p, 0)
 		hypo = mtt.HypothesisComp()
 		prune = mtt.Pruning(prune_time)
 

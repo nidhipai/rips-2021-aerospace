@@ -57,7 +57,7 @@ gen = mtt.MultiObjFixed(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam=lam,
 # Old SHT tracker
 # tracker = mtt.Presets.standardSHT(num_objects, gen.get_params())
 # New MHT tracker
-tracker = mtt.Presets.standardMHT(gen.get_params(), miss_p, lam)
+tracker = mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, starting_pos=initial)
 sim = mtt.Simulation(gen, tracker, seed_value = 0)
 
 #Create blank figures to display at start
@@ -531,6 +531,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method=gate_method, tot=tot, tmm=tmm, tnt=tnt, born_p=new_obj_prop, prune_time=prune_time, scoring_method=scoring_method, starting_pos=x0_parse))
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly")
+
     if n_clicks != 0:
         # Generate all variables to plot
         processes = sim.clean_trajectory(sim.processes[0])
