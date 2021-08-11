@@ -238,6 +238,16 @@ class Simulation:
 						# Reset rng value so we can run the same experiment but with different parameters
 						self.rng = np.random.default_rng(self.cur_seed)
 						self.generate(ts_item)
+
+						# Start with a freshly reset tracker model
+						lam = None
+						miss_p = None
+						if "lam" in kwargs.keys():
+							lam = self.tracker_model.track_maintenance.lambda_fa
+						if "miss_p" in kwargs.keys():
+							miss_p = 1 - self.tracker_model.track_maintenance.pd
+						self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
+						# Generate trajectories
 						self.predict()
 		# If we are testing multiple potential values of parameters for the filter, we generate one set of data and for
 		# each experiment we run, copy it and run the filter
@@ -250,6 +260,17 @@ class Simulation:
 							self.processes[len(self.processes)] = self.processes[len(self.processes) - 1]
 							self.measures[len(self.measures)] = self.measures[len(self.measures) - 1]
 							self.descs[len(self.descs)] = self.descs[len(self.descs)-1]
+
+						# Start with a freshly reset tracker model
+						lam = None
+						miss_p = None
+						if "lam" in kwargs.keys():
+							lam = self.tracker_model.track_maintenance.lambda_fa
+						if "miss_p" in kwargs.keys():
+							miss_p = 1 - self.tracker_model.track_maintenance.pd
+						self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
+
+						# Generate trajectories
 						self.predict(index = i, **{arg[0]: value})
 		else:
 			raise Exception("Not a valid test type. Choose either \"data\" or \"filter\"")
@@ -273,10 +294,12 @@ class Simulation:
 		if plot_error_q:
 			self.plot_all(error=True, var=var)
 
-	def test_tracker_model(self, ts, name, iter=3, test="data", **kwargs):
-		self.clear()
-		metrics = dict()
-		for k in range(iter):
+	def test_tracker_model(self, ts, name, iterations=3, test="data", **kwargs):
+		"""
+
+		"""
+
+		for k in range(iterations):
 			if self.seed_value == 0:
 				self.cur_seed = np.random.randint(10 ** 7)
 			self.experiment(ts, test, **kwargs)
@@ -294,15 +317,15 @@ class Simulation:
 				mota = 0
 				time_taken = 0
 				track_count = 0
-				for j in range(iter):
+				for j in range(iterations):
 					motp += self.motp[i + j*rows]
 					mota += self.mota[i + j*rows]
 					time_taken += self.time_taken[i + j*rows]
 					track_count += self.track_count[i + j*rows]
-				motp /= iter
-				mota /= iter
-				time_taken /= iter
-				track_count /= iter
+				motp /= iterations
+				mota /= iterations
+				time_taken /= iterations
+				track_count /= iterations
 
 				# Format data and output to file
 				data = "{}\t{}\t{}\t{}\t{}\t{}\n".format(key, param, motp, mota, time_taken, track_count)

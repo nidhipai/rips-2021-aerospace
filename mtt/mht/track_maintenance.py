@@ -135,12 +135,14 @@ class TrackMaintenanceMHT:
                 # score = 1 - self.score_measurement(measurements, nearest_track)
                 #score = .00001
                 p = self.closest_track(i, tracks)
+
+                # Then check if any tracks are near the measurement; if so, calculate score based on distance
                 if p is not None:
                     score = p_not_fa * (1 - p) * self.born_p
-                elif self.lambda_fa > 0:
-                    score = p_not_fa * self.born_p
+                # If there are no tracks near the measurement, and there are false alarms,
+                # create new track using probability of being born
                 else:
-                    score = p_not_fa
+                    score = p_not_fa * self.born_p
 
             if score > p_not_fa*self.born_p*self.threshold_new_track:
                 print("New Track Created")

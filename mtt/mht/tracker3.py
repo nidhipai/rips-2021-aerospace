@@ -11,6 +11,7 @@ class MHTTracker:
     def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning, starting_pos=None):
 
         # all the methods
+        self.starting_pos = starting_pos
         self.gating = gating # holds the Gating object
         self.track_maintenance = track_maintenance # holds the track maintenance object
         self.hypothesis_comp = hypothesis_comp # holds the hypothesis comp object
@@ -25,12 +26,12 @@ class MHTTracker:
         self.measurements = []  # 2D list of state vectors - each row is a time step
         self.ts = 0  # time steps
 
-        if starting_pos is not None:
-            self.measurements.append(list(starting_pos.values()))
-            for i, pos in starting_pos.items():
+        if self.starting_pos is not None:
+            self.measurements.append(list(self.starting_pos.values()))
+            for i, pos in self.starting_pos.items():
                 self.tracks.append(Track({0: i}, 1, pos, i, self.pruning.n, P=self.track_maintenance.P))
-            self.cur_best_hypothesis.append(list(range(len(starting_pos.values()))))
-            self.ts += 1
+            self.cur_best_hypothesis.append(list(range(len(self.starting_pos.values()))))
+            self.ts = 1
             self.cur_best_tracks = np.array(self.tracks)[tuple(self.cur_best_hypothesis)]
 
         # for testing
@@ -262,12 +263,23 @@ class MHTTracker:
             lam (float): the frequency of the false alarms
             miss_p (float): the frequency of the missed measurements
         """
-        self.tracks = []
-        self.measurements = []  # 2D array of state vectors - each row is a time step
-        self.ts = 0
-        self.cur_best_hypothesis = []
-        self.prev_best_hypotheses = []
-        self.track_maintenance.num_objects = 0
+        self.tracks = []  # list of tracks
+        self.cur_best_hypothesis = []  # holds the current best hypothesis
+        self.prev_best_hypotheses = []  # holds the previous best hypothesis
+
+        self.measurements = []  # 2D list of state vectors - each row is a time step
+        self.ts = 0  # time steps
+
+        if self.starting_pos is not None:
+            self.measurements.append(list(self.starting_pos.values()))
+            for i, pos in self.starting_pos.items():
+                self.tracks.append(Track({0: i}, 1, pos, i, self.pruning.n, P=self.track_maintenance.P))
+            self.cur_best_hypothesis.append(list(range(len(self.starting_pos.values()))))
+            self.ts = 1
+            self.cur_best_tracks = np.array(self.tracks)[tuple(self.cur_best_hypothesis)]
+
+        # for testing
+        self.num_tracks_at_each_timestep = []
 
         if lam is not None:
             self.track_maintenance.lambda_fa = lam
