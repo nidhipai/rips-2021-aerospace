@@ -138,7 +138,7 @@ class TrackMaintenanceMHT:
 
                 # Then check if any tracks are near the measurement; if so, calculate score based on distance
                 if p is not None:
-                    score = p_not_fa * (1 - p) * self.born_p
+                    score = p_not_fa * p * self.born_p
                 # If there are no tracks near the measurement, and there are false alarms,
                 # create new track using probability of being born
                 else:
@@ -155,7 +155,7 @@ class TrackMaintenanceMHT:
         min_p = None
         for track in tracks:
             if measurement_index in track.possible_observations:
-                diff = track.diff[measurement_index] # a little unclean right now but that's fine
+                diff = track.diff[measurement_index]
                 test_stat = diff.T @ np.linalg.inv(self.R + track.P_minus) @ diff
                 test_stat = test_stat[0, 0]
                 p = chi2.cdf(test_stat, 3)
@@ -175,13 +175,13 @@ class TrackMaintenanceMHT:
         """
 
         if method == "loglikelihood":
-            m_dis_sq = DistancesMHT.mahalanobis(measurement, track, self.kFilter_model) ** 2 # TODO fix
-            norm_S = np.linalg.norm(self.R, ord=2) # TODO this may not be the right norm
+            m_dis_sq = DistancesMHT.mahalanobis(measurement, track, self.kFilter_model) ** 2
+            norm_S = np.linalg.norm(self.R, ord=2)
             score = np.log(self.pd / ((2 * np.pi) ** (self.M / 2) * self.lambda_fa * np.sqrt(norm_S))) - m_dis_sq / 2
             return track.score + score
 
         elif method == "distance":
-            m_dis_sq = DistancesMHT.mahalanobis(measurement, track, self.kFilter_model) ** 2 # TODO fix
+            m_dis_sq = DistancesMHT.mahalanobis(measurement, track, self.kFilter_model) ** 2
             return ((track.score*len(track.observations)) - (m_dis_sq / 2)) / (len(track.observations)+1)
 
         else:
@@ -211,12 +211,13 @@ class TrackMaintenanceMHT:
         # elif method == "distance":  # this makes no sense - why would you increase the score?
         #     return track.score * (1 + self.pd)
         else:  # chi2 method - decrease the previous score
-            test_stat = track.test_stat()  #if track.num_observations() == 1 else 20
+            test_stat = track.test_stat()
             score = 1 - chi2.cdf(test_stat, 4 * track.num_observations())
             score = self.bi_factor(score, track)
             return score
 
-    def bi_factor(self, score, track): #ONLY USE FOR MM RN
+    def bi_factor(self, score, track):
+        """"""
         #binom_factor = binom.pmf(track.num_consecutive_mm() + 1, len(track.observations.values())+1, 1 - self.pd)
         binom_factor = binom.pmf(track.num_mm_latest() + 1, self.pruning_n + 1, 1 - self.pd)
         return score * binom_factor #* np.log(len(track.observations))

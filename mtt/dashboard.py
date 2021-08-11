@@ -438,9 +438,9 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             ep_tangent = 0.1
         if new_obj_prop is None:
             new_obj_prop = 0
-        if x_lim is None:
+        if x_lim is None or x_lim == "":
             x_lim = 50
-        if y_lim is None:
+        if y_lim is None or y_lim == "":
             y_lim = 50
         if ep_normal is None or ep_normal == "":
             ep_normal = 0.1
@@ -449,7 +449,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         if lam is None or lam == "":
             lam = 0
         if fa_scale is None or fa_scale == "":
-            fa_scale = 10
+            fa_scale = 1
         if x0 is None or x0 == "":
             x0 = "0 0 1 1"
         if seed is None or seed == "":
