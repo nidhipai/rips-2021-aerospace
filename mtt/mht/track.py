@@ -79,6 +79,7 @@ class Track:
     #     return num_observation > self.pruning_n
 
     def confirmed(self):
+        return True
         return self.num_observations() > self.pruning_n - 1
 
     def num_observations(self):

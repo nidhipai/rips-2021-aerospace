@@ -4,13 +4,11 @@
 from itertools import repeat
 from copy import deepcopy
 import numpy as np
+from .track import Track
+
 
 class MHTTracker:
-    def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning):
-        self.tracks = [] # list of tracks
-        self.kalman = global_kalman # holds the global kalman for all tracks
-        self.measurements = [] # 2D array of state vectors - each row is a time step
-        self.ts = 0 # time steps
+    def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning, starting_pos=None):
 
         # all the methods
         self.gating = gating # holds the Gating object
@@ -20,6 +18,17 @@ class MHTTracker:
         self.gating.kalman = global_kalman # set the gating object's kalman to the global kalman
         self.cur_best_hypothesis = [] # holds the current best hypothesis
         self.prev_best_hypotheses = [] # holds the previous best hypothesis
+
+        self.tracks = []  # list of tracks
+
+        self.kalman = global_kalman  # holds the global kalman for all tracks
+        self.measurements = []  # 2D list of state vectors - each row is a time step
+        self.ts = 0  # time steps
+
+        if starting_pos is not None:
+            self.measurements.append(list(starting_pos.values()))
+            for i, pos in starting_pos.items():
+                self.tracks.append(Track({0: i}, 1, pos, i, self.pruning.n, P=self.track_maintenance.P))
 
         # for testing
         self.num_tracks_at_each_timestep = []

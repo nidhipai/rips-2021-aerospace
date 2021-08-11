@@ -137,6 +137,8 @@ class TrackMaintenanceMHT:
                 p = self.closest_track(i, tracks)
                 if p is not None:
                     score = p_not_fa * (1 - p) * self.born_p
+                elif self.lambda_fa > 0:
+                    score = p_not_fa * self.born_p
                 else:
                     score = p_not_fa
 
