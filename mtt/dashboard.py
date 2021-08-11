@@ -543,7 +543,6 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         # Generate all variables to plot
         processes = sim.clean_trajectory(sim.processes[0])
         max_dist = sim.get_max_correspondence_dist(processes)
-        print(sim.trajectories[0])
         best_trajs, correspondences = sim.get_best_correspondence(max_dist)
         trajectories = sim.clean_trajectory(best_trajs)
         skip_traj = len(trajectories) == 0 or trajectories[-1] is None
@@ -553,13 +552,13 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         # If there are no measures, we must skip plotting them
         skip_measures = False
         if(colors.size > 0):
-            measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
-            measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
+            #measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
+            #measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
             measures = sim.clean_measure2(sim.sorted_measurements[0], correspondences)
         else:
             skip_measures = True
-            measures_true = np.array([])
-            measures_false = np.array([])
+            #measures_true = np.array([])
+            #measures_false = np.array([])
         false_alarms = sim.false_alarms[0]
         false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
@@ -570,6 +569,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         # Set the range manually to prevent the animation from dynamically changing the range
         measure_max = []
         measure_min = []
+        """
         if measures_true.size > 0 and not skip_measures:
             measure_max.append(measures_true[0].max())
             measure_max.append(measures_true[1].max())
@@ -581,7 +581,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             measure_max.append(measures_false[1].max())
             measure_min.append(measures_false[0].min())
             measure_min.append(measures_false[1].min())
-
+        """
         # Check to make sure there is a trajectory to plot, and not a filler list of Nones
         if not skip_traj:
             xmax = max([max([process[0].max() for process in processes]), max([trajectory[0][trajectory[0] != None].max() for trajectory in trajectories] + measure_max)])

@@ -18,9 +18,6 @@ from .mht.tracker3 import MHTTracker
 
 from .mtt_metrics import MTTMetrics
 
-import sys, os
-
-
 from matplotlib.patches import Ellipse
 plt.rcParams["figure.figsize"] = (12, 8)
 
@@ -115,14 +112,17 @@ class Simulation:
 
 		# MTTTracker stores false alarms and has a pipeline, but with MHT, we cannot do this until the end
 		# Therefore, we divide into two instances
-
 		total_time = 0
+		# Replace first measurement with our estimation for the start of the process
+		self.measures[index][0] = [self.tracker_model.measurements[0]]
+		self.measure_colors[index][0] = [['black'] * len(self.tracker_model.measurements[0])]
 		for i in range(len(self.processes[index])):
-			# Obtain a set of guesses for the current location of the object given the measurements
-			next_measurement = deepcopy(self.measures[index][i])
-			start_time = time.process_time()
-			self.tracker_model.predict(next_measurement)
-			total_time += time.process_time() - start_time
+			if i > 0:
+				# Obtain a set of guesses for the current location of the object given the measurements
+				next_measurement = deepcopy(self.measures[index][i])
+				start_time = time.process_time()
+				self.tracker_model.predict(next_measurement)
+				total_time += time.process_time() - start_time
 
 			if isinstance(self.tracker_model, MHTTracker):
 				self.trajectories[len(self.trajectories.keys())-1].append(self.tracker_model.get_trajectories())
@@ -158,6 +158,10 @@ class Simulation:
 					"fnu": str(self.tracker_model.kalman.R[0][0]),
 					"P": str(self.tracker_model.track_maintenance.P[0][0]),
 				}}
+
+		# Add initial values to be plotted as measurements and trajectory values
+		self.measures[index] = [self.tracker_model.measurements[0]] + self.measures[index]
+		self.measure_colors[index] = [['black']*len(self.tracker_model.measurements[0])] + self.measure_colors[index]
 
 		# Store the total time taken by the predict method of the tracker
 		self.time_taken[len(self.time_taken.keys())] = total_time
