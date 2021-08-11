@@ -241,7 +241,7 @@ app.layout = html.Div(children=[
                 type="number",
                 min=10,
                 max=10000,
-                placeholder=100
+                placeholder=50
             )
         ], style=input_style),
 
@@ -252,7 +252,7 @@ app.layout = html.Div(children=[
                 type="number",
                 min=10,
                 max=10000,
-                placeholder=100
+                placeholder=50
             )
         ], style=input_style),
 
@@ -439,9 +439,9 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         if new_obj_prop is None:
             new_obj_prop = 0
         if x_lim is None:
-            x_lim = 100
+            x_lim = 50
         if y_lim is None:
-            y_lim = 100
+            y_lim = 50
         if ep_normal is None or ep_normal == "":
             ep_normal = 0.1
         if miss_p is None or miss_p == "":
@@ -547,7 +547,6 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         trajectories = sim.clean_trajectory(best_trajs)
         skip_traj = len(trajectories) == 0 or trajectories[-1] is None
 
-
         colors = sim.clean_measure(sim.measure_colors[0])
         # If there are no measures, we must skip plotting them
         skip_measures = False
@@ -567,8 +566,44 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         time = ["time = {}".format(t) for t in range(processes[0][0].size)]
 
         # Set the range manually to prevent the animation from dynamically changing the range
-        measure_max = []
-        measure_min = []
+
+        if isinstance(gen, mtt.MultiObjFixed):
+            xmin = -x_lim
+            xmax = x_lim
+            ymin = -y_lim
+            ymax = y_lim
+            xrange = [xmin, xmax]
+            yrange = [ymin, ymax]
+        else:
+            measure_max = []
+            measure_min = []
+
+            if len(false_alarms[0]) > 0 and not skip_measures:
+                measure_max.append(max(false_alarms[0]))
+                measure_max.append(max(false_alarms[1]))
+                measure_min.append(min(false_alarms[0]))
+                measure_min.append(min(false_alarms[1]))
+
+            # Check to make sure there is a trajectory to plot, and not a filler list of Nones
+            if not skip_traj:
+                xmax = max([max([process[0].max() for process in processes]), max(
+                    [trajectory[0][trajectory[0] != None].max() for trajectory in trajectories] + measure_max)])
+                xmin = min([min([process[0].min() for process in processes]), min(
+                    [trajectory[0][trajectory[0] != None].min() for trajectory in trajectories] + measure_min)])
+                ymax = max([max([process[1].max() for process in processes]), max(
+                    [trajectory[1][trajectory[0] != None].max() for trajectory in trajectories] + measure_max)])
+                ymin = min([min([process[1].min() for process in processes]), min(
+                    [trajectory[1][trajectory[0] != None].min() for trajectory in trajectories] + measure_min)])
+                xrange = [xmin * 1.1, xmax * 1.1]
+                yrange = [ymin * 1.1, ymax * 1.1]
+            else:
+                xmax = max([max([process[0].max() for process in processes])])
+                xmin = min([min([process[0].min() for process in processes])])
+                ymax = max([max([process[1].max() for process in processes])])
+                ymin = min([min([process[1].min() for process in processes])])
+                xrange = [xmin * 1.1, xmax * 1.1]
+                yrange = [ymin * 1.1, ymax * 1.1]
+
         """
         if measures_true.size > 0 and not skip_measures:
             measure_max.append(measures_true[0].max())
@@ -582,21 +617,6 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             measure_min.append(measures_false[0].min())
             measure_min.append(measures_false[1].min())
         """
-        # Check to make sure there is a trajectory to plot, and not a filler list of Nones
-        if not skip_traj:
-            xmax = max([max([process[0].max() for process in processes]), max([trajectory[0][trajectory[0] != None].max() for trajectory in trajectories] + measure_max)])
-            xmin = min([min([process[0].min() for process in processes]), min([trajectory[0][trajectory[0] != None].min() for trajectory in trajectories] + measure_min)])
-            ymax = max([max([process[1].max() for process in processes]), max([trajectory[1][trajectory[0] != None].max() for trajectory in trajectories] + measure_max)])
-            ymin = min([min([process[1].min() for process in processes]), min([trajectory[1][trajectory[0] != None].min() for trajectory in trajectories] + measure_min)])
-            xrange = [xmin*1.1, xmax*1.1]
-            yrange = [ymin*1.1, ymax*1.1]
-        else:
-            xmax = max([max([process[0].max() for process in processes])])
-            xmin = min([min([process[0].min() for process in processes])])
-            ymax = max([max([process[1].max() for process in processes])])
-            ymin = min([min([process[1].min() for process in processes])])
-            xrange = [xmin * 1.1, xmax * 1.1]
-            yrange = [ymin * 1.1, ymax * 1.1]
 
         desc = ''
         # Print out the parameters on the plot
