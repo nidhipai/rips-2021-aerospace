@@ -567,7 +567,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
 
         # Set the range manually to prevent the animation from dynamically changing the range
 
-        if isinstance(gen, mtt.MultiObjFixed):
+        if isinstance(gen, mtt.MultiObjFixed) and x_lim is not None and y_lim is not None:
             xmin = -x_lim
             xmax = x_lim
             ymin = -y_lim

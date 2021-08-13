@@ -6,7 +6,7 @@ import networkx.algorithms.clique as nxac
 
 class HypothesisComp:
 
-	def predict(self, tracks):
+	def predict(self, tracks, no_new_obj=False):
 		"""
 		Uses maximum weight clique of a graph, where compatible tracks are connected by an edge and every
 		node is a track with a specific score assigned in track maintenance to create the best hypothesis.
@@ -22,12 +22,10 @@ class HypothesisComp:
 
 		# Calculate values needed to normalize the score
 		# Only use confirmed tracks
-		# scores = [track.score for track in tracks if track.confirmed()]
 
-		#confirmed_tracks = [track for track in tracks if track.confirmed()]
 		confirmed_tracks = []
 		for track in tracks:
-			if track.confirmed():
+			if track.confirmed() or no_new_obj:
 				confirmed_tracks.append(track)
 
 		# We only want to consider tracks that have had enough time to be pruned off

@@ -214,7 +214,8 @@ class Simulation:
 
 	def experiment(self, ts, test="data", **kwargs):
 		"""
-		Runs an experiment, generating data and producing a trajectory
+		Runs an experiment, generating data and producing a trajectory.
+		IMPORTANT NOTE: This cannot currently be used with multiple kwargs
 
 		Args:
 			ts (int): the number of time steps to simulate
@@ -228,50 +229,60 @@ class Simulation:
 		else:
 			ts_modified = ts
 
+		start_gen = deepcopy(self.generator)
+
 		# If we are testing multiple potential values of parameters for data generation, we generate
 		# several sets of data and predict for all of them
 		if test == "data":
 			for ts_item in ts_modified:
 				for arg in kwargs.items():
+					lam = None
+					miss_p = None
 					for value in arg[1]:
 						self.generator = self.generator.mutate(**{arg[0]: value})
 						# Reset rng value so we can run the same experiment but with different parameters
 						self.rng = np.random.default_rng(self.cur_seed)
 						self.generate(ts_item)
 
+
 						# Start with a freshly reset tracker model
-						lam = None
-						miss_p = None
-						if "lam" in kwargs.keys():
-							lam = self.tracker_model.track_maintenance.lambda_fa
-						if "miss_p" in kwargs.keys():
-							miss_p = 1 - self.tracker_model.track_maintenance.pd
+						if arg[0] == "lam":
+							lam = value
+						if arg[0] == "miss_p":
+							miss_p = value
+						# Clear the tracks in the tracker to run another experiment
 						self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
 						# Generate trajectories
 						self.predict()
+
+						# Reset the generator to its starting values so it can be used in a future experiment
+						self.generator = deepcopy(start_gen)
+
 		# If we are testing multiple potential values of parameters for the filter, we generate one set of data and for
 		# each experiment we run, copy it and run the filter
 		elif test == "filter":
 			for ts_item in ts_modified:
 				self.generate(ts_item)
 				for arg in kwargs.items():
+					# Start with a freshly reset tracker model
+					lam = None
+					miss_p = None
 					for i, value in enumerate(arg[1]):
 						if i != 0:
 							self.processes[len(self.processes)] = self.processes[len(self.processes) - 1]
 							self.measures[len(self.measures)] = self.measures[len(self.measures) - 1]
 							self.descs[len(self.descs)] = self.descs[len(self.descs)-1]
-
-						# Start with a freshly reset tracker model
-						lam = None
-						miss_p = None
-						if "lam" in kwargs.keys():
-							lam = self.tracker_model.track_maintenance.lambda_fa
-						if "miss_p" in kwargs.keys():
-							miss_p = 1 - self.tracker_model.track_maintenance.pd
+						if arg[0] == "lam":
+							lam = value
+						if arg[0] == "miss_p":
+							miss_p = value
 						self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
 
 						# Generate trajectories
 						self.predict(index = i, **{arg[0]: value})
+
+						# Reset the generator to its starting values so it can be used in a future experiment
+						self.generator = deepcopy(start_gen)
 		else:
 			raise Exception("Not a valid test type. Choose either \"data\" or \"filter\"")
 
@@ -299,9 +310,14 @@ class Simulation:
 
 		"""
 
+		# Need to save the tracker you start with to reset at every time step, since the "experiment" changes the tracker
+		lam = copy(self.tracker_model.track_maintenance.lambda_fa)
+		miss_p = copy(1-self.tracker_model.track_maintenance.pd)
+
 		for k in range(iterations):
 			if self.seed_value == 0:
 				self.cur_seed = np.random.randint(10 ** 7)
+			self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
 			self.experiment(ts, test, **kwargs)
 
 		file = open(name, "w")
