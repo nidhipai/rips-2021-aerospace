@@ -1,4 +1,7 @@
-"""Aerospace Team - Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng"""
+"""
+Sal Balkus, Nidhi Pai, Eduardo Sosa, Tony Zeng
+RIPS 2021 Aerospace Team
+"""
 
 import numpy as np
 from scipy.stats import chi2
@@ -8,7 +11,9 @@ from mtt.mht.distances_mht import DistancesMHT
 from scipy.stats import binom
 
 class TrackMaintenanceMHT:
-
+	"""
+	Creates, kills, scores tracks
+	"""
     def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R, P, kFilter_model, pruning_n, scoring_method, born_p, num_obj_start):
         """
         Args:
