@@ -33,7 +33,7 @@ class Track:
         self.missed_measurements = 0
 
         #testing
-        self.test_stat = 0
+        self.test_stats = {}
         self.diff = {}
 
     def __str__(self):
@@ -79,7 +79,7 @@ class Track:
     #     return num_observation > self.pruning_n
 
     def confirmed(self):
-        return self.num_observations() > self.pruning_n - 1
+        return self.num_observations() > 1
 
     def num_observations(self):
         return sum(x is not None for x in list(self.observations.values()))
@@ -87,3 +87,15 @@ class Track:
     def num_missed_measurements(self):
         return sum(x is None for x in list(self.observations.values()))
 
+    def num_mm_latest(self):
+        earliest_index = max(max(self.observations.keys()) - self.pruning_n + 1, min(self.observations.keys()))
+        max_index = max(self.observations.keys())
+        return sum(self.observations[ts] is None for ts in range(earliest_index, max_index))
+
+    def test_stat(self):
+        if len(self.test_stats) == 0:
+            return 0
+        earliest_index = max(max(self.test_stats.keys()) - self.pruning_n + 1, min(self.test_stats.keys()))
+        max_index = max(self.observations.keys())
+        test_stats = [self.test_stats[ts] if ts in self.test_stats.keys() else 0 for ts in range(earliest_index, max_index)]
+        return sum(test_stats)

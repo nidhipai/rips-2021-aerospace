@@ -4,22 +4,35 @@
 from itertools import repeat
 from copy import deepcopy
 import numpy as np
+from .track import Track
+
 
 class MHTTracker:
-    def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning):
-        self.tracks = [] # list of tracks
-        self.kalman = global_kalman # holds the global kalman for all tracks
-        self.measurements = [] # 2D array of state vectors - each row is a time step
-        self.ts = 0 # time steps
+    def __init__(self, global_kalman, gating, track_maintenance, hypothesis_comp, pruning, starting_pos=None):
 
         # all the methods
+        self.starting_pos = starting_pos
         self.gating = gating # holds the Gating object
         self.track_maintenance = track_maintenance # holds the track maintenance object
         self.hypothesis_comp = hypothesis_comp # holds the hypothesis comp object
         self.pruning = pruning # holds the pruning object
         self.gating.kalman = global_kalman # set the gating object's kalman to the global kalman
-        self.cur_best_hypothesis = [] # holds the current best hypothesis
-        self.prev_best_hypotheses = [] # holds the previous best hypothesis
+
+        self.tracks = []  # list of tracks
+        self.cur_best_hypothesis = []  # holds the current best hypothesis
+        self.prev_best_hypotheses = []  # holds the previous best hypothesis
+
+        self.kalman = global_kalman  # holds the global kalman for all tracks
+        self.measurements = []  # 2D list of state vectors - each row is a time step
+        self.ts = 0  # time steps
+
+        if self.starting_pos is not None:
+            self.measurements.append(list(self.starting_pos.values()))
+            for i, pos in self.starting_pos.items():
+                self.tracks.append(Track({0: i}, 1, pos, i, self.pruning.n, P=self.track_maintenance.P))
+            self.cur_best_hypothesis.append(list(range(len(self.starting_pos.values()))))
+            self.ts = 1
+            self.cur_best_tracks = np.array(self.tracks)[tuple(self.cur_best_hypothesis)]
 
         # for testing
         self.num_tracks_at_each_timestep = []
@@ -62,7 +75,8 @@ class MHTTracker:
         lims = [self.x_lim, self.y_lim]
 
         # Calculate the maximum weighted clique
-        best_tracks_indexes = self.hypothesis_comp.predict(self.tracks, lims)
+        # If new tracks can be born, tracks must be confirmed before being added to max weight clique.
+        best_tracks_indexes = self.hypothesis_comp.predict(self.tracks, self.track_maintenance.born_p == 0)
 
         # Save the current best hypothesis to output
         self.cur_best_hypothesis = best_tracks_indexes
@@ -115,7 +129,6 @@ class MHTTracker:
 
         result = []
         for ts in range(0, self.ts):  # iterate over timesteps
-            result.append(dict())
             for i, track in enumerate(self.tracks):
                 if ts in track.observations:
                     result[ts][i] = self.measurements[ts][track.observations[ts]]
@@ -133,9 +146,10 @@ class MHTTracker:
         """
 
         result = []
-        for t in range(self.ts):
+        result.append(self.starting_pos)
+        for t in range(1, self.ts):
             step = dict()
-            for i, track in enumerate(self.cur_best_tracks):
+            for i, track in enumerate(self.cur_best_tracks[::-1]):
                 step[i] = track.aposteriori_estimates[t]
             result.append(step)
         return result
@@ -153,8 +167,9 @@ class MHTTracker:
         """
 
         result = dict()
+        print(self.cur_best_tracks)
         for track in self.cur_best_tracks:
-            if track.confirmed():
+            if track.confirmed() or self.track_maintenance.born_p == 0:
                 result[track.obj_id] = track.x_hat
         return result
 
@@ -172,7 +187,7 @@ class MHTTracker:
 
         result = dict()
         for track in self.cur_best_tracks:
-            if track.confirmed():
+            if track.confirmed() or self.track_maintenance.born_p == 0:
                 result[track.obj_id] = track.x_hat_minus
         return result
 
@@ -193,7 +208,7 @@ class MHTTracker:
         ellipses = dict()
 
         for track in self.cur_best_tracks:
-            if track.confirmed():
+            if track.confirmed() or self.track_maintenance.born_p == 0:
                 if mode == "apriori":
                     ellipses[track.obj_id] = [track.x_hat_minus, track.P_minus]
                 else:
@@ -215,10 +230,34 @@ class MHTTracker:
         # Test whether each track in the best hypothesis is confirmed.
         # If it is, then add it to the output
         for track in self.cur_best_tracks:
-            if track.confirmed():
+            if track.confirmed() or self.track_maintenance.born_p == 0:
                 obs = track.observations[max(track.observations.keys())]
                 if obs is not None:
                     result[track.obj_id] = self.measurements[-1][obs]
+
+        return result
+
+    def get_best_measurements(self):
+        """
+        Returns the best measurements for the most recent time step.
+        Dictionary entries represent the measurements for an object at a given time step.
+        Each key represents the object id of the track as it is stored (no correspondence is calculated)
+
+        Returns:
+            result (dict): A dictionary with the object id as the key and the sorted measurements as the
+            values.
+        """
+        result = dict()
+
+        # Test whether each track in the best hypothesis is confirmed.
+        # If it is, then add all measurements to the output
+
+        for track in self.cur_best_tracks:
+            if track.confirmed() or self.track_maintenance.born_p == 0:
+                result[track.obj_id] = list()
+                for time, obs in track.observations.items():
+                    if obs is not None:
+                        result[track.obj_id].append(self.measurements[time][obs])
 
         return result
 
@@ -237,7 +276,7 @@ class MHTTracker:
         # Iterate through our best hypothesis to find which measurements should not be included as false alarms
         for track in self.cur_best_tracks:
             # Test if the track is confirmed yet; if not, it is considered a false alarm
-            if track.confirmed():  # this is redundant later because cur_best_tracks should all be confirmed
+            if track.confirmed() or self.track_maintenance.born_p == 0:  # this is redundant later because cur_best_tracks should all be confirmed
                 # If the track records the time step, set the observation in the track as not a false alarm
                 if time in track.observations.keys() and track.observations[time] is not None:
                     possible_measurements.remove(track.observations[time])
@@ -253,12 +292,23 @@ class MHTTracker:
             lam (float): the frequency of the false alarms
             miss_p (float): the frequency of the missed measurements
         """
-        self.tracks = []
-        self.measurements = []  # 2D array of state vectors - each row is a time step
-        self.ts = 0
-        self.cur_best_hypothesis = []
-        self.prev_best_hypotheses = []
-        self.track_maintenance.num_objects = 0
+        self.tracks = []  # list of tracks
+        self.cur_best_hypothesis = []  # holds the current best hypothesis
+        self.prev_best_hypotheses = []  # holds the previous best hypothesis
+
+        self.measurements = []  # 2D list of state vectors - each row is a time step
+        self.ts = 0  # time steps
+
+        if self.starting_pos is not None:
+            self.measurements.append(list(self.starting_pos.values()))
+            for i, pos in self.starting_pos.items():
+                self.tracks.append(Track({0: i}, 1, pos, i, self.pruning.n, P=self.track_maintenance.P))
+            self.cur_best_hypothesis.append(list(range(len(self.starting_pos.values()))))
+            self.ts = 1
+            self.cur_best_tracks = np.array(self.tracks)[tuple(self.cur_best_hypothesis)]
+
+        # for testing
+        self.num_tracks_at_each_timestep = []
 
         if lam is not None:
             self.track_maintenance.lambda_fa = lam

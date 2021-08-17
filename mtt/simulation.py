@@ -18,9 +18,6 @@ from .mht.tracker3 import MHTTracker
 
 from .mtt_metrics import MTTMetrics
 
-import sys, os
-
-
 from matplotlib.patches import Ellipse
 plt.rcParams["figure.figsize"] = (12, 8)
 
@@ -64,6 +61,8 @@ class Simulation:
 		self.mota = dict()
 		self.motp = dict()
 		self.track_count = dict()
+		self.best_trajectories = dict()
+		self.best_measurements = dict()
 		self.DEFAULT_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 	# the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
@@ -114,17 +113,21 @@ class Simulation:
 		self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())] = dict()
 		self.false_alarms[len(self.false_alarms.keys())] = dict()
 		self.sorted_measurements[len(self.sorted_measurements)] = dict()
+		self.best_measurements[len(self.best_measurements)] = dict()
 
 		# MTTTracker stores false alarms and has a pipeline, but with MHT, we cannot do this until the end
 		# Therefore, we divide into two instances
-
 		total_time = 0
+		# Replace first measurement with our estimation for the start of the process
+		self.measures[index][0] = [self.tracker_model.measurements[0]]
+		self.measure_colors[index][0] = [['black'] * len(self.tracker_model.measurements[0])]
 		for i in range(len(self.processes[index])):
-			# Obtain a set of guesses for the current location of the object given the measurements
-			next_measurement = deepcopy(self.measures[index][i])
-			start_time = time.process_time()
-			self.tracker_model.predict(next_measurement)
-			total_time += time.process_time() - start_time
+			if i > 0:
+				# Obtain a set of guesses for the current location of the object given the measurements
+				next_measurement = deepcopy(self.measures[index][i])
+				start_time = time.process_time()
+				self.tracker_model.predict(next_measurement)
+				total_time += time.process_time() - start_time
 
 			if isinstance(self.tracker_model, MHTTracker):
 				self.trajectories[len(self.trajectories.keys())-1].append(self.tracker_model.get_trajectories())
@@ -160,6 +163,18 @@ class Simulation:
 					"fnu": str(self.tracker_model.kalman.R[0][0]),
 					"P": str(self.tracker_model.track_maintenance.P[0][0]),
 				}}
+		if isinstance(self.tracker_model, MHTTracker):
+			self.best_trajectories[index] = self.tracker_model.get_best_trajectory()
+			sort = self.tracker_model.get_best_measurements()
+
+			for key, value in sort.items():
+				if key not in self.best_measurements[len(self.best_measurements) - 1].keys():
+					self.best_measurements[len(self.best_measurements) - 1][key] = []
+				self.best_measurements[len(self.best_measurements) - 1][key] += value
+
+		# Add initial values to be plotted as measurements and trajectory values
+		self.measures[index] = [self.tracker_model.measurements[0]] + self.measures[index]
+		self.measure_colors[index] = [['black']*len(self.tracker_model.measurements[0])] + self.measure_colors[index]
 
 		# Store the total time taken by the predict method of the tracker
 		self.time_taken[len(self.time_taken.keys())] = total_time
@@ -200,7 +215,6 @@ class Simulation:
 			self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
 
 		# this code will throw an error if there's no track maintenance object in the pipeline
-
 		process = self.clean_trajectory(self.processes[index])
 		max_dist = self.get_max_correspondence_dist(process)
 		best_trajs, correspondences = self.get_best_correspondence(max_dist, index = index)
@@ -212,7 +226,8 @@ class Simulation:
 
 	def experiment(self, ts, test="data", **kwargs):
 		"""
-		Runs an experiment, generating data and producing a trajectory
+		Runs an experiment, generating data and producing a trajectory.
+		IMPORTANT NOTE: This cannot currently be used with multiple kwargs
 
 		Args:
 			ts (int): the number of time steps to simulate
@@ -226,29 +241,60 @@ class Simulation:
 		else:
 			ts_modified = ts
 
+		start_gen = deepcopy(self.generator)
+
 		# If we are testing multiple potential values of parameters for data generation, we generate
 		# several sets of data and predict for all of them
 		if test == "data":
 			for ts_item in ts_modified:
 				for arg in kwargs.items():
+					lam = None
+					miss_p = None
 					for value in arg[1]:
 						self.generator = self.generator.mutate(**{arg[0]: value})
 						# Reset rng value so we can run the same experiment but with different parameters
 						self.rng = np.random.default_rng(self.cur_seed)
 						self.generate(ts_item)
+
+
+						# Start with a freshly reset tracker model
+						if arg[0] == "lam":
+							lam = value
+						if arg[0] == "miss_p":
+							miss_p = value
+						# Clear the tracks in the tracker to run another experiment
+						self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
+						# Generate trajectories
 						self.predict()
+
+						# Reset the generator to its starting values so it can be used in a future experiment
+						self.generator = deepcopy(start_gen)
+
 		# If we are testing multiple potential values of parameters for the filter, we generate one set of data and for
 		# each experiment we run, copy it and run the filter
 		elif test == "filter":
 			for ts_item in ts_modified:
 				self.generate(ts_item)
 				for arg in kwargs.items():
+					# Start with a freshly reset tracker model
+					lam = None
+					miss_p = None
 					for i, value in enumerate(arg[1]):
 						if i != 0:
 							self.processes[len(self.processes)] = self.processes[len(self.processes) - 1]
 							self.measures[len(self.measures)] = self.measures[len(self.measures) - 1]
 							self.descs[len(self.descs)] = self.descs[len(self.descs)-1]
+						if arg[0] == "lam":
+							lam = value
+						if arg[0] == "miss_p":
+							miss_p = value
+						self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
+
+						# Generate trajectories
 						self.predict(index = i, **{arg[0]: value})
+
+						# Reset the generator to its starting values so it can be used in a future experiment
+						self.generator = deepcopy(start_gen)
 		else:
 			raise Exception("Not a valid test type. Choose either \"data\" or \"filter\"")
 
@@ -271,12 +317,19 @@ class Simulation:
 		if plot_error_q:
 			self.plot_all(error=True, var=var)
 
-	def test_tracker_model(self, ts, name, iter=3, test="data", **kwargs):
-		self.clear()
-		metrics = dict()
-		for k in range(iter):
+	def test_tracker_model(self, ts, name, iterations=3, test="data", **kwargs):
+		"""
+
+		"""
+
+		# Need to save the tracker you start with to reset at every time step, since the "experiment" changes the tracker
+		lam = copy(self.tracker_model.track_maintenance.lambda_fa)
+		miss_p = copy(1-self.tracker_model.track_maintenance.pd)
+
+		for k in range(iterations):
 			if self.seed_value == 0:
 				self.cur_seed = np.random.randint(10 ** 7)
+			self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
 			self.experiment(ts, test, **kwargs)
 
 		file = open(name, "w")
@@ -292,15 +345,15 @@ class Simulation:
 				mota = 0
 				time_taken = 0
 				track_count = 0
-				for j in range(iter):
+				for j in range(iterations):
 					motp += self.motp[i + j*rows]
 					mota += self.mota[i + j*rows]
 					time_taken += self.time_taken[i + j*rows]
 					track_count += self.track_count[i + j*rows]
-				motp /= iter
-				mota /= iter
-				time_taken /= iter
-				track_count /= iter
+				motp /= iterations
+				mota /= iterations
+				time_taken /= iterations
+				track_count /= iterations
 
 				# Format data and output to file
 				data = "{}\t{}\t{}\t{}\t{}\t{}\n".format(key, param, motp, mota, time_taken, track_count)
@@ -389,7 +442,6 @@ class Simulation:
 
 		correspondences = None
 		if len(self.trajectories) > 0:
-			# TO DO: Need a better distance gate than inf
 			if isinstance(self.tracker_model, MHTTracker):
 				max_dist = self.get_max_correspondence_dist(process)
 				best_trajs, correspondences = self.get_best_correspondence(max_dist, index)
@@ -599,6 +651,8 @@ class Simulation:
 		self.mota = dict()
 		self.motp = dict()
 		self.track_count = dict()
+		self.best_trajectories = dict()
+		self.best_measurements = dict()
 
 		# Clear stored tracks from the tracker
 		self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
@@ -802,8 +856,7 @@ class Simulation:
 		"""
 		# Heuristic for determining the cutoff between a poor filter prediction and an object miss
 		# This is a custom heuristic created by the Aerospace research team
-		# NOTE: can't handle new objects
-		#max_dist = 2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
+		# max_dist = 2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
 
 		output = []
 		# Maintain a list of the objects : trajectory correspondences that have already been generated
@@ -836,9 +889,8 @@ class Simulation:
 			# Ensure objects that are too far away are not assigned by making the distance infinity
 			if cost.size > 0:
 				cost[cost > max_dist] = np.inf
-
 			# Find the best combinations of trajectory and process using the cost matrix
-			while cost.size > 0 and (cost != np.inf).all():
+			while cost.size > 0 and (cost != np.inf).any():
 				# Calculate each subsequent minimum traj-proc pair and remove this from consideration
 				# (greedy algorithm)
 				best_proc, best_traj = np.unravel_index(cost.argmin(), cost.shape)
