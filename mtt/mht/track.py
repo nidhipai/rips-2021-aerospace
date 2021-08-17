@@ -30,7 +30,6 @@ class Track:
         else:
             self.P = P # posteriori estimate error covariance initialized to the identity matrix
         self.P_minus = self.P
-        self.missed_measurements = 0
 
         #testing
         self.test_stats = {}
@@ -79,7 +78,6 @@ class Track:
     #     return num_observation > self.pruning_n
 
     def confirmed(self):
-        return True
         return self.num_observations() > self.pruning_n - 1
 
     def num_observations(self):
