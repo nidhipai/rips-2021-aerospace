@@ -421,6 +421,8 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
     time_taken = 0
     mota = 0
     motp = 0
+    # use_best controls whether the plot shows the final hypothesis or the prediction at each time step
+    use_best = True
     if ts is None:
         ts = 15
     if tmm is None:
@@ -543,21 +545,27 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         # Generate all variables to plot
         processes = sim.clean_trajectory(sim.processes[0])
         max_dist = sim.get_max_correspondence_dist(processes)
+
+        # OVERRIDE for best trajectory
+        if use_best:
+            sim.trajectories = sim.best_trajectories
+
         best_trajs, correspondences = sim.get_best_correspondence(max_dist)
         trajectories = sim.clean_trajectory(best_trajs)
+
         skip_traj = len(trajectories) == 0 or trajectories[-1] is None
 
         colors = sim.clean_measure(sim.measure_colors[0])
         # If there are no measures, we must skip plotting them
         skip_measures = False
         if(colors.size > 0):
-            #measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
-            #measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
-            measures = sim.clean_measure2(sim.sorted_measurements[0], correspondences)
+            if use_best:
+                measures = sim.clean_measure2(sim.best_measurements[0], correspondences)
+            else:
+                measures = sim.clean_measure2(sim.sorted_measurements[0], correspondences)
         else:
             skip_measures = True
-            #measures_true = np.array([])
-            #measures_false = np.array([])
+
         false_alarms = sim.false_alarms[0]
         false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")

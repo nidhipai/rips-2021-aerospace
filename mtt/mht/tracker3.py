@@ -125,7 +125,6 @@ class MHTTracker:
 
         result = []
         for ts in range(0, self.ts):  # iterate over timesteps
-            result.append(dict())
             for i, track in enumerate(self.tracks):
                 if ts in track.observations:
                     result[ts][i] = self.measurements[ts][track.observations[ts]]
@@ -143,9 +142,10 @@ class MHTTracker:
         """
 
         result = []
-        for t in range(self.ts):
+        result.append(self.starting_pos)
+        for t in range(1, self.ts):
             step = dict()
-            for i, track in enumerate(self.cur_best_tracks):
+            for i, track in enumerate(self.cur_best_tracks[::-1]):
                 step[i] = track.aposteriori_estimates[t]
             result.append(step)
         return result
@@ -230,6 +230,30 @@ class MHTTracker:
                 obs = track.observations[max(track.observations.keys())]
                 if obs is not None:
                     result[track.obj_id] = self.measurements[-1][obs]
+
+        return result
+
+    def get_best_measurements(self):
+        """
+        Returns the best measurements for the most recent time step.
+        Dictionary entries represent the measurements for an object at a given time step.
+        Each key represents the object id of the track as it is stored (no correspondence is calculated)
+
+        Returns:
+            result (dict): A dictionary with the object id as the key and the sorted measurements as the
+            values.
+        """
+        result = dict()
+
+        # Test whether each track in the best hypothesis is confirmed.
+        # If it is, then add all measurements to the output
+
+        for track in self.cur_best_tracks:
+            if track.confirmed() or self.track_maintenance.born_p == 0:
+                result[track.obj_id] = list()
+                for time, obs in track.observations.items():
+                    if obs is not None:
+                        result[track.obj_id].append(self.measurements[time][obs])
 
         return result
 

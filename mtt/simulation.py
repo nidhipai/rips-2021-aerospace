@@ -61,6 +61,8 @@ class Simulation:
 		self.mota = dict()
 		self.motp = dict()
 		self.track_count = dict()
+		self.best_trajectories = dict()
+		self.best_measurements = dict()
 		self.DEFAULT_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 	# the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
@@ -109,6 +111,7 @@ class Simulation:
 		self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())] = dict()
 		self.false_alarms[len(self.false_alarms.keys())] = dict()
 		self.sorted_measurements[len(self.sorted_measurements)] = dict()
+		self.best_measurements[len(self.best_measurements)] = dict()
 
 		# MTTTracker stores false alarms and has a pipeline, but with MHT, we cannot do this until the end
 		# Therefore, we divide into two instances
@@ -158,6 +161,14 @@ class Simulation:
 					"fnu": str(self.tracker_model.kalman.R[0][0]),
 					"P": str(self.tracker_model.track_maintenance.P[0][0]),
 				}}
+		if isinstance(self.tracker_model, MHTTracker):
+			self.best_trajectories[index] = self.tracker_model.get_best_trajectory()
+			sort = self.tracker_model.get_best_measurements()
+
+			for key, value in sort.items():
+				if key not in self.best_measurements[len(self.best_measurements) - 1].keys():
+					self.best_measurements[len(self.best_measurements) - 1][key] = []
+				self.best_measurements[len(self.best_measurements) - 1][key] += value
 
 		# Add initial values to be plotted as measurements and trajectory values
 		self.measures[index] = [self.tracker_model.measurements[0]] + self.measures[index]
@@ -202,7 +213,6 @@ class Simulation:
 			self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
 
 		# this code will throw an error if there's no track maintenance object in the pipeline
-
 		process = self.clean_trajectory(self.processes[index])
 		max_dist = self.get_max_correspondence_dist(process)
 		best_trajs, correspondences = self.get_best_correspondence(max_dist, index = index)
@@ -641,6 +651,8 @@ class Simulation:
 		self.mota = dict()
 		self.motp = dict()
 		self.track_count = dict()
+		self.best_trajectories = dict()
+		self.best_measurements = dict()
 
 		# Clear stored tracks from the tracker
 		self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
