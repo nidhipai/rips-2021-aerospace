@@ -75,7 +75,8 @@ class MHTTracker:
         #     print(track)
 
         # Calculate the maximum weighted clique
-        best_tracks_indexes = self.hypothesis_comp.predict(self.tracks)
+        # If new tracks can be born, tracks must be confirmed before being added to max weight clique.
+        best_tracks_indexes = self.hypothesis_comp.predict(self.tracks, self.track_maintenance.born_p == 0)
 
         # Save the current best hypothesis to output
         self.cur_best_hypothesis = best_tracks_indexes
@@ -124,7 +125,6 @@ class MHTTracker:
 
         result = []
         for ts in range(0, self.ts):  # iterate over timesteps
-            result.append(dict())
             for i, track in enumerate(self.tracks):
                 if ts in track.observations:
                     result[ts][i] = self.measurements[ts][track.observations[ts]]
@@ -142,9 +142,10 @@ class MHTTracker:
         """
 
         result = []
-        for t in range(self.ts):
+        result.append(self.starting_pos)
+        for t in range(1, self.ts):
             step = dict()
-            for i, track in enumerate(self.cur_best_tracks):
+            for i, track in enumerate(self.cur_best_tracks[::-1]):
                 step[i] = track.aposteriori_estimates[t]
             result.append(step)
         return result
@@ -164,7 +165,7 @@ class MHTTracker:
         result = dict()
         print(self.cur_best_tracks)
         for track in self.cur_best_tracks:
-            if track.confirmed():
+            if track.confirmed() or self.track_maintenance.born_p == 0:
                 result[track.obj_id] = track.x_hat
         return result
 
@@ -182,7 +183,7 @@ class MHTTracker:
 
         result = dict()
         for track in self.cur_best_tracks:
-            if track.confirmed():
+            if track.confirmed() or self.track_maintenance.born_p == 0:
                 result[track.obj_id] = track.x_hat_minus
         return result
 
@@ -203,7 +204,7 @@ class MHTTracker:
         ellipses = dict()
 
         for track in self.cur_best_tracks:
-            if track.confirmed():
+            if track.confirmed() or self.track_maintenance.born_p == 0:
                 if mode == "apriori":
                     ellipses[track.obj_id] = [track.x_hat_minus, track.P_minus]
                 else:
@@ -225,10 +226,34 @@ class MHTTracker:
         # Test whether each track in the best hypothesis is confirmed.
         # If it is, then add it to the output
         for track in self.cur_best_tracks:
-            if track.confirmed():
+            if track.confirmed() or self.track_maintenance.born_p == 0:
                 obs = track.observations[max(track.observations.keys())]
                 if obs is not None:
                     result[track.obj_id] = self.measurements[-1][obs]
+
+        return result
+
+    def get_best_measurements(self):
+        """
+        Returns the best measurements for the most recent time step.
+        Dictionary entries represent the measurements for an object at a given time step.
+        Each key represents the object id of the track as it is stored (no correspondence is calculated)
+
+        Returns:
+            result (dict): A dictionary with the object id as the key and the sorted measurements as the
+            values.
+        """
+        result = dict()
+
+        # Test whether each track in the best hypothesis is confirmed.
+        # If it is, then add all measurements to the output
+
+        for track in self.cur_best_tracks:
+            if track.confirmed() or self.track_maintenance.born_p == 0:
+                result[track.obj_id] = list()
+                for time, obs in track.observations.items():
+                    if obs is not None:
+                        result[track.obj_id].append(self.measurements[time][obs])
 
         return result
 
@@ -247,7 +272,7 @@ class MHTTracker:
         # Iterate through our best hypothesis to find which measurements should not be included as false alarms
         for track in self.cur_best_tracks:
             # Test if the track is confirmed yet; if not, it is considered a false alarm
-            if track.confirmed():  # this is redundant later because cur_best_tracks should all be confirmed
+            if track.confirmed() or self.track_maintenance.born_p == 0:  # this is redundant later because cur_best_tracks should all be confirmed
                 # If the track records the time step, set the observation in the track as not a false alarm
                 if time in track.observations.keys() and track.observations[time] is not None:
                     possible_measurements.remove(track.observations[time])

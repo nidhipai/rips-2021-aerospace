@@ -12,7 +12,7 @@ class HypothesisComp:
 	"""
 	Determines the current predictions by picking the best tracks using a max clique algorithm.
 	"""
-	def predict(self, tracks):
+	def predict(self, tracks, no_new_obj=False):
 		"""
 		Create a graph where the nodes are tracks, with weight equal to track score, and two nodes have an edge
 		if they are compatible. The max weight clique tracks are in the best hypothesis.
@@ -28,7 +28,7 @@ class HypothesisComp:
 		# We only want to consider tracks that have had enough time to be pruned off
 		confirmed_tracks = []
 		for track in tracks:
-			if track.confirmed():
+			if track.confirmed() or no_new_obj:
 				confirmed_tracks.append(track)
 
 		if len(confirmed_tracks) > 0:
