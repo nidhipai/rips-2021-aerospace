@@ -7,7 +7,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy, deepcopy
 import time
-from old.single_target_evaluation import SingleTargetEvaluation
 from scipy.stats import chi2
 
 from .pipeline.track_maintenance import TrackMaintenance
@@ -358,56 +357,6 @@ class Simulation:
 
 		file.close()
 		return output
-
-	def plot_error(self, index=None, ax=None, title="Error", var="Seed"):
-		"""
-		Plot our trajectory based on the predicted trajectories given by the kalman filter object.
-
-		Args:
-			index (int): The experiment to plot the error
-			ax (matplotlib.pyplot): Matplotlib multiplot, only used if plotting multiple experiments
-			title (str): Text that appears at the top of the plot. Default = "Error"
-			var (str): Variable that you want to display in the title. Default = "Time Steps"
-
-		"""
-
-		if index is None:
-			index = len(self.processes.keys()) - 1
-		process = self.processes[index]
-		process = self.clean_trajectory(process)[0]  # get first two position coordinates
-		if isinstance(self.tracker_model, MHTTracker):
-			max_dist = self.get_max_correspondence_dist(process)
-			traj, correspondences = self.get_best_correspondence(max_dist, index=index)
-		else:
-			traj = self.trajectories[index]
-		traj = self.clean_trajectory(traj)[0]
-
-		# legend should be true if the plot needs a legend (it's only one plot and the legend isn't on an outside axis)
-		legend = False
-		if ax is None:
-			fig, ax = plt.subplots()
-			legend = True
-		plt.rcParams.update({'font.size': 10})
-
-		# Plot in two dimensions
-		if self.n // 2 == 2:
-
-			#Calculate the errors over time
-			center_errors = SingleTargetEvaluation.center_error(process[:2, :], traj)
-
-			line1, = ax.plot(center_errors)
-			lines = [line1]
-
-			ax.set_title(title + "\n" + var + " = " + str(self.descs[index][var]))
-			ax.set_xlabel("Time")
-			ax.set_ylabel("Error")
-			#ax.axis('square')
-			if legend is True:
-				legend_size = 16
-				ax.legend(["Error"],prop={'size': legend_size})
-			return lines
-		else:
-			print("Number of dimensions cannot be graphed (error plot).")
 
 	def plot(self, var="Seed", index=None, title="Object Position", x_label="x", y_label="y", z_label="z", ax=None, ellipse_freq=0, tail = 0):
 		"""
