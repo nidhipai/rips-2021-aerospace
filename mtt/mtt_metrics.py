@@ -1,7 +1,15 @@
+"""
+Sal Balkus, Nidhi Pai, Eduardo Sosa, Tony Zeng
+RIPS 2021 Aerospace Team
+"""
+
 import numpy as np
 
 
 class MTTMetrics:
+	"""
+	Computes various error metrics
+	"""
 	# in this whole class, processes and trajectos are the ones that have been cleaned in sim
 
 	# Returns AME of Euclidean distances between trajectory and actual process for each object
@@ -9,6 +17,15 @@ class MTTMetrics:
 	# TODO: Obsolte and no longer maintained
 	@staticmethod
 	def AME_euclidean(processes, trajectos, cut=0):
+		"""
+		OBSOLETE
+
+		Args:
+			processes (list): a list of ndarray representing true state vector over time for each object
+			trajectos (list): a list of ndarray representing predicted state vector over time for each object
+		Returns:
+			errors (ndarray): errors[i] is the AME of the ith object
+		"""
 		index = 0
 		errors = []
 		starts = MTTMetrics.find_first_value(trajectos)
@@ -31,6 +48,15 @@ class MTTMetrics:
 	# Access RMSE of ith object with errors[i]
 	@staticmethod
 	def RMSE_euclidean(processes, trajectos, cut = 0):
+		"""
+		Compute RMSE of prediction minus truth
+
+		Args:
+			processes (list): a list of ndarray representing true state vector over time for each object
+			trajectos (list): a list of ndarray representing predicted state vector over time for each object
+		Returns:
+			errors (ndarray): errors[i] is the RMSE of the ith object
+		"""
 		errors = []
 		starts = MTTMetrics.find_first_value(trajectos)
 
@@ -62,6 +88,8 @@ class MTTMetrics:
 		Args:
 			processes (list): a list of ndarray representing true state vector over time for each object
 			trajectos (list): a list of ndarray representing predicted state vector over time for each object
+		Returns:
+			errors (list): list of along/cross-track errors in position and velocity
 		"""
 
 
@@ -104,6 +132,15 @@ class MTTMetrics:
 	# Access last with errors[3]
 	@staticmethod
 	def false_id_rate(tfa_and_count, fa, cut = 0):
+		"""
+		Computes various statistics relating to false alarms based on true/false positive/negatives
+
+		Args:
+			tfa_and_count (list): list containing actual false alarms
+			fa (list): list containing algorithm marked false alarms
+		Returns:
+			errors (list): four element list containing recall, specificity, precision, and last ratio
+		"""
 		errors = []
 		pfa = []
 		for index in range(len(fa[0])):
@@ -125,6 +162,14 @@ class MTTMetrics:
 	# Simple method to calculate where the trajectories start; searches for first non-None value
 	@staticmethod
 	def find_first_value(trajectos):
+		"""
+		Computes first non-None value in trajectories
+
+		Args:
+			trajectos (list): list of trajectories
+		Returns:
+			cuts (list): list of indices which mark starts of trajectories
+		"""
 		# If trajectory starts with None values, need to find where to start the error calculation
 		cuts = []
 		for traj in trajectos:
@@ -237,6 +282,4 @@ class MTTMetrics:
 		# Tally number of objects and hypotheses at each time step
 		mota = 1 - (mota / total_possibilities)
 		return motp, mota
-
-
 
