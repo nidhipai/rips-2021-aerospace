@@ -64,8 +64,13 @@ class MTTTracker:
 		return result
 
 	def get_apriori_traj(self):
+		"""
+		Returns the a priori trajectories. 
+		Returns:
+		result (list) a list with all the a priori trajectories.
+		"""
 		result = []
-		#for ts in range(0, len(self.tracks[0].apriori_pred.values())): # iterate over timesteps
+		# iterate over timesteps
 		for ts in range(0, self.time): # iterate over timesteps
 			result.append(dict())
 			for j, track in self.tracks.items():
@@ -74,12 +79,16 @@ class MTTTracker:
 				else:
 					# Note that this assumes the state vector is of length 4
 					result[ts][j] = list(repeat([None], 4))
-		#print("?", result)
 		return result
 
 	def get_ellipses(self, mode="apriori"):
 		"""
-		Returns: a dict with keys: tracks and values: array of ellipse params
+		Returns the ellipses as a dictionary.
+
+		Args:
+			mode (str): default to "apriori" which returns the a priori ellipses. Can also be "aposteriori"
+
+		Returns: a dict with keys - tracks and values - array of ellipse params
 		"""
 		ellipses = dict()
 		for i, track in self.tracks.items():
@@ -91,7 +100,8 @@ class MTTTracker:
 
 	def get_sorted_measurements(self):
 		"""
-		Returns: A dict with key: track and value: array of measurements for that track
+		Returns:
+		measures (dict): A dict with key - track and value -array of measurements for that track
 		"""
 		measures = dict()
 		for i, track in self.tracks.items():

@@ -50,7 +50,6 @@ class KalmanFilter:
 		self.error_array = [] # array to store our innovations
 		self.xt0 = xt0 # for plotting
 
-	# Update a posteriori estimate based on a priori estimate and measurement
 	def predict(self, measurement=None, measurement_array=None):
 		"""
 		Update a posteriori estimate based on a priori estimate and measurement
@@ -74,7 +73,6 @@ class KalmanFilter:
 			self.P = (np.eye(self.n) - self.K @ self.H) @ self.P_minus
 
 
-	# Return current a posteriori estimate
 	def get_current_guess(self):
 		"""
 		Returns:
@@ -82,7 +80,6 @@ class KalmanFilter:
 		"""
 		return self.x_hat
 
-	# Return current a priori estimate
 	def get_current_apriori_guess(self):
 		"""
 		Returns:

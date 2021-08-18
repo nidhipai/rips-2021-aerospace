@@ -1,14 +1,13 @@
+# Import dash, the package used to create the dashboard
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
-import plotly.figure_factory as ff
 import numpy as np
 import mtt
-from copy import copy
 
-#Declare these as global variables to be used by all callbacks
+# Set up global variables needed to run the simulation
 global sim
 global prev_clicks
 prev_clicks = 0
@@ -16,16 +15,17 @@ num_objects = 1
 
 # Define colors to use in plots.
 # Note this is the maximum number of objects we can plot
-DEFAULT_COLORS=['rgb(31, 119, 180)', 'rgb(255, 127, 14)',
+DEFAULT_COLORS = ['rgb(31, 119, 180)', 'rgb(255, 127, 14)',
                        'rgb(44, 160, 44)', 'rgb(214, 39, 40)',
                        'rgb(148, 103, 189)', 'rgb(140, 86, 75)',
                        'rgb(227, 119, 194)', 'rgb(127, 127, 127)',
                        'rgb(188, 189, 34)', 'rgb(23, 190, 207)']
 
+# Use the dash default stylesheet
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-# Default simulation values, just to start with
+# Default simulation values with which to start
 obj1 = np.array([[0], [0], [1], [1]])
 initial = {0: obj1}
 dt = 1
@@ -49,28 +49,42 @@ input_style = {"display": "inline-block", "margin": input_margin}
 output_style = {"display": "inline-block", "margin-right": 20, "margin-left": 20, "margin-top": 10, "margin-bottom": 10}
 
 # Set up the necessary infrastructure to run a simulation
-#gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa_scale)
-gen = mtt.MultiObjFixed(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam=lam, fa_scale=fa_scale, x_lim = x_lim, y_lim = y_lim, new_obj_prop = new_obj_prop)
+# Uncomment the next line and comment the line after that
+# if you want to change back to an omnipotent sensor rather than a fixed-width sensor
+# gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa_scale)
+gen = mtt.MultiObjFixed(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam=lam, fa_scale=fa_scale, x_lim=x_lim, y_lim=y_lim, new_obj_prop=new_obj_prop)
 
 
 #Set up a default tracker and simulation
-# Old SHT tracker
+# Old SHT tracker - uncomment this and comment next line to use the old method
 # tracker = mtt.Presets.standardSHT(num_objects, gen.get_params())
 # New MHT tracker
 tracker = mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, starting_pos=initial)
+
+# Set up object to manage simulation
 sim = mtt.Simulation(gen, tracker, seed_value = 0)
 
-#Create blank figures to display at start
+# Create blank figures to display at start
 fig = go.Figure()
 err = go.Figure()
 
-#Create app layout
+# Create app layout in HTML
+# Each div contains either a plot or some sort of input to the dashboard
 app.layout = html.Div(children=[
     html.H1(children='2D Object Trajectory Tracking', style={"text-align":"center"}),
 
     html.Div(children='''
         This dashboard generates sample object movement in two directions and 
-        uses the RIPS Aerospace Tracker to plot the predicted object trajectories.
+        uses the Multi-Hypothesis Tracking algorithm to predict and plot its trajectory. This algorithm was implemented 
+        by the RIPS 2021 research team for the Aerospace Corporation. 
+        To use the dashboard, input desired 
+        simulation parameters into the text boxes below in the first section. To test multiple objects, either 
+        increase the number of object births, or write the starting positions as multiple strings of four numbers separated
+        by the pipe character. For example, parallel objects can be written like so: 0 0 1 1 | 0 5 1 1. 
+        Then, input the desired tracker algorithm parameters into corresponding text boxes in the second section. 
+        Don't forget that you may zoom in to the track using the + or - buttons, as well as the "Autoscale" option,
+        both of which can be accessed by mousing over the plot. Also note that inputting a random seed of 0 will cause
+        the simulation to generate completely random seeds. 
     ''', style={"margin":10}),
 
     html.Button('Run Simulation', id='run', n_clicks=0, style={"margin-top": 10,"margin-left":20}),
@@ -142,19 +156,6 @@ app.layout = html.Div(children=[
                 placeholder=15
             )
         ], style=input_style),
-
-    html.H6(children="Scoring Method"),
-
-    dcc.RadioItems(
-        options=[
-            {'label': 'Log Likelihood', 'value': 'loglikelihood'},
-            {'label': 'Distance', 'value': 'distance'},
-            {'label': 'Chi Squared', 'value': 'chi2'}
-        ],
-    value='chi2',
-    id = 'scoring_method',
-    labelStyle={'display': 'inline-block'}
-    ),
 
     html.H6(children="Gating Method"),
 
@@ -375,7 +376,9 @@ app.layout = html.Div(children=[
     ])
 ])
 
-#Callback to update the graphs, both when check is clicked and when button is pressed
+# Callback to update the graphs, both when check is clicked and when button is pressed
+# This function manages the running of the dashboard
+# See Dash documentation for more details
 @app.callback(
     Output('example-graph', 'figure'), # Outputs are the graphs
     Output('error-graph', 'figure'),
@@ -403,7 +406,6 @@ app.layout = html.Div(children=[
     State('gate_size', 'value'),
     State('gate_expand_size', 'value'),
     State('prune_time', 'value'),
-    State('scoring_method', 'value'),
     State('gate_method', 'value'),
     State('tot', 'value'),
     State('tmm', 'value'),
@@ -413,7 +415,8 @@ app.layout = html.Div(children=[
     State('new_obj_prop', 'value'),
 
 )
-def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, prune_time, scoring_method, gate_method, tot, tmm, tnt, x_lim, y_lim, new_obj_prop):
+def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, prune_time, gate_method, tot, tmm, tnt, x_lim, y_lim, new_obj_prop):
+    # Set up the global variables and default values for plotting later
     global prev_clicks
     global sim
     fig = prev_fig
@@ -422,7 +425,10 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
     mota = 0
     motp = 0
     # use_best controls whether the plot shows the final hypothesis or the prediction at each time step
+    # Change this to false if you want to plot the prediction at each individual time step
     use_best = True
+
+    # For each possible input, set a default value if the user does not put anything in
     if ts is None:
         ts = 15
     if tmm is None:
@@ -431,9 +437,10 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         tnt = 1
     if tot is None:
         tot = 0.001
+    # Detect whether the "RUN" button has been clicked
     if prev_clicks < n_clicks:
         prev_clicks = n_clicks
-        # Set default parameters
+        # For each possible input, set a default value if the user does not put anything in
         if nu is None or nu == "":
             nu = 0.1
         if ep_tangent is None or ep_tangent == "":
@@ -462,9 +469,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             gate_expand_size = 0.5
         if prune_time is None or prune_time == "":
             prune_time = 4
-        if scoring_method is None or scoring_method == "chi2":
-            scoring_method = "chi2"
-        # Parse the Object Starting Positions
+        # Parse the Object Starting Positions from string into dictionary
         x0_split = x0.split("|")
         x0_parse = dict()
 
@@ -472,18 +477,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             x0_parse[i] = np.array(item.strip().split(" ")).astype(float)
             x0_parse[i].shape = (4,1)
 
-        """
-        if x0_filter is not None:
-            x0_filter_split = x0_filter.split("|")
-            x0_filter_parse = dict()
-            for i, item in enumerate(x0_filter_split):
-                x0_filter_parse[i] = np.array(item.strip().split(" ")).astype(float)
-                x0_filter_parse[i].shape = (4, 1)
-        else:
-            x0_filter_parse = sim.generator.xt0
-        """
-        # Parse input matrices to Kalman filter
-
+        # Parse input matrices from string to matrix to input to Kalman filter
         if Q is not None and Q != '':
             Q_split = Q.split("\n")
             Q_parse = []
@@ -514,7 +508,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         else:
             P_parse = np.eye(4)
 
-        #Set up the simulation with the newly specified parameters
+        # Set up the simulation with the newly specified parameters
         sim.seed_value = int(seed)
         sim.clear(lam, miss_p)
         sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale, x_lim=x_lim, y_lim=y_lim, new_obj_prop=new_obj_prop)
@@ -537,27 +531,37 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             starting_pos[i] = pos + rand
 
         # Set the parameters for the tracker and generate the data and predictions
-        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method=gate_method, tot=tot, tmm=tmm, tnt=tnt, born_p=new_obj_prop, prune_time=prune_time, scoring_method=scoring_method, starting_pos=starting_pos))
+        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method=gate_method, tot=tot, tmm=tmm, tnt=tnt, born_p=new_obj_prop, prune_time=prune_time, scoring_method="chi2", starting_pos=starting_pos))
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly")
-
+    # Make sure we have pressed the button before generating plot
     if n_clicks != 0:
-        # Generate all variables to plot
+        # Convert the form of the Simulation class variables so that they can be plotted
         processes = sim.clean_trajectory(sim.processes[0])
         max_dist = sim.get_max_correspondence_dist(processes)
 
-        # OVERRIDE for best trajectory
+        # If we only want to plot the best hypothesis at the most recent time step,
+        # override the trajectories in the simulation by resetting them
         if use_best:
             sim.trajectories = sim.best_trajectories
 
+        # Use the best correspondence algorithm to determine which predicted trajectories match up with which processes
         best_trajs, correspondences = sim.get_best_correspondence(max_dist)
         trajectories = sim.clean_trajectory(best_trajs)
 
+        # Test if there are actually trajectories to plot; if not, we set the result to a variable to skip them later
         skip_traj = len(trajectories) == 0 or trajectories[-1] is None
 
+        # Get colors to determine which measurements are false alarms
         colors = sim.clean_measure(sim.measure_colors[0])
+
         # If there are no measures, we must skip plotting them
         skip_measures = False
+
+        # NOTE: In the following code, "clean" means convert the data structure into a numpy array
+        # which is supported for plotting in Plotly, the package used to plot
+        # Clean the measurements (convert data structure) so that they can be colored based on
+        # which object they have been assigned
         if(colors.size > 0):
             if use_best:
                 measures = sim.clean_measure2(sim.best_measurements[0], correspondences)
@@ -566,15 +570,23 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         else:
             skip_measures = True
 
+        # Similarly, clean the false alarms so that they can be plotted on the graph
         false_alarms = sim.false_alarms[0]
         false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
+
+        # Clean the ellipses so they can be plotted
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
+
+        # As requested by Jaime, calculate the along-track and cross-track errors for plotting
         atct_errors = mtt.MTTMetrics.atct_signed(processes, trajectories)
+
+        # Create a list of time labels to attach to the trajectories and processes in the plot
         time = ["time = {}".format(t) for t in range(processes[0][0].size)]
 
         # Set the range manually to prevent the animation from dynamically changing the range
-
+        # This is done by calculating the maximum and minimum
+        # x and y limits of the trajectories, process and measurements
         if isinstance(gen, mtt.MultiObjFixed) and x_lim is not None and y_lim is not None:
             xmin = -x_lim
             xmax = x_lim
@@ -612,23 +624,9 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
                 xrange = [xmin * 1.1, xmax * 1.1]
                 yrange = [ymin * 1.1, ymax * 1.1]
 
-        """
-        if measures_true.size > 0 and not skip_measures:
-            measure_max.append(measures_true[0].max())
-            measure_max.append(measures_true[1].max())
-            measure_min.append(measures_true[0].min())
-            measure_min.append(measures_true[1].min())
-
-        if measures_false.size > 0 and not skip_measures:
-            measure_max.append(measures_false[0].max())
-            measure_max.append(measures_false[1].max())
-            measure_min.append(measures_false[0].min())
-            measure_min.append(measures_false[1].min())
-        """
-
         desc = ''
-        # Print out the parameters on the plot
-
+        # Set up a string to print out the parameters on the plot
+        # This includes all of the parameters which have been input
         if "True" in display_params:
             for key, value in sim.descs[0].items():
                 if key not in ["Q", "R", "fep_at", "fep_ct", "fnu", "P", "Time Steps"]:
@@ -640,25 +638,30 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         # Need a mapping from trajectory list index to process list index
         all_keys = sim.get_traj_keys(best_trajs)
 
+        # Test if each set of processes, measurements, and trajectories has been "checked" on the dashboard
+        # If so, plot using Plotly (see plotly documentation on these functions for more information)
+
+        # Plot the processes
         if 'process' in options:
             for i, process in enumerate(processes):
-                # NOTE: the "time" text here assumes all objects are on-screen for an equal number of time steps;
-                # Otherwise "time" will be incorrect
                 data.append(go.Scatter(x=process[0], y=process[1], mode='lines', name='Obj {} Process'.format(i), text=time, line=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
+        # Plot the measurements
         if 'measure' in options and not skip_measures:
             for i, key in enumerate(all_keys):
                 if key in measures.keys():
-                    # NOTE: no time step added
+                    # NOTE: no time step added to measurements
                     data.append(go.Scatter(x=measures[key][0], y=measures[key][1], mode='markers', name="Measures Assigned Obj {}".format(key),
                                          marker=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
-
+            # Plot the false alarms which have not been assigned to an object
             data.append(go.Scatter(x=false_alarms[0], y=false_alarms[1], mode='markers', name="False Alarms",
                                 marker=dict(color="black", symbol="x")))
+        # Plot the trajectories
         if 'trajectory' in options:
             for i, key in enumerate(all_keys):
                 if not np.all(np.isnan(trajectories[i])):
                     data.append(go.Scatter(x=trajectories[i][0], y=trajectories[i][1], mode='lines',
                                          name='Obj {} Prediction'.format(key), text=time, line=dict(width=3, dash='dot', color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
+        # Plot the a priori ellipses
         if 'apriori-covariance' in options:
             xs = []
             ys = []
@@ -670,7 +673,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
                     ys.append(None)
 
             data.append(go.Scatter(x=xs, y=ys, mode="lines", name="A Priori Error Covariance"))
-
+        # Plot the a posteriori ellipses
         if 'aposteriori-covariance' in options:
             xs = []
             ys = []
@@ -693,7 +696,8 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
 
         err = go.Figure(layout=errlayout)
 
-        # Set font size
+        # Set font size for figures
+        # UPdate error figure with font size
         fontsize = 13
         err.update_xaxes(tickfont_size=fontsize, title = "Time Step")
         err.update_yaxes(tickfont_size=fontsize)
@@ -705,24 +709,26 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             )
         ))
 
+        # Plot the along-track and cross-track errors for each object
         for i, obj_error in enumerate(atct_errors):
             err.add_trace(go.Scatter(y=obj_error[0], x=list(range(len(obj_error[0]))), mode='lines', name="Obj {} Along-track Position Error".format(i)))
             err.add_trace(go.Scatter(y=obj_error[1], x=list(range(len(obj_error[1]))), mode='lines', name="Obj {} Cross-track Position Error".format(i)))
             err.add_trace(go.Scatter(y=obj_error[2], x=list(range(len(obj_error[2]))), mode='lines', name="Obj {} Along-track Velocity Error".format(i)))
             err.add_trace(go.Scatter(y=obj_error[3], x=list(range(len(obj_error[3]))), mode='lines', name="Obj {} Cross-track Velocity Error".format(i)))
 
+        # Set up plotly animations
         frames = []
 
+        # Iterate through each time step to add the plot for that time as an animation frame
         for t in range(ts):
             scatters = []
+            # Plot animation frames for each process
             if 'process' in options:
                 for i, process in enumerate(processes):
-                    # NOTE: the "time" text here assumes all objects are on-screen for an equal number of time steps;
-                    # Otherwise "time" will be incorrect
                     scatters.append(
                         go.Scatter(x=process[0, :(t+1)], y=process[1, :(t+1)], mode='lines', name='Object {} Process'.format(i),
                                    text=time))
-
+            # Plot animation frames for each set of measurements
             if 'measure' in options and not skip_measures:
                 for i, key in enumerate(all_keys):
                     if key in measures.keys():
@@ -731,15 +737,16 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
                                        marker=dict(color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
                 scatters.append(go.Scatter(x=false_alarms[0][:(t+1)], y=false_alarms[1][:(t+1)], mode='markers', name="False Alarms",
                                        marker=dict(color="black", symbol="x")))
-
+            # Plot animation frames for each predicted trajectory
             if 'trajectory' in options and not skip_traj:
                 for i, key in enumerate(all_keys):
                     if not np.all(np.isnan(trajectories[i])):
                         scatters.append(go.Scatter(x=trajectories[i][0, :(t+1)], y=trajectories[i][1, :(t+1)], mode='lines',
                                                  name='Object {} Prediction'.format(key), text=time, line=dict(width=3, dash='dash')))
-
+            # Add all plots as a single frame to the list of animation frames
             frames.append(go.Frame(data=scatters))
 
+        # Set up the layout of the plots and add the buttons and animation frames
         layout = go.Layout(xaxis_range=xrange, yaxis_range=yrange, autosize=False,
                            width=800,
                            plot_bgcolor='rgba(0,0,0,0)',
@@ -776,11 +783,14 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
                                    }
                                ],"pad": {"r": 30, "t": 30}}]
                            )
+        # Previously-used error metrics:
+        # rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
+        # num_measures = sum([len(time_step) for time_step in sim.measures[0]])
 
-        #rmse = mtt.MTTMetrics.RMSE_euclidean(processes, trajectories)
-        #num_measures = sum([len(time_step) for time_step in sim.measures[0]])
+        # If we have trajectories, calculate their MOTA and MOTP to display on the plot
         if not skip_traj:
             mota, motp = mtt.MTTMetrics.mota_motp(processes, trajectories, all_keys)
+        # Set up the figure with all of the plots which we generated previously
         fig = go.Figure(data=data, layout=layout, frames=frames)
         fig.update_xaxes(tickfont_size=fontsize)
         fig.update_yaxes(tickfont_size=fontsize)
@@ -791,8 +801,13 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
                 color="black"
             )
         ))
+        # Include the time taken on the dashboard itself as a text output
         time_taken = sim.time_taken[0]
 
+    # Return all of the HTML elements we plan to display
     return fig, err, sim.cur_seed, str(mota), str(motp), time_taken
 
+# The line below allows the dashboard to be hosted by running dashboard.py
+# This must be changed if hosting on a remote web server such as PythonAnywhere
+# Please see the Dash (or Flask) documentation for more information on running dashboards
 app.run_server(debug=True)
