@@ -61,6 +61,8 @@ class Simulation:
 		self.mota = dict()
 		self.motp = dict()
 		self.track_count = dict()
+		self.best_trajectories = dict()
+		self.best_measurements = dict()
 		self.DEFAULT_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 	def generate(self, time_steps):
@@ -97,6 +99,8 @@ class Simulation:
 			index (int): the stored trajectory to predict
 		"""
 
+		self.tracker_model.set_bound(self.generator.x_lim, self.generator.y_lim)
+
 		if index is None:
 			index = len(self.processes.keys()) - 1
 
@@ -107,6 +111,7 @@ class Simulation:
 		self.aposteriori_ellipses[len(self.aposteriori_ellipses.keys())] = dict()
 		self.false_alarms[len(self.false_alarms.keys())] = dict()
 		self.sorted_measurements[len(self.sorted_measurements)] = dict()
+		self.best_measurements[len(self.best_measurements)] = dict()
 
 		# MTTTracker stores false alarms and has a pipeline, but with MHT, we cannot do this until the end
 		# Therefore, we divide into two instances
@@ -156,6 +161,14 @@ class Simulation:
 					"fnu": str(self.tracker_model.kalman.R[0][0]),
 					"P": str(self.tracker_model.track_maintenance.P[0][0]),
 				}}
+		if isinstance(self.tracker_model, MHTTracker):
+			self.best_trajectories[index] = self.tracker_model.get_best_trajectory()
+			sort = self.tracker_model.get_best_measurements()
+
+			for key, value in sort.items():
+				if key not in self.best_measurements[len(self.best_measurements) - 1].keys():
+					self.best_measurements[len(self.best_measurements) - 1][key] = []
+				self.best_measurements[len(self.best_measurements) - 1][key] += value
 
 		# Add initial values to be plotted as measurements and trajectory values
 		self.measures[index] = [self.tracker_model.measurements[0]] + self.measures[index]
@@ -198,8 +211,6 @@ class Simulation:
 			}}
 
 			self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
-
-
 		process = self.clean_trajectory(self.processes[index])
 		max_dist = self.get_max_correspondence_dist(process)
 		best_trajs, correspondences = self.get_best_correspondence(max_dist, index = index)
@@ -211,7 +222,8 @@ class Simulation:
 
 	def experiment(self, ts, test="data", **kwargs):
 		"""
-		Runs an experiment, generating data and producing a trajectory
+		Runs an experiment, generating data and producing a trajectory.
+		IMPORTANT NOTE: This cannot currently be used with multiple kwargs
 
 		Args:
 			ts (int): the number of time steps to simulate
@@ -225,50 +237,60 @@ class Simulation:
 		else:
 			ts_modified = ts
 
+		start_gen = deepcopy(self.generator)
+
 		# If we are testing multiple potential values of parameters for data generation, we generate
 		# several sets of data and predict for all of them
 		if test == "data":
 			for ts_item in ts_modified:
 				for arg in kwargs.items():
+					lam = None
+					miss_p = None
 					for value in arg[1]:
 						self.generator = self.generator.mutate(**{arg[0]: value})
 						# Reset rng value so we can run the same experiment but with different parameters
 						self.rng = np.random.default_rng(self.cur_seed)
 						self.generate(ts_item)
 
+
 						# Start with a freshly reset tracker model
-						lam = None
-						miss_p = None
-						if "lam" in kwargs.keys():
-							lam = self.tracker_model.track_maintenance.lambda_fa
-						if "miss_p" in kwargs.keys():
-							miss_p = 1 - self.tracker_model.track_maintenance.pd
+						if arg[0] == "lam":
+							lam = value
+						if arg[0] == "miss_p":
+							miss_p = value
+						# Clear the tracks in the tracker to run another experiment
 						self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
 						# Generate trajectories
 						self.predict()
+
+						# Reset the generator to its starting values so it can be used in a future experiment
+						self.generator = deepcopy(start_gen)
+
 		# If we are testing multiple potential values of parameters for the filter, we generate one set of data and for
 		# each experiment we run, copy it and run the filter
 		elif test == "filter":
 			for ts_item in ts_modified:
 				self.generate(ts_item)
 				for arg in kwargs.items():
+					# Start with a freshly reset tracker model
+					lam = None
+					miss_p = None
 					for i, value in enumerate(arg[1]):
 						if i != 0:
 							self.processes[len(self.processes)] = self.processes[len(self.processes) - 1]
 							self.measures[len(self.measures)] = self.measures[len(self.measures) - 1]
 							self.descs[len(self.descs)] = self.descs[len(self.descs)-1]
-
-						# Start with a freshly reset tracker model
-						lam = None
-						miss_p = None
-						if "lam" in kwargs.keys():
-							lam = self.tracker_model.track_maintenance.lambda_fa
-						if "miss_p" in kwargs.keys():
-							miss_p = 1 - self.tracker_model.track_maintenance.pd
+						if arg[0] == "lam":
+							lam = value
+						if arg[0] == "miss_p":
+							miss_p = value
 						self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
 
 						# Generate trajectories
 						self.predict(index = i, **{arg[0]: value})
+
+						# Reset the generator to its starting values so it can be used in a future experiment
+						self.generator = deepcopy(start_gen)
 		else:
 			raise Exception("Not a valid test type. Choose either \"data\" or \"filter\"")
 
@@ -296,9 +318,14 @@ class Simulation:
 
 		"""
 
+		# Need to save the tracker you start with to reset at every time step, since the "experiment" changes the tracker
+		lam = copy(self.tracker_model.track_maintenance.lambda_fa)
+		miss_p = copy(1-self.tracker_model.track_maintenance.pd)
+
 		for k in range(iterations):
 			if self.seed_value == 0:
 				self.cur_seed = np.random.randint(10 ** 7)
+			self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)
 			self.experiment(ts, test, **kwargs)
 
 		file = open(name, "w")
@@ -608,6 +635,8 @@ class Simulation:
 		self.mota = dict()
 		self.motp = dict()
 		self.track_count = dict()
+		self.best_trajectories = dict()
+		self.best_measurements = dict()
 
 		# Clear stored tracks from the tracker
 		self.tracker_model.clear_tracks(lam=lam, miss_p=miss_p)

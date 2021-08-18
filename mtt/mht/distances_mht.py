@@ -1,17 +1,18 @@
 """
-Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
-Aerospace Team
+Sal Balkus, Nidhi Pai, Eduardo Sosa, Tony Zeng
+RIPS 2021 Aerospace Team
 """
 
 import numpy as np
 from scipy.stats import chi2
 
+
 class DistancesMHT:
     """
-    Calculates various distances
+    Utility class for calculating various distances.
 
-    Methods tagged with threshold means that it takes in a thresold and returns True if the dis is < threshold
-    Measurement is a column vector and kfilter is a filter
+    Methods tagged with threshold means that it takes in a threshold and returns True if the dis is < threshold.
+    Measurement is a column vector and kfilter is a filter throughout.
     """
     @staticmethod
     def euclidean(measurement, track):
@@ -19,7 +20,7 @@ class DistancesMHT:
         Computes the euclidean distance between a measurement and the a posteriori estimate of a track.
 
         Args:
-            measurement (ndarray): The measurement. 
+            measurement (ndarray): The measurement.
             track (Track): The track which contains the current a posteriori estimate.
         Returns:
             (float): the distance between the measurement and the a posteriori estimate. 
@@ -30,54 +31,56 @@ class DistancesMHT:
     @staticmethod
     def mahalanobis(measurement, track, kfilter):
         """
-        Computes the mahalanobis distance between a measurement and a track. 
+        Computes the Mahalanobis distance between a measurement and a track.
 
         Args:
             measurement (ndarray): The measurement. 
             track (Track): The track which contains the current a posteriori estimate.
             kfilter (KalmanFilter): The global kalman filter. 
         Returns:
-            dis (float): the distance between the measurement and the a posteriori estimate. 
+            dis (float): The distance between the measurement and the a posteriori estimate.
         """
 
         innovation = (measurement - kfilter.h(track.x_hat_minus)).reshape((4,1))
         K = kfilter.H @ track.P @ kfilter.H.T + kfilter.R
         dis = np.sqrt(innovation.T @ np.linalg.inv(K) @ innovation)
-        dis = dis[0][0]  # this is kinda hacky and the fact that I have to do this may signal that something is wrong
+        dis = dis[0][0]  # remove the numpy array wrapping
         return dis
 
-
     @staticmethod
-    def euclidean_threshold(measurement, track, kfilter, error_threshold):
+    def euclidean_threshold(measurement, track, error_threshold, kfilter=None):
         """
-        returns whether the euclidean distance between a measurement and a track is below a certain error
+        Returns whether the Euclidean distance between a measurement and a track is below a certain error
         threshold. 
 
         Args:
             measurement (ndarray): The measurement. 
             track (Track): The track which contains the current a posteriori estimate.
-            kfilter (KalmanFilter): The global kalman filter. 
-            error_threshold (float): the error threshold 
+            error_threshold (float): The error threshold to be under to return True.
+            kfilter (KalmanFilter, optional): The global Kalman filter used for all the tracks, unused for this method.
+        Returns:
+            True if the distance between the measurement and track prediction is below the threshold.
         """
 
-        dis = DistancesMHT.euclidean(measurement, track, kfilter)
+        dis = DistancesMHT.euclidean(measurement, track)
         return dis < error_threshold
 
     @staticmethod
-    def mahalanobis_threshold(measurement, track, kfilter, error_threshold):
+    def mahalanobis_threshold(measurement, track, error_threshold, kfilter=None):
         """
-        returns whether the euclidean distance between a measurement and a track is below a certain error
+        Returns whether the Mahalanobis distance between a measurement and a track is below a certain error
         threshold. 
 
         Args:
             measurement (ndarray): The measurement. 
             track (Track): The track which contains the current a posteriori estimate.
-            kfilter (KalmanFilter): The global kalman filter.
-            error_threshold (float): the error threshold 
+            kfilter (KalmanFilter): The global Kalman filter used for all the tracks.
+            error_threshold (float): The error threshold to be under to return True.
+        Returns:
+            True if the distance between the measurement and track prediction is below the threshold.
         """
-        
+        if kfilter is None:
+            raise Exception("KalmanFilter is None in Distances")
         dis = DistancesMHT.mahalanobis(measurement, track, kfilter)
         cutoff = chi2.ppf(error_threshold, 2)
         return dis < cutoff
-
-    # consider adding a switcher to this class
