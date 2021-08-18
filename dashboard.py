@@ -34,14 +34,14 @@ ep_tangent = 1
 nu = 1
 ts = 10
 miss_p = 0
-lam = 0
+lam = 1
 fa_scale = 1
 gate_size = 0.95
 gate_expand_size = 0.5
 
 x_lim = 50
 y_lim = 50
-new_obj_prop = 0.05
+new_obj_prop = 0
 
 # Style Parameters
 input_margin = 10
@@ -50,14 +50,14 @@ output_style = {"display": "inline-block", "margin-right": 20, "margin-left": 20
 
 # Set up the necessary infrastructure to run a simulation
 #gen = mtt.MultiObjSimple(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam, fa_scale)
-gen = mtt.MultiObjFixed(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam = lam, fa_scale = fa_scale, x_lim = x_lim, y_lim = y_lim, new_obj_prop = new_obj_prop)
+gen = mtt.MultiObjFixed(initial, dt, ep_tangent, ep_normal, nu, miss_p, lam=lam, fa_scale=fa_scale, x_lim = x_lim, y_lim = y_lim, new_obj_prop = new_obj_prop)
 
 
 #Set up a default tracker and simulation
 # Old SHT tracker
 # tracker = mtt.Presets.standardSHT(num_objects, gen.get_params())
 # New MHT tracker
-tracker = mtt.Presets.standardMHT(gen.get_params(), miss_p, lam)
+tracker = mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, starting_pos=initial)
 sim = mtt.Simulation(gen, tracker, seed_value = 0)
 
 #Create blank figures to display at start
@@ -175,7 +175,7 @@ app.layout = html.Div(children=[
                 type="number",
                 min=0.0000001,
                 max=100,
-                placeholder=1
+                placeholder=0.1
             )
         ], style=input_style),
 
@@ -186,7 +186,7 @@ app.layout = html.Div(children=[
                 type="number",
                 min=0,
                 max=100,
-                placeholder=1
+                placeholder=0.1
             )
         ], style=input_style),
 
@@ -197,7 +197,7 @@ app.layout = html.Div(children=[
                 type="number",
                 min=0,
                 max=100,
-                placeholder=1
+                placeholder=0.1
             )
         ], style=input_style),
 
@@ -241,7 +241,7 @@ app.layout = html.Div(children=[
                 type="number",
                 min=10,
                 max=10000,
-                placeholder=100
+                placeholder=50
             )
         ], style=input_style),
 
@@ -252,7 +252,7 @@ app.layout = html.Div(children=[
                 type="number",
                 min=10,
                 max=10000,
-                placeholder=100
+                placeholder=50
             )
         ], style=input_style),
 
@@ -263,7 +263,7 @@ app.layout = html.Div(children=[
                 type="number",
                 min=0,
                 max=1,
-                placeholder=0.1
+                placeholder=0
             )
         ], style=input_style),
 
@@ -369,7 +369,7 @@ app.layout = html.Div(children=[
             dcc.Input(
                 id="tnt",
                 type="number",
-                placeholder="0.7"
+                placeholder="1"
             )
         ], style=input_style)
     ])
@@ -406,8 +406,8 @@ app.layout = html.Div(children=[
     State('scoring_method', 'value'),
     State('gate_method', 'value'),
     State('tot', 'value'),
-    State('tnt', 'value'),
     State('tmm', 'value'),
+    State('tnt', 'value'),
     State('x_lim', 'value'),
     State('y_lim', 'value'),
     State('new_obj_prop', 'value'),
@@ -426,24 +426,24 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
     if tmm is None:
         tmm = 0.1
     if tnt is None:
-        tnt = 0.8
+        tnt = 1
     if tot is None:
-        tot = 0.00001
+        tot = 0.001
     if prev_clicks < n_clicks:
         prev_clicks = n_clicks
         # Set default parameters
         if nu is None or nu == "":
-            nu = 1
+            nu = 0.1
         if ep_tangent is None or ep_tangent == "":
-            ep_tangent = 1
+            ep_tangent = 0.1
         if new_obj_prop is None:
-            new_obj_prop = 0.1
+            new_obj_prop = 0
         if x_lim is None:
-            x_lim = 100
+            x_lim = 50
         if y_lim is None:
-            y_lim = 100
+            y_lim = 50
         if ep_normal is None or ep_normal == "":
-            ep_normal = 1
+            ep_normal = 0.1
         if miss_p is None or miss_p == "":
             miss_p = 0
         if lam is None or lam == "":
@@ -515,7 +515,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
         #Set up the simulation with the newly specified parameters
         sim.seed_value = int(seed)
         sim.clear(lam, miss_p)
-        sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale, x_lim = x_lim, y_lim = y_lim, new_obj_prop = new_obj_prop)
+        sim.reset_generator(xt0=x0_parse, nu=nu, ep_normal=ep_normal, ep_tangent=ep_tangent, miss_p=miss_p, lam=lam, fa_scale=fa_scale, x_lim=x_lim, y_lim=y_lim, new_obj_prop=new_obj_prop)
 
         params = {
             "f": sim.generator.process_function,
@@ -527,41 +527,84 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             "H": sim.generator.measurement_jacobian(x0_parse),
             "P": P_parse
         }
+        # Add some noise to the starting position based on P
+        starting_pos = {}
+        for i, pos in x0_parse.items():
+            rand = np.random.multivariate_normal(np.zeros(4), P_parse)
+            rand.shape = (4,1)
+            starting_pos[i] = pos + rand
 
-        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method = gate_method, tot = tot, tmm = tmm, tnt = tnt, prune_time=prune_time, scoring_method=scoring_method))
+        # Set the parameters for the tracker and generate the data and predictions
+        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method=gate_method, tot=tot, tmm=tmm, tnt=tnt, born_p=new_obj_prop, prune_time=prune_time, scoring_method=scoring_method, starting_pos=starting_pos))
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly")
+
     if n_clicks != 0:
         # Generate all variables to plot
         processes = sim.clean_trajectory(sim.processes[0])
         max_dist = sim.get_max_correspondence_dist(processes)
         best_trajs, correspondences = sim.get_best_correspondence(max_dist)
         trajectories = sim.clean_trajectory(best_trajs)
-        skip_traj = trajectories[-1] is None
-
+        skip_traj = len(trajectories) == 0 or trajectories[-1] is None
 
         colors = sim.clean_measure(sim.measure_colors[0])
         # If there are no measures, we must skip plotting them
         skip_measures = False
         if(colors.size > 0):
-            measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
-            measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
+            #measures_true = sim.clean_measure(sim.measures[0])[:, colors == "black"]
+            #measures_false = sim.clean_measure(sim.measures[0])[:, colors == "red"]
             measures = sim.clean_measure2(sim.sorted_measurements[0], correspondences)
         else:
             skip_measures = True
-            measures_true = np.array([])
-            measures_false = np.array([])
+            #measures_true = np.array([])
+            #measures_false = np.array([])
         false_alarms = sim.false_alarms[0]
         false_alarms = sim.clean_false_alarms(false_alarms) if len(false_alarms) > 0 else []
-
         apriori_ellipses = sim.clean_ellipses(sim.apriori_ellipses[0], mode="plotly")
         aposteriori_ellipses = sim.clean_ellipses(sim.aposteriori_ellipses[0], mode="plotly")
         atct_errors = mtt.MTTMetrics.atct_signed(processes, trajectories)
         time = ["time = {}".format(t) for t in range(processes[0][0].size)]
 
         # Set the range manually to prevent the animation from dynamically changing the range
-        measure_max = []
-        measure_min = []
+
+        if isinstance(gen, mtt.MultiObjFixed):
+            xmin = -x_lim
+            xmax = x_lim
+            ymin = -y_lim
+            ymax = y_lim
+            xrange = [xmin, xmax]
+            yrange = [ymin, ymax]
+        else:
+            measure_max = []
+            measure_min = []
+
+            if len(false_alarms[0]) > 0 and not skip_measures:
+                measure_max.append(max(false_alarms[0]))
+                measure_max.append(max(false_alarms[1]))
+                measure_min.append(min(false_alarms[0]))
+                measure_min.append(min(false_alarms[1]))
+
+            # Check to make sure there is a trajectory to plot, and not a filler list of Nones
+            if not skip_traj:
+                xmax = max([max([process[0].max() for process in processes]), max(
+                    [trajectory[0][trajectory[0] != None].max() for trajectory in trajectories] + measure_max)])
+                xmin = min([min([process[0].min() for process in processes]), min(
+                    [trajectory[0][trajectory[0] != None].min() for trajectory in trajectories] + measure_min)])
+                ymax = max([max([process[1].max() for process in processes]), max(
+                    [trajectory[1][trajectory[0] != None].max() for trajectory in trajectories] + measure_max)])
+                ymin = min([min([process[1].min() for process in processes]), min(
+                    [trajectory[1][trajectory[0] != None].min() for trajectory in trajectories] + measure_min)])
+                xrange = [xmin * 1.1, xmax * 1.1]
+                yrange = [ymin * 1.1, ymax * 1.1]
+            else:
+                xmax = max([max([process[0].max() for process in processes])])
+                xmin = min([min([process[0].min() for process in processes])])
+                ymax = max([max([process[1].max() for process in processes])])
+                ymin = min([min([process[1].min() for process in processes])])
+                xrange = [xmin * 1.1, xmax * 1.1]
+                yrange = [ymin * 1.1, ymax * 1.1]
+
+        """
         if measures_true.size > 0 and not skip_measures:
             measure_max.append(measures_true[0].max())
             measure_max.append(measures_true[1].max())
@@ -573,22 +616,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             measure_max.append(measures_false[1].max())
             measure_min.append(measures_false[0].min())
             measure_min.append(measures_false[1].min())
-
-        # Check to make sure there is a trajectory to plot, and not a filler list of Nones
-        if not skip_traj:
-            xmax = max([max([process[0].max() for process in processes]), max([trajectory[0][trajectory[0] != None].max() for trajectory in trajectories] + measure_max)])
-            xmin = min([min([process[0].min() for process in processes]), min([trajectory[0][trajectory[0] != None].min() for trajectory in trajectories] + measure_min)])
-            ymax = max([max([process[1].max() for process in processes]), max([trajectory[1][trajectory[0] != None].max() for trajectory in trajectories] + measure_max)])
-            ymin = min([min([process[1].min() for process in processes]), min([trajectory[1][trajectory[0] != None].min() for trajectory in trajectories] + measure_min)])
-            xrange = [xmin*1.1, xmax*1.1]
-            yrange = [ymin*1.1, ymax*1.1]
-        else:
-            xmax = max([max([process[0].max() for process in processes])])
-            xmin = min([min([process[0].min() for process in processes])])
-            ymax = max([max([process[1].max() for process in processes])])
-            ymin = min([min([process[1].min() for process in processes])])
-            xrange = [xmin * 1.1, xmax * 1.1]
-            yrange = [ymin * 1.1, ymax * 1.1]
+        """
 
         desc = ''
         # Print out the parameters on the plot
@@ -620,7 +648,8 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
                                 marker=dict(color="black", symbol="x")))
         if 'trajectory' in options:
             for i, key in enumerate(all_keys):
-                data.append(go.Scatter(x=trajectories[i][0], y=trajectories[i][1], mode='lines',
+                if not np.all(np.isnan(trajectories[i])):
+                    data.append(go.Scatter(x=trajectories[i][0], y=trajectories[i][1], mode='lines',
                                          name='Obj {} Prediction'.format(key), text=time, line=dict(width=3, dash='dot', color=DEFAULT_COLORS[i % len(DEFAULT_COLORS)])))
         if 'apriori-covariance' in options:
             xs = []
@@ -697,8 +726,9 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
 
             if 'trajectory' in options and not skip_traj:
                 for i, key in enumerate(all_keys):
-                    scatters.append(go.Scatter(x=trajectories[i][0, :(t+1)], y=trajectories[i][1, :(t+1)], mode='lines',
-                                             name='Object {} Prediction'.format(key), text=time, line=dict(width=3, dash='dash')))
+                    if not np.all(np.isnan(trajectories[i])):
+                        scatters.append(go.Scatter(x=trajectories[i][0, :(t+1)], y=trajectories[i][1, :(t+1)], mode='lines',
+                                                 name='Object {} Prediction'.format(key), text=time, line=dict(width=3, dash='dash')))
 
             frames.append(go.Frame(data=scatters))
 
@@ -754,7 +784,6 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             )
         ))
         time_taken = sim.time_taken[0]
-
 
     return fig, err, sim.cur_seed, str(mota), str(motp), time_taken
 

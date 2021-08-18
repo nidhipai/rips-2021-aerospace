@@ -87,9 +87,29 @@ class DataGenerator(ABC):
         return output
 
     def W(self, xt):
+        """
+        Returns the identity matrix multiplied by self.n
+
+        Args:
+            xt (int): state vector.
+
+        Returns:
+            (ndarray): The identity matrix multiplied by self.n
+
+        """
         return np.eye(self.n, self.n)
 
     def get_params(self, P = np.eye(4)):
+        """
+        Returns the identity matrix multiplied by self.n
+
+        Args:
+            P (ndarray, optional): the P matrix. 
+
+        Returns:
+            (dict): A dictionary with all the parameters as keys and the values as values. 
+
+        """
         return {
             "f": self.process_function,
             "A": self.process_jacobian,
