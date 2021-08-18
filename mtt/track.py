@@ -1,5 +1,5 @@
 """
-Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
+Sal Balkus, Nidhi Pai, Eduardo Sosa, Tony Zeng
 Aerospace Team
 """
 

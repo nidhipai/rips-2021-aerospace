@@ -1,6 +1,10 @@
-"""Aerospace Team - Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng"""
+"""
+Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng
+RIPS 2021 Aerospace Team
+"""
 
 import numpy as np
+
 
 class Pruning:
 	def __init__(self, n):

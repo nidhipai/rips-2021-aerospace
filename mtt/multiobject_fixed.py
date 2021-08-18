@@ -1,12 +1,12 @@
 """
-Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
-Aerospace Team
-Simulation
+Sal Balkus, Nidhi Pai, Eduardo Sosa, Tony Zeng
+RIPS 2021 Aerospace Team
 """
 
 import numpy as np
 from copy import copy
 from .data_generator import DataGenerator
+
 
 class MultiObjFixed(DataGenerator):
 	def __init__(self, xt0, dt, ep_tangent, ep_normal, nu, miss_p=0, lam=0, fa_scale=10, x_lim = 30, y_lim = 30, new_obj_prop = 0):

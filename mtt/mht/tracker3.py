@@ -1,5 +1,7 @@
-"""Aerospace Team - Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng"""
-
+"""
+Eduardo Sosa, Nidhi Pai, Sal Balkus, Tony Zeng
+RIPS 2021 Aerospace Team
+"""
 
 from itertools import repeat
 from copy import deepcopy

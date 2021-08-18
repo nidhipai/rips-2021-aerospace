@@ -1,9 +1,8 @@
+"""
+Sal Balkus, Nidhi Pai, Eduardo Sosa, Tony Zeng
+RIPS 2021 Aerospace Team
+"""
 
-"""
-Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
-Aerospace Team
-Simulation
-"""
 import numpy as np
 from abc import ABC, abstractmethod
 

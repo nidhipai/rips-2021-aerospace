@@ -1,14 +1,14 @@
 """
-Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
-Aerospace Team
-
-Todo:
-	Eventually add an evaluation metric/class to the pipeline
+Sal Balkus, Nidhi Pai, Eduardo Sosa, Tony Zeng
+RIPS 2021 Aerospace Team
 """
+
 from itertools import repeat
 
+
 class MTTTracker:
-	"""Pipeline of processes for multi-target tracking
+	"""
+	Pipeline of processes for multi-target tracking
 	"""
 	def __init__(self, methods):
 		"""

@@ -1,8 +1,16 @@
+"""
+Sal Balkus, Nidhi Pai, Eduardo Sosa, Tony Zeng
+RIPS 2021 Aerospace Team
+"""
+
 import mtt
 import numpy as np
 
-class Presets:
 
+class Presets:
+	"""
+	Creates a preset set of input parameters for the tracker class
+	"""
 	@staticmethod
 	def standardMHT(params, miss_p, lam, gate_size=0.95, gate_expand_size=0, gate_method="mahalanobis",
 	                tot=0.001, tmm=0.1, tnt=1, born_p = 0, prune_time=5, scoring_method="chi2", P=None, starting_pos=None):

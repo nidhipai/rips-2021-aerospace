@@ -1,9 +1,10 @@
 """
-Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
-Aerospace Team
+Sal Balkus, Nidhi Pai, Eduardo Sosa, Tony Zeng
+RIPS 2021 Aerospace Team
 """
 
 from mtt.distances import Distances
+
 
 class DistanceGating:
 	def __init__(self, error_threshold, method="mahalanobis", expand_gating=0):

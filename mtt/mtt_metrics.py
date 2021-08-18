@@ -8,7 +8,7 @@ import numpy as np
 
 class MTTMetrics:
 	"""
-	Computes various error metrics
+	Computes various error metrics, both for individual tracks corresponding to processes and entire hypotheses
 	"""
 	# in this whole class, processes and trajectos are the ones that have been cleaned in sim
 

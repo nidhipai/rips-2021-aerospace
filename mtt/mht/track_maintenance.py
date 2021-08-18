@@ -10,6 +10,7 @@ from copy import deepcopy
 from mtt.mht.distances_mht import DistancesMHT
 from scipy.stats import binom
 
+
 class TrackMaintenanceMHT:
     def __init__(self, threshold_old_track, threshold_miss_measurement, threshold_new_track, prob_detection, obs_dim, lambda_fa, R, P, kFilter_model, pruning_n, scoring_method, born_p, num_obj_start):
         """

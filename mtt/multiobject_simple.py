@@ -1,7 +1,6 @@
 """
-Eduardo Sosa, Tony Zeng, Sal Balkus, Nidhi Pai
-Aerospace Team
-Simulation
+Sal Balkus, Nidhi Pai, Eduardo Sosa, Tony Zeng
+RIPS 2021 Aerospace Team
 """
 
 import numpy as np

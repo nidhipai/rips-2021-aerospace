@@ -5,6 +5,7 @@ RIPS 2021 Aerospace Team
 
 import numpy as np
 
+
 class Track:
 	"""
 	Records of observations, score, and prediction of a track
