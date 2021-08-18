@@ -75,7 +75,16 @@ app.layout = html.Div(children=[
 
     html.Div(children='''
         This dashboard generates sample object movement in two directions and 
-        uses the RIPS Aerospace Tracker to plot the predicted object trajectories.
+        uses the Multi-Hypothesis Tracking algorithm to predict and plot its trajectory. This algorithm was implemented 
+        by the RIPS 2021 research team for the Aerospace Corporation. 
+        To use the dashboard, input desired 
+        simulation parameters into the text boxes below in the first section. To test multiple objects, either 
+        increase the number of object births, or write the starting positions as multiple strings of four numbers separated
+        by the pipe character. For example, parallel objects can be written like so: 0 0 1 1 | 0 5 1 1. 
+        Then, input the desired tracker algorithm parameters into corresponding text boxes in the second section. 
+        Don't forget that you may zoom in to the track using the + or - buttons, as well as the "Autoscale" option,
+        both of which can be accessed by mousing over the plot. Also note that inputting a random seed of 0 will cause
+        the simulation to generate completely random seeds. 
     ''', style={"margin":10}),
 
     html.Button('Run Simulation', id='run', n_clicks=0, style={"margin-top": 10,"margin-left":20}),
@@ -147,19 +156,6 @@ app.layout = html.Div(children=[
                 placeholder=15
             )
         ], style=input_style),
-
-    html.H6(children="Scoring Method"),
-
-    dcc.RadioItems(
-        options=[
-            {'label': 'Log Likelihood', 'value': 'loglikelihood'},
-            {'label': 'Distance', 'value': 'distance'},
-            {'label': 'Chi Squared', 'value': 'chi2'}
-        ],
-    value='chi2',
-    id = 'scoring_method',
-    labelStyle={'display': 'inline-block'}
-    ),
 
     html.H6(children="Gating Method"),
 
@@ -410,7 +406,6 @@ app.layout = html.Div(children=[
     State('gate_size', 'value'),
     State('gate_expand_size', 'value'),
     State('prune_time', 'value'),
-    State('scoring_method', 'value'),
     State('gate_method', 'value'),
     State('tot', 'value'),
     State('tmm', 'value'),
@@ -420,7 +415,7 @@ app.layout = html.Div(children=[
     State('new_obj_prop', 'value'),
 
 )
-def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, prune_time, scoring_method, gate_method, tot, tmm, tnt, x_lim, y_lim, new_obj_prop):
+def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tangent, ep_normal, miss_p, lam, fa_scale, x0, seed, Q, R, P, gate_size, gate_expand_size, prune_time, gate_method, tot, tmm, tnt, x_lim, y_lim, new_obj_prop):
     # Set up the global variables and default values for plotting later
     global prev_clicks
     global sim
@@ -474,8 +469,6 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             gate_expand_size = 0.5
         if prune_time is None or prune_time == "":
             prune_time = 4
-        if scoring_method is None or scoring_method == "chi2":
-            scoring_method = "chi2"
         # Parse the Object Starting Positions from string into dictionary
         x0_split = x0.split("|")
         x0_parse = dict()
@@ -538,7 +531,7 @@ def update(prev_fig, prev_err, n_clicks, options, display_params, ts, nu, ep_tan
             starting_pos[i] = pos + rand
 
         # Set the parameters for the tracker and generate the data and predictions
-        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method=gate_method, tot=tot, tmm=tmm, tnt=tnt, born_p=new_obj_prop, prune_time=prune_time, scoring_method=scoring_method, starting_pos=starting_pos))
+        sim.reset_tracker(mtt.Presets.standardMHT(gen.get_params(), miss_p, lam, gate_size=gate_size, gate_expand_size=gate_expand_size, gate_method=gate_method, tot=tot, tmm=tmm, tnt=tnt, born_p=new_obj_prop, prune_time=prune_time, scoring_method="chi2", starting_pos=starting_pos))
         sim.generate(ts)
         sim.predict(ellipse_mode="plotly")
     # Make sure we have pressed the button before generating plot

@@ -1,6 +1,5 @@
 # Data generator classes
 from .data_generator import *
-from .twod_object import *
 from .multiobject_simple import *
 from .multiobject_fixed import *
 
@@ -28,7 +27,6 @@ from .mht.tracker3 import *
 
 
 # Experimentation classes
-from .single_target_evaluation import *
 from .simulation import *
 
 # Utility classes

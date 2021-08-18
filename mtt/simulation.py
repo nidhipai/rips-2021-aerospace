@@ -7,8 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy, deepcopy
 import time
-from .single_target_evaluation import SingleTargetEvaluation
-from itertools import repeat
+from old.single_target_evaluation import SingleTargetEvaluation
 from scipy.stats import chi2
 
 from .pipeline.track_maintenance import TrackMaintenance

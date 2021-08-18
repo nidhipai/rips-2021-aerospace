@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from twod_object import TwoDObject
+from old.twod_object import TwoDObject
 from
 
 class TestDataGeneration(unittest.TestCase):
