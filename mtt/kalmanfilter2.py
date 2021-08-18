@@ -11,14 +11,14 @@ class KalmanFilter:
 	def __init__(self, xt0, f, A, h, Q, W, R, P=None, H=None, u=0, dt=1):
 		"""
 		Initialize the Extended Kalman Filter object
-		:param x_hat0: initial state vector
-		:param f: function representing the process
-		:param A: Jacobian matrix of the process function
-		:param h: function representing the measurement
-		:param Q: Covariance matrix of the process noise
-		:param R: Covariance matrix of the measurement noise
-		:param H: Matrix transforming the process state vector into a measurement state vector
-		:param u: Control vector
+		x_hat0 (ndarray): initial state vector
+		f (func) : function representing the process
+		A (ndarray): Jacobian matrix of the process function
+		h (func): function representing the measurement
+		Q (ndarray): Covariance matrix of the process noise
+		R (ndarray): Covariance matrix of the measurement noise
+		H (ndarray): Matrix transforming the process state vector into a measurement state vector
+		u (ndarray): Control vector
 		"""
 		self.Q = Q * dt  # process noise covariance
 		self.W = W # rotation matrix
