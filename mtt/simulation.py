@@ -64,8 +64,6 @@ class Simulation:
 		self.best_measurements = dict()
 		self.DEFAULT_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
-	# the generate functions takes in the number of time_steps of data to be generated and then proceeds to use the
-	# data generator object to create the dictionary of processes and measures.
 	def generate(self, time_steps):
 		"""
 		The generate function takes in the number of time_steps of data to be generated and then proceeds to use the
@@ -96,6 +94,7 @@ class Simulation:
 		The predict function uses Tracker to create an estimated trajectory for our simulated object.
 
 		Args:
+			ellipse_mode (str): Default value set to "mpl".
 			index (int): the stored trajectory to predict
 		"""
 
@@ -104,7 +103,6 @@ class Simulation:
 		if index is None:
 			index = len(self.processes.keys()) - 1
 
-		# {0: first}
 		# Iterate through each time step for which we have measurements
 		self.trajectories[len(self.trajectories.keys())] = []
 		self.apriori_traj[len(self.apriori_traj.keys())] = []
@@ -212,8 +210,6 @@ class Simulation:
 			}}
 
 			self.sorted_measurements[len(self.sorted_measurements)] = self.tracker_model.get_sorted_measurements()
-
-		# this code will throw an error if there's no track maintenance object in the pipeline
 		process = self.clean_trajectory(self.processes[index])
 		max_dist = self.get_max_correspondence_dist(process)
 		best_trajs, correspondences = self.get_best_correspondence(max_dist, index = index)
@@ -370,13 +366,11 @@ class Simulation:
 		Args:
 			index (int): The experiment to plot the error
 			ax (matplotlib.pyplot): Matplotlib multiplot, only used if plotting multiple experiments
-			title (String): Text that appears at the top of the plot. Default = "Error"
-			var (String): Variable that you want to display in the title. Default = "Time Steps"
+			title (str): Text that appears at the top of the plot. Default = "Error"
+			var (str): Variable that you want to display in the title. Default = "Time Steps"
 
 		"""
 
-		# THIS CURRENTLY ONLY HANDLES THE FIRST OBJECT
-		# NEED TO UPDATE
 		if index is None:
 			index = len(self.processes.keys()) - 1
 		process = self.processes[index]
@@ -519,17 +513,6 @@ class Simulation:
 				lines.append(line_fa)
 				labs.append("False Alarms from Tracker")
 
-			## Add the predicted trajectories to the plot
-			#if len(self.trajectories) > 0:
-				#for i, out in enumerate(output):
-					#if out is not None:
-						#line3, = ax.plot(out[0], out[1], lw=0.4, markersize=7, marker=',')
-						#lines.append(line3)
-						#labs.append("Obj" + str(i) + " Filter")
-					##if tail > 0:
-						##line3, = ax.plot(out[0][-tail:], out[1][-tail:], lw=0.4, markersize=8, marker=',')
-					##else:
-						##line3, = ax.plot(out[0], out[1], lw=0.4, markersize=8, marker=',')
 
 			# Add the parameters we use. Note that nu is hardcoded as R[0,0] since the measurement noise is independent in both directions
 			if tail > 0:
@@ -555,7 +538,6 @@ class Simulation:
 				labs.append("Covariance")
 			ax.set_aspect(1)
 			ax.axis('square')
-
 			# Add the velocity vectors to the plot
 			for i, obj in enumerate(process):
 				a = .05
@@ -573,8 +555,6 @@ class Simulation:
 				other_noise = "Miss Rate = {}, FA Rate = {}".format(self.generator.miss_p, self.generator.lam)
 				filter_noise = "Filter Error Variances: AT = {}, CT = {}".format(self.descs[0]["fep_at"], self.descs[0]["fep_ct"])
 				filter_measurement_noise = "Filter Measurement Noise Variance = {}".format(self.generator.get_params()["R"][0][0])
-				#true_state = "true state = " + "[" + self.descs[0]["x0"] + ", " + self.descs[0]["y0"] + ", " + self.descs[0]["vx0"] + ", " + self.descs[0]["vy0"] + "]"
-				#filter_state = "filter state = " + "[" + self.descs[0]["fx0"] + ", " + self.descs[0]["fy0"] + ", " + self.descs[0]["fvx0"] + ", " + self.descs[0]["fvy0"] + "]"
 				covariance = "Starting P = " + self.descs[0]["P"]
 				mos = "MOTP = {}, MOTA = {}".format(np.round(self.motp[index], 3), np.round(self.mota[index],3))
 
@@ -627,6 +607,10 @@ class Simulation:
 	def clear(self, lam=None, miss_p=None):
 		"""
 		This function clears all the processes, measures, trajectories, descriptions, and the ellipses.
+
+		Args:
+			lam (float): set to None but could be any integer. Represents the number of false alarms per time step. 
+			miss_p (float): the frequency of missed measurements. 
 		"""
 		if self.seed_value == 0:
 			self.cur_seed = np.random.randint(10**7)
@@ -670,7 +654,10 @@ class Simulation:
 
 	def reset_tracker(self, tracker):
 		"""
-		Update the tracker model to a new tracker object
+		Update the tracker model to a new tracker object.
+
+		Args:
+			tracker (Tracker): the tracker object to which will set the tracker field to. 
 		"""
 		self.tracker_model = tracker
 
@@ -689,7 +676,6 @@ class Simulation:
 		Returns:
 			Ellipse: return the Ellipse created.
 		"""
-		# s takes into account the p-value given
 		if type(mean) != np.ndarray:
 			mean = np.array(mean)
 		mean.shape = (2,1)
@@ -720,6 +706,14 @@ class Simulation:
 
 	@staticmethod
 	def clean_measure(measure):
+		"""
+		Cleans the measurement by squeezing it and getting rid of needless dimensions. 
+
+		measure (ndarray): The measurement.
+
+		Returns:
+		output (ndarray): the cleaned measurement.
+		"""
 		output = [point for sublist in measure for point in sublist]
 		output = np.array(output).squeeze().T
 		return output
@@ -729,6 +723,11 @@ class Simulation:
 		"""
 		Converts a single trajectory or process from a dictionary of lists of state vectors to a list of numpy arrays
 		representing the position at each time step for plotting.
+
+		Args: 
+			trajectories (list): list of trajectories.
+		Returns:
+			output (list): list of cleaned trajectories.
 		"""
 		output = []
 
@@ -789,8 +788,11 @@ class Simulation:
 		Converts a dict of key: track, value: measures -> the measures list becomes a list of two list
 
 		Args:
-			measures: a dictionary of measurements received at each time step. Requires same data structure as output of DataGenerator class
-			correspondences: a dictionary mapping the keys in the "measures" parameter dictionary to the desired key for the output. Output from "get_best_correspondences" method
+			measures (dict): a dictionary of measurements received at each time step. Requires same data structure as output of DataGenerator class
+			correspondences (dict): a dictionary mapping the keys in the "measures" parameter dictionary to the desired key for the output. Output from "get_best_correspondences" method
+		
+		Returns:
+			output (dict): the clean measures as a dictionary of two-lists. 
 		"""
 		output = dict()
 		for key, track in measures.items():
@@ -816,8 +818,12 @@ class Simulation:
 	@staticmethod
 	def clean_false_alarms(false_alarms):
 		"""
-		Takes in a dict of key: timestep, value: array of false alarm vectors, returns a array of 2 arrays:
-		first array is x-cor and second is y-cor
+		Cleans the false alarms. 
+		
+		Args:
+			false_alarms (dict): key - timestep, value - array of false alarm vectors, 
+		returns:
+			output (list): an array of 2 arrays, first array is x-cor and second is y-cor
 		"""
 		output_x = []
 		output_y = []
@@ -853,9 +859,7 @@ class Simulation:
 		"""
 		Restructures trajectories to assign them the best corresponding object ids from the process
 		"""
-		# Heuristic for determining the cutoff between a poor filter prediction and an object miss
-		# This is a custom heuristic created by the Aerospace research team
-		# max_dist = 2*max([np.linalg.norm(proc[:,0:-1] - proc[:,1:], axis=0).max() for proc in clean_processes]) + 3 * np.sqrt(self.generator.R[0,0])
+	
 
 		output = []
 		# Maintain a list of the objects : trajectory correspondences that have already been generated
@@ -912,37 +916,6 @@ class Simulation:
 
 		return output, correspondences
 
-	# New algorithm pseudocode below:
-
-	# I do not believe we can use linear sum assignment.
-	# This is because if the tracker tracks a "fake" object but fails to track a "real" object,
-	# then the fake object predicted track will be allocated to the "real" object
-	# even if it is quite far away
-
-	# From https://link.springer.com/content/pdf/10.1155%2F2008%2F246309.pdf we get the following:
-
-	# For each time step:
-	#   Establish best possible correspondence between hypotheses and objects
-	#   For each correspondence compute error in position estimation
-	#   Count all objects for which no hypothesis was output as misses
-	#   Count all hypotheses for which no real object exists as FPs
-	#   Count all occurrences where wrong object is identified as mismatch errors
-
-	# How do we establish best correspondence?
-	# For each time step:
-	# For each NEW trajectory start point:
-	#   Assign trajectory object id to the id of the closest process that is...
-	#       NOT being tracked at the current time step by a closer process (bias towards prev hypothesis)
-	#       AND is NOT being tracked by a previous process that is CLOSEST to this process compared to other processes
-	#       AND is WITHIN a certain expected distance of the process (otherwise it is a false alarm)
-	#   If the trajectory cannot be assigned it is considered a false alarm at that time step
-	#
-	# After this, all hypotheses will be allocated to processes that are not already being tracked by a previous hypotheses,
-	# and whose starting positions are closest to said hypotheses compared to other possible hypotheses
-	# The advantage of this method is that it ensures ids are based on the FIRST identification of the object
-	# which we want because that is how the satellites will be identified
-	# and the hypotheses are matched to the processes in the optimal (closest) manner
-
 	@staticmethod
 	def get_traj_keys(best_trajectories):
 		"""
@@ -973,6 +946,17 @@ class Simulation:
 		return all_keys
 
 	def get_true_fa_and_num_measures(self, measures, colors):
+		"""
+		Returns a list of keys from the result of get_best_correspondences to allow correct plotting.
+		Used in the dashboard.
+
+		Args:
+			measures (list): the list of measurements. 
+			colors (list): the list of colors
+
+		Returns:
+			(list): A list containing the true false alarms list and the count. 
+		"""
 		true_false_alarms = []
 		i = 0
 		count = 0
@@ -987,6 +971,15 @@ class Simulation:
 		return [true_false_alarms, count]
 
 	def compute_metrics(self, m = 'ame', cut = 10):
+		"""
+		Computes several error metrics like rmse, ame, process errors, etc. Method discontinued.
+
+		Args:
+			m (str): A string representing the error metric to be calculated. 
+			cut (int): Set to 10, represents the error threshold. 
+		Returns:
+			(float): The error metric calculation
+		"""
 		index = len(self.processes.keys()) - 1
 		if len(self.processes) > 0:
 			process = self.processes[index]
@@ -1012,7 +1005,7 @@ class Simulation:
 		if len(self.measure_colors) > 0:
 			true_false_alarms = self.get_true_fa_and_num_measures(self.measures[index], self.measure_colors[index])
 		else:
-			print("ERROR COLLORS LENGTH 0")
+			print("ERROR COLORS LENGTH 0")
 			return
 		if len(self.false_alarms) > 0:
 			false_alarms = self.false_alarms[index]

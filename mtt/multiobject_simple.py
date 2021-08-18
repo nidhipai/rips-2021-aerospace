@@ -15,16 +15,17 @@ from .data_generator import DataGenerator
 class MultiObjSimple(DataGenerator):
 	def __init__(self, xt0, dt, ep_tangent, ep_normal, nu, miss_p=0, lam=0, fa_scale=10):
 		"""
-		Constructor for the 2DObject Data Generator.
+		Constructor for the MultiObj Simple Data Generator.
 
-		:param xt0: List of initial state vectors
-		:param dt: Length of one single time step
-		:param ep_normal: Variance of the change in velocity vector in the normal direction.
-		:param ep_tangent: Variance of the change in velocity vector in the tangent direction.
-		:param nu: Variance of the measurement noise
-		:param miss_p: Probability of missing a measurement
-		:param lam: Expected number of false alarms per time step
-		:param fa_scale: Scaling of measurement noise on a false alarm
+		Args:
+			xt0 (list): List of initial state vectors
+			dt (int) : Length of one single time step
+			ep_normal (float) : Variance of the change in velocity vector in the normal direction.
+			ep_tangent (float): Variance of the change in velocity vector in the tangent direction.
+			nu (float): Variance of the measurement noise
+			miss_p (float): Probability of missing a measurement between 0 and 1.
+			lam (int): Expected number of false alarms per time step
+			fa_scale (int): Scaling of measurement noise on a false alarm
 
 		"""
 		self.dim = 2					# We work in a two dimensional space
@@ -51,7 +52,6 @@ class MultiObjSimple(DataGenerator):
 
 		# Jacobian matrices for the h function and the f function.
 
-		#self.H = np.append(np.eye(self.dim), np.zeros((self.dim, self.dim)), axis=1) # Position-only jacobian
 		self.H = np.eye(self.n)
 		self.A = np.append(np.append(np.eye(self.dim), np.eye(self.dim) * self.dt, axis=1),
 						   np.append(np.zeros((self.dim, self.dim)), np.eye(self.dim), axis=1), axis=0)
@@ -82,7 +82,7 @@ class MultiObjSimple(DataGenerator):
 		Generate the next measure from the current process state vector
 
 		Args:
-			xts: Current list of state vectors
+			xts (list): Current list of state vectors
 			rng (numpy.Generator): numpy rng object, used to generate random variable
 
 		Returns:
@@ -112,7 +112,7 @@ class MultiObjSimple(DataGenerator):
 			rng (numpy.Generator): numpy rng object, used to generate random variable
 
 		Returns:
-			ndarray: Random changes in state vector
+			(ndarray): Random changes in state vector
 		"""
 		output = rng.normal(0, np.sqrt(self.nu), self.n)
 		output.shape = (4,1)
@@ -128,7 +128,7 @@ class MultiObjSimple(DataGenerator):
 			rng (numpy.Generator): numpy rng object to generate random variable
 
 		Returns:
-			ndarray: vector of noise for each parameter in the state vector
+			(ndarray): vector of noise for each parameter in the state vector
 		"""
 
 		pad = np.array([0, 0])
@@ -146,7 +146,7 @@ class MultiObjSimple(DataGenerator):
 			xt (ndarray): current state vector
 
 		Returns:
-			ndarray: matrix that rotates the velocity portion of a generated state vector
+			(ndarray): matrix that rotates the velocity portion of a generated state vector
 		"""
 		ang = np.arctan2(xt[3, 0], xt[2, 0])
 		c = np.cos(ang)
@@ -162,7 +162,7 @@ class MultiObjSimple(DataGenerator):
 			xt (ndarray): current state vector
 
 		Returns:
-			ndarray: state vector at next time step
+			(ndarray): state vector at next time step
 		"""
 		return self.A @ xt
 
@@ -174,7 +174,7 @@ class MultiObjSimple(DataGenerator):
 			xt (ndarray): current state vector
 
 		Returns:
-			ndarray: Jacobian of the process function; in this case, just the state transition matrix
+			(ndarray): Jacobian of the process function; in this case, just the state transition matrix
 		"""
 		return self.A
 
@@ -186,7 +186,7 @@ class MultiObjSimple(DataGenerator):
 			xt (ndarray): current state vector
 
 		Returns:
-			ndarray: vector representing just the position component of xt
+			(ndarray): vector representing just the position component of xt
 		"""
 		return self.H @ xt
 
@@ -198,7 +198,7 @@ class MultiObjSimple(DataGenerator):
 			xt (ndarray): current state vector
 
 		Returns:
-			ndarray: Jacobian of the measurement function; in this case, just the H matrix
+			(ndarray): Jacobian of the measurement function; in this case, just the H matrix
 		"""
 		return self.H
 
@@ -210,7 +210,7 @@ class MultiObjSimple(DataGenerator):
 			**kwargs: May contain any argument in the constructor of this class; represents the parameters to be changed when the object is copied.
 
 		Returns:
-			MultiObjSimple: version of the current object with updated parameters specified in kwargs
+			MultiObjSimple (MultiObjSimple): version of the current object with updated parameters specified in kwargs
 		"""
 		clone = copy(self)
 		for arg in kwargs.items():
