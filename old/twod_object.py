@@ -6,7 +6,7 @@ Simulation
 
 import numpy as np
 from copy import copy
-from .data_generator import DataGenerator
+from mtt.data_generator import DataGenerator
 
 # Child class for data_generator where we simulate a two-D object
 # with its position and velocity as part of the state vector
